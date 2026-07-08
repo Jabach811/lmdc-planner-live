@@ -1,0 +1,2785 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LMDC Planner 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   LMDC PLANNER 3 — DESIGN TOKENS
+   One palette, one type scale, light + dark from the same tokens.
+   ============================================================ */
+:root{
+  --font: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --mono: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', Menlo, monospace;
+
+  --bg:#f2f4f7;
+  --surface:#ffffff;
+  --surface-2:#f7f8fa;
+  --surface-3:#eef1f5;
+  --border:#e1e5eb;
+  --border-strong:#c9d0da;
+  --text:#1a2130;
+  --muted:#5c6a7e;
+  --faint:#8b96a7;
+
+  --accent:#0f6cbd;
+  --accent-strong:#0b5394;
+  --accent-soft:#e8f1fb;
+  --accent-line:#b3d1ee;
+
+  --ok:#0e7c3a;      --ok-soft:#e5f4ea;    --ok-line:#b7dfc5;
+  --warn:#a35a00;    --warn-soft:#fdf1e0;  --warn-line:#eed3a8;
+  --danger:#c22f26;  --danger-soft:#fceceb;--danger-line:#f2c4c0;
+  --wait:#5c6a7e;    --wait-soft:#eef1f5;  --wait-line:#d5dbe3;
+
+  --shadow-1: 0 1px 2px rgba(16,24,40,.05);
+  --shadow-2: 0 4px 16px rgba(16,24,40,.08);
+  --shadow-3: 0 12px 40px rgba(16,24,40,.16);
+
+  --r-sm:6px; --r-md:9px; --r-lg:12px;
+  --rail-w:264px; --rail-collapsed:60px; --context-w:320px;
+  color-scheme: light;
+}
+html[data-theme="dark"]{
+  --bg:#14171c;
+  --surface:#1d2129;
+  --surface-2:#232833;
+  --surface-3:#2a303c;
+  --border:#313947;
+  --border-strong:#424c5e;
+  --text:#e8ebf0;
+  --muted:#a0abbc;
+  --faint:#6f7a8c;
+
+  --accent:#4c9ff0;
+  --accent-strong:#74b6f5;
+  --accent-soft:#16283d;
+  --accent-line:#2a4a6d;
+
+  --ok:#4cbf74;      --ok-soft:#15281c;    --ok-line:#26543a;
+  --warn:#e0a04a;    --warn-soft:#2d2213;  --warn-line:#5c4522;
+  --danger:#ef7168;  --danger-soft:#331b19;--danger-line:#63302c;
+  --wait:#a0abbc;    --wait-soft:#242a35;  --wait-line:#3a4352;
+
+  --shadow-1: 0 1px 2px rgba(0,0,0,.3);
+  --shadow-2: 0 4px 16px rgba(0,0,0,.35);
+  --shadow-3: 0 12px 40px rgba(0,0,0,.5);
+  color-scheme: dark;
+}
+
+/* ============ RESET / BASE ============ */
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0; font-family:var(--font); font-size:14px; line-height:1.45;
+  color:var(--text); background:var(--bg);
+  -webkit-font-smoothing:antialiased; overflow:hidden;
+}
+button{ font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer; }
+input,select,textarea{ font:inherit; color:var(--text); }
+h1,h2,h3,h4{ margin:0; font-weight:700; letter-spacing:-0.01em; }
+p{ margin:0; }
+a{ color:var(--accent); text-decoration:none; }
+::-webkit-scrollbar{ width:10px; height:10px; }
+::-webkit-scrollbar-thumb{ background:var(--border-strong); border-radius:5px; border:2px solid transparent; background-clip:content-box; }
+::-webkit-scrollbar-track{ background:transparent; }
+:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; border-radius:4px; }
+.num{ font-variant-numeric: tabular-nums; }
+
+/* ============ APP GRID ============ */
+.app{
+  display:grid; height:100vh;
+  grid-template-columns: var(--rail-w) minmax(0,1fr) auto;
+  transition: grid-template-columns .18s ease;
+}
+.app.rail-collapsed{ grid-template-columns: var(--rail-collapsed) minmax(0,1fr) auto; }
+
+/* ============ LEFT RAIL ============ */
+.rail{
+  display:flex; flex-direction:column; min-height:0;
+  background:var(--surface); border-right:1px solid var(--border);
+}
+.rail-head{ display:flex; align-items:center; gap:10px; padding:14px 14px 10px; }
+.rail-logo{
+  width:32px; height:32px; flex:0 0 32px; border-radius:8px; display:grid; place-items:center;
+  background:linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color:#fff; font-weight:800; font-size:13px; letter-spacing:.02em;
+}
+html[data-theme="dark"] .rail-logo{ color:#0e1116; }
+.rail-title{ min-width:0; }
+.rail-title h1{ font-size:14.5px; white-space:nowrap; }
+.rail-title p{ font-size:11px; color:var(--faint); white-space:nowrap; }
+.rail-collapse{ margin-left:auto; }
+.rail-new{ padding:6px 14px 12px; }
+.btn-new-plan{
+  display:flex; align-items:center; gap:8px; width:100%; padding:8px 12px;
+  border-radius:var(--r-md); background:var(--accent); color:#fff; font-weight:600; font-size:13.5px;
+  box-shadow:var(--shadow-1);
+}
+html[data-theme="dark"] .btn-new-plan{ color:#0e1116; }
+.btn-new-plan:hover{ background:var(--accent-strong); }
+.btn-new-plan svg{ flex:0 0 auto; }
+.rail-scroll{ flex:1; overflow-y:auto; min-height:0; padding:2px 8px 8px; }
+.rail-section{ margin-top:8px; }
+.rail-label{
+  padding:8px 8px 4px; font-size:10.5px; font-weight:700; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--faint); white-space:nowrap; overflow:hidden;
+}
+.rail-item{
+  display:flex; align-items:center; gap:10px; width:100%;
+  padding:7px 8px; border-radius:var(--r-md); color:var(--muted);
+  font-weight:500; font-size:13.5px; position:relative; white-space:nowrap;
+}
+.rail-item svg{ flex:0 0 20px; }
+.rail-item:hover{ background:var(--surface-2); color:var(--text); }
+.rail-item.active{ background:var(--accent-soft); color:var(--accent-strong); font-weight:600; }
+.rail-item.active::before{
+  content:''; position:absolute; left:-8px; top:6px; bottom:6px; width:3px;
+  border-radius:2px; background:var(--accent);
+}
+.rail-item .rail-count{
+  margin-left:auto; font-size:11px; font-weight:600; color:var(--faint);
+  background:var(--surface-3); border-radius:99px; padding:1px 7px;
+}
+.rail-item.active .rail-count{ background:var(--surface); color:var(--accent-strong); }
+
+.rail-plan{
+  display:flex; align-items:center; gap:9px; width:100%;
+  padding:7px 8px; border-radius:var(--r-md); text-align:left; color:var(--text);
+}
+.rail-plan:hover{ background:var(--surface-2); }
+.rail-plan.active{ background:var(--accent-soft); }
+.plan-ring{
+  --pct:0; width:26px; height:26px; flex:0 0 26px; border-radius:50%;
+  background:conic-gradient(var(--accent) calc(var(--pct)*1%), var(--surface-3) 0);
+  display:grid; place-items:center; position:relative;
+}
+.plan-ring::after{ content:''; position:absolute; inset:3.5px; border-radius:50%; background:var(--surface); }
+.rail-plan.active .plan-ring::after{ background:var(--accent-soft); }
+.plan-ring span{ position:relative; z-index:1; font-size:8.5px; font-weight:700; color:var(--muted); }
+.rail-plan-meta{ min-width:0; flex:1; }
+.rail-plan-meta strong{ display:block; font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rail-plan-meta small{ display:block; font-size:11px; color:var(--faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rail-plan .dot{ width:7px; height:7px; flex:0 0 7px; border-radius:50%; }
+.dot-overdue{ background:var(--danger); box-shadow:0 0 0 3px var(--danger-soft); }
+.dot-hold{ background:var(--warn); }
+.rail-empty{ padding:8px; font-size:12px; color:var(--faint); }
+.rail-foot{ border-top:1px solid var(--border); padding:8px; }
+
+.app.rail-collapsed .rail-title, .app.rail-collapsed .rail-label,
+.app.rail-collapsed .rail-item span, .app.rail-collapsed .rail-item .rail-count,
+.app.rail-collapsed .rail-plan-meta, .app.rail-collapsed .rail-plan .dot,
+.app.rail-collapsed .btn-new-plan span{ display:none; }
+.app.rail-collapsed .rail-head{ justify-content:center; padding-inline:8px; }
+.app.rail-collapsed .rail-collapse{ display:none; }
+.app.rail-collapsed .rail-new{ padding-inline:10px; }
+.app.rail-collapsed .btn-new-plan{ justify-content:center; padding:8px; }
+.app.rail-collapsed .rail-item{ justify-content:center; }
+.app.rail-collapsed .rail-item.active::before{ left:-10px; }
+.app.rail-collapsed .rail-plan{ justify-content:center; }
+
+/* ============ COMMAND BAR ============ */
+.main{ display:flex; flex-direction:column; min-width:0; min-height:0; }
+.cmdbar{
+  display:flex; align-items:center; gap:10px; flex:0 0 auto;
+  padding:10px 20px; background:var(--surface); border-bottom:1px solid var(--border);
+  min-height:58px;
+}
+.cmd-title{ min-width:0; }
+.cmd-title h2{ font-size:16.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cmd-title p{ font-size:11.5px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cmd-spacer{ flex:1; }
+.cmd-actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+
+/* ============ BUTTONS / CONTROLS ============ */
+.btn{
+  display:inline-flex; align-items:center; gap:7px; padding:6px 12px;
+  border-radius:var(--r-md); font-weight:600; font-size:13px; white-space:nowrap;
+  border:1px solid transparent; transition:background .12s, border-color .12s;
+}
+.btn svg{ flex:0 0 auto; }
+.btn-primary{ background:var(--accent); color:#fff; }
+html[data-theme="dark"] .btn-primary{ color:#0e1116; }
+.btn-primary:hover{ background:var(--accent-strong); }
+.btn-subtle{ background:var(--surface); border-color:var(--border-strong); color:var(--text); }
+.btn-subtle:hover{ background:var(--surface-2); }
+.btn-ghost{ color:var(--muted); }
+.btn-ghost:hover{ background:var(--surface-2); color:var(--text); }
+.btn-danger{ background:var(--danger-soft); color:var(--danger); border-color:var(--danger-line); }
+.btn-danger:hover{ filter:brightness(.97); }
+.btn-sm{ padding:4px 9px; font-size:12px; border-radius:var(--r-sm); }
+.btn[disabled]{ opacity:.45; cursor:not-allowed; }
+.icon-btn{
+  display:grid; place-items:center; width:30px; height:30px; border-radius:var(--r-sm);
+  color:var(--muted);
+}
+.icon-btn:hover{ background:var(--surface-2); color:var(--text); }
+
+.seg{
+  display:inline-flex; background:var(--surface-3); border-radius:var(--r-md); padding:3px; gap:2px;
+}
+.seg button{
+  padding:4px 11px; border-radius:6px; font-size:12.5px; font-weight:600; color:var(--muted);
+}
+.seg button:hover{ color:var(--text); }
+.seg button.active{ background:var(--surface); color:var(--text); box-shadow:var(--shadow-1); }
+
+.chip{
+  display:inline-flex; align-items:center; gap:5px; padding:2px 9px; border-radius:99px;
+  font-size:11.5px; font-weight:600; background:var(--surface-3); color:var(--muted);
+  border:1px solid var(--border);
+}
+.chip-accent{ background:var(--accent-soft); color:var(--accent-strong); border-color:var(--accent-line); }
+.chip-ok{ background:var(--ok-soft); color:var(--ok); border-color:var(--ok-line); }
+.chip-warn{ background:var(--warn-soft); color:var(--warn); border-color:var(--warn-line); }
+.chip-danger{ background:var(--danger-soft); color:var(--danger); border-color:var(--danger-line); }
+
+.pill-status{ display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:99px; font-size:12px; font-weight:600; }
+.pill-status::before{ content:''; width:7px; height:7px; border-radius:50%; background:currentColor; }
+.pill-active{ background:var(--ok-soft); color:var(--ok); }
+.pill-hold{ background:var(--warn-soft); color:var(--warn); }
+.pill-complete{ background:var(--accent-soft); color:var(--accent-strong); }
+.pill-pre{ background:var(--wait-soft); color:var(--wait); }
+
+/* ============ CONTENT AREA ============ */
+.content{ flex:1; min-height:0; overflow-y:auto; }
+.screen{ display:none; padding:22px 24px 60px; max-width:1240px; margin:0 auto; }
+.screen.active{ display:block; }
+.screen-full{ max-width:none; }
+
+/* ============ CARDS / STATS ============ */
+.card{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg);
+  box-shadow:var(--shadow-1);
+}
+.stats-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:18px; }
+.stat{
+  padding:14px 16px; border-radius:var(--r-lg); background:var(--surface);
+  border:1px solid var(--border); box-shadow:var(--shadow-1); position:relative; overflow:hidden;
+}
+.stat b{ display:block; font-size:26px; font-weight:800; letter-spacing:-.02em; line-height:1.1; }
+.stat span{ font-size:11.5px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+.stat.tone-danger b{ color:var(--danger); } .stat.tone-warn b{ color:var(--warn); }
+.stat.tone-ok b{ color:var(--ok); } .stat.tone-accent b{ color:var(--accent-strong); }
+.stat::after{ content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--border); }
+.stat.tone-danger::after{ background:var(--danger); } .stat.tone-warn::after{ background:var(--warn); }
+.stat.tone-ok::after{ background:var(--ok); } .stat.tone-accent::after{ background:var(--accent); }
+
+/* ============ HOME / DASHBOARD ============ */
+.home-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(380px,1fr)); gap:14px; }
+.plan-card{ padding:16px; display:flex; flex-direction:column; gap:12px; }
+.plan-card-head{ display:flex; gap:12px; align-items:flex-start; }
+.plan-card-head h3{ font-size:15.5px; }
+.plan-card-head h3 button{ font:inherit; font-weight:700; }
+.plan-card-head h3 button:hover{ color:var(--accent); }
+.plan-card-sub{ display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+.plan-card-actions{ margin-left:auto; display:flex; gap:6px; flex:0 0 auto; }
+.progress{ height:6px; border-radius:3px; background:var(--surface-3); overflow:hidden; }
+.progress i{ display:block; height:100%; border-radius:3px; background:var(--accent); transition:width .3s; }
+.progress-row{ display:flex; align-items:center; gap:10px; }
+.progress-row .progress{ flex:1; }
+.progress-row small{ font-size:11.5px; font-weight:700; color:var(--muted); flex:0 0 auto; }
+.health-line{ display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; padding:7px 10px; border-radius:var(--r-md); }
+.health-ok{ background:var(--ok-soft); color:var(--ok); }
+.health-warn{ background:var(--warn-soft); color:var(--warn); }
+.health-danger{ background:var(--danger-soft); color:var(--danger); }
+.health-wait{ background:var(--wait-soft); color:var(--wait); }
+.agenda{ display:grid; gap:10px; }
+.agenda-bucket h4{
+  font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em;
+  color:var(--faint); margin-bottom:5px; display:flex; gap:6px; align-items:center;
+}
+.agenda-bucket h4 em{ font-style:normal; color:var(--muted); }
+.agenda-item{
+  display:flex; align-items:center; gap:8px; padding:5px 8px; border-radius:var(--r-sm);
+  font-size:12.5px;
+}
+.agenda-item:hover{ background:var(--surface-2); }
+.agenda-item .a-phase{ width:8px; height:8px; border-radius:2px; flex:0 0 8px; }
+.agenda-item .a-label{ flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:500; }
+.agenda-item .a-due{ flex:0 0 auto; font-size:11px; font-weight:600; color:var(--muted); }
+.agenda-more{ font-size:11.5px; color:var(--faint); padding:2px 8px; }
+.section-head{ display:flex; align-items:center; gap:10px; margin:26px 0 12px; }
+.section-head h3{ font-size:14px; color:var(--muted); }
+.section-head hr{ flex:1; border:0; border-top:1px solid var(--border); }
+.empty-state{ text-align:center; padding:70px 20px; }
+.empty-state h2{ font-size:20px; margin-bottom:8px; }
+.empty-state p{ color:var(--muted); max-width:420px; margin:0 auto 18px; }
+.empty-state .btn{ margin:0 4px; }
+.mini-list{ display:grid; gap:6px; }
+.mini-row{
+  display:flex; align-items:center; gap:10px; padding:9px 12px;
+  border:1px solid var(--border); border-radius:var(--r-md); background:var(--surface);
+  font-size:13px;
+}
+.mini-row strong{ font-weight:600; }
+.mini-row small{ color:var(--faint); }
+.mini-row .grow{ flex:1; }
+
+/* ============ INTAKE ============ */
+.intake-wrap{ max-width:860px; margin:0 auto; display:grid; gap:16px; }
+.intake-section{ padding:20px; }
+.intake-section > h3{ font-size:14.5px; margin-bottom:2px; }
+.intake-section > .sec-sub{ font-size:12px; color:var(--muted); margin-bottom:14px; }
+.form-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 14px; }
+.form-grid .full{ grid-column:1 / -1; }
+.field{ display:grid; gap:5px; }
+.field > span{ font-size:12px; font-weight:600; color:var(--muted); }
+.field > span b{ color:var(--danger); font-weight:700; }
+.field input, .field select, .field textarea{
+  padding:7px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm);
+  background:var(--surface); font-size:13.5px; width:100%;
+}
+.field input:focus, .field select:focus, .field textarea:focus{ border-color:var(--accent); outline:none; box-shadow:0 0 0 3px var(--accent-soft); }
+.field input.invalid{ border-color:var(--danger); }
+.field textarea{ resize:vertical; }
+.type-cards{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.type-card{
+  padding:14px; border:1.5px solid var(--border); border-radius:var(--r-lg); text-align:left;
+  background:var(--surface); display:grid; gap:4px; transition:border-color .12s, background .12s;
+}
+.type-card:hover{ border-color:var(--border-strong); }
+.type-card.selected{ border-color:var(--accent); background:var(--accent-soft); }
+.type-card b{ font-size:13.5px; }
+.type-card small{ font-size:11.5px; color:var(--muted); line-height:1.4; }
+.toggle-row{ display:flex; gap:8px; flex-wrap:wrap; }
+.toggle-chip{
+  padding:6px 14px; border:1.5px solid var(--border); border-radius:99px;
+  font-size:12.5px; font-weight:600; color:var(--muted); background:var(--surface);
+}
+.toggle-chip:hover{ border-color:var(--border-strong); color:var(--text); }
+.toggle-chip.selected{ border-color:var(--accent); background:var(--accent-soft); color:var(--accent-strong); }
+.contact-extra{ display:grid; grid-template-columns:1fr 1fr auto; gap:8px; align-items:end; margin-top:8px; }
+.avatar{
+  width:24px; height:24px; border-radius:50%; display:inline-grid; place-items:center;
+  font-size:9.5px; font-weight:700; color:#fff; flex:0 0 24px; letter-spacing:.02em;
+}
+.team-row{ display:flex; align-items:center; gap:8px; }
+.team-row select{ flex:1; }
+.intake-foot{ display:flex; gap:10px; justify-content:flex-end; align-items:center; padding:4px 2px 30px; }
+.intake-foot .note{ margin-right:auto; font-size:12px; color:var(--faint); }
+
+/* ============ CHECKLIST ============ */
+.cl-wrap{ display:grid; gap:14px; }
+.cl-hero{ padding:16px 18px; display:grid; gap:12px; }
+.cl-hero-top{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.cl-countdowns{ display:flex; gap:10px; margin-left:auto; flex-wrap:wrap; }
+.countdown{ text-align:center; padding:6px 14px; border-radius:var(--r-md); background:var(--surface-2); border:1px solid var(--border); }
+.countdown b{ display:block; font-size:17px; font-weight:800; }
+.countdown span{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--faint); }
+.countdown.tone-warn b{ color:var(--warn); } .countdown.tone-danger b{ color:var(--danger); }
+.cl-filters{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.phase-block{ overflow:hidden; }
+.phase-head{
+  display:flex; align-items:center; gap:12px; padding:12px 16px; width:100%; text-align:left;
+  border-left:4px solid var(--phase, var(--accent));
+}
+.phase-head:hover{ background:var(--surface-2); }
+.phase-num{
+  width:26px; height:26px; border-radius:8px; display:grid; place-items:center;
+  background:var(--phase, var(--accent)); color:#fff; font-size:12px; font-weight:700; flex:0 0 26px;
+}
+.phase-head h3{ font-size:14.5px; }
+.phase-head .phase-sub{ font-size:11.5px; color:var(--muted); }
+.phase-meta{ margin-left:auto; display:flex; align-items:center; gap:10px; }
+.phase-count{ font-size:12px; font-weight:700; color:var(--muted); }
+.phase-chevron{ transition:transform .15s; color:var(--faint); }
+.phase-block.collapsed .phase-chevron{ transform:rotate(-90deg); }
+.phase-body{ border-top:1px solid var(--border); }
+.phase-block.collapsed .phase-body{ display:none; }
+.task-row{ border-bottom:1px solid var(--border); padding:10px 16px 10px 14px; display:grid; gap:8px; }
+.task-row:last-child{ border-bottom:0; }
+.task-row.done{ background:var(--surface-2); }
+.task-row.done .task-label{ color:var(--muted); text-decoration:line-through; text-decoration-color:var(--border-strong); }
+.task-row.na{ opacity:.55; }
+.task-main{ display:flex; align-items:flex-start; gap:11px; }
+.task-check{
+  width:20px; height:20px; flex:0 0 20px; margin-top:1px; border-radius:6px;
+  border:1.5px solid var(--border-strong); background:var(--surface);
+  display:grid; place-items:center; color:transparent; transition:all .12s;
+}
+.task-check:hover{ border-color:var(--accent); }
+.task-row.done .task-check{ background:var(--ok); border-color:var(--ok); color:#fff; }
+.task-body{ flex:1; min-width:0; }
+.task-label{ font-size:13.5px; font-weight:600; }
+.task-desc{ font-size:12px; color:var(--muted); margin-top:1px; }
+.task-warn{ display:inline-flex; align-items:center; gap:5px; font-size:11.5px; color:var(--warn); font-weight:600; margin-top:3px; }
+.task-side{ display:flex; align-items:center; gap:7px; flex:0 0 auto; flex-wrap:wrap; justify-content:flex-end; }
+.due-badge{
+  display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:99px;
+  font-size:11.5px; font-weight:600; border:1px solid var(--border); background:var(--surface-2); color:var(--muted);
+  cursor:pointer;
+}
+.due-badge:hover{ border-color:var(--border-strong); }
+.due-overdue{ background:var(--danger-soft); color:var(--danger); border-color:var(--danger-line); }
+.due-today{ background:var(--warn-soft); color:var(--warn); border-color:var(--warn-line); }
+.due-soon{ background:var(--warn-soft); color:var(--warn); border-color:var(--warn-line); }
+.due-week{ background:var(--accent-soft); color:var(--accent-strong); border-color:var(--accent-line); }
+.due-done{ background:var(--ok-soft); color:var(--ok); border-color:var(--ok-line); }
+.due-pending{ font-style:italic; }
+.due-manual::after{ content:'✎'; font-size:10px; }
+.wk-tag{ font-size:10px; font-weight:800; opacity:.75; letter-spacing:.03em; }
+.task-tools{ display:flex; align-items:center; gap:4px; }
+.tool-btn{
+  font-size:11.5px; font-weight:600; color:var(--faint); padding:3px 8px; border-radius:var(--r-sm);
+}
+.tool-btn:hover{ background:var(--surface-3); color:var(--text); }
+.tool-btn.on{ color:var(--accent-strong); background:var(--accent-soft); }
+.task-note-area{ padding-left:31px; }
+.task-note-area textarea{
+  width:100%; border:1px solid var(--border); border-radius:var(--r-sm); background:var(--surface-2);
+  padding:7px 9px; font-size:12.5px; min-height:34px; resize:vertical;
+}
+.trigger-row{
+  display:flex; align-items:center; gap:8px; padding-left:31px; font-size:12px; color:var(--muted); flex-wrap:wrap;
+}
+.trigger-row input[type=date]{
+  padding:3px 8px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:12px; background:var(--surface);
+}
+.add-task-row{ padding:10px 16px; display:flex; gap:8px; }
+.add-task-row input{
+  flex:1; padding:6px 10px; border:1px dashed var(--border-strong); border-radius:var(--r-sm);
+  background:transparent; font-size:12.5px;
+}
+.due-editor{
+  position:absolute; z-index:60; background:var(--surface); border:1px solid var(--border-strong);
+  border-radius:var(--r-md); box-shadow:var(--shadow-3); padding:12px; display:grid; gap:8px; width:240px;
+}
+.due-editor h5{ margin:0; font-size:12px; }
+.due-editor .row{ display:flex; gap:6px; }
+.due-editor input[type=date]{ flex:1; padding:5px 8px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:12.5px; }
+.due-editor small{ font-size:11px; color:var(--faint); }
+
+/* ============ CONTEXT PANEL ============ */
+.context{
+  width:var(--context-w); background:var(--surface); border-left:1px solid var(--border);
+  display:flex; flex-direction:column; min-height:0;
+}
+.context.hidden{ display:none; }
+.context-tabs{ display:flex; gap:2px; padding:10px 12px 0; border-bottom:1px solid var(--border); }
+.context-tabs button{
+  padding:7px 13px; font-size:12.5px; font-weight:600; color:var(--muted);
+  border-radius:8px 8px 0 0; border:1px solid transparent; border-bottom:0; position:relative; top:1px;
+}
+.context-tabs button.active{
+  background:var(--surface); color:var(--text); border-color:var(--border);
+}
+.context-body{ flex:1; overflow-y:auto; padding:14px; min-height:0; }
+.detail-group{ margin-bottom:14px; }
+.detail-group h5{
+  font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.07em;
+  color:var(--faint); margin:0 0 6px;
+}
+.detail-kv{ display:flex; justify-content:space-between; gap:10px; padding:4px 0; font-size:12.5px; border-bottom:1px dashed var(--border); }
+.detail-kv:last-child{ border-bottom:0; }
+.detail-kv span{ color:var(--muted); flex:0 0 auto; }
+.detail-kv b{ font-weight:600; text-align:right; min-width:0; overflow-wrap:anywhere; }
+.detail-kv b.missing{ color:var(--faint); font-weight:500; font-style:italic; }
+.context-notes textarea{
+  width:100%; min-height:200px; border:1px solid var(--border); border-radius:var(--r-md);
+  background:var(--surface-2); padding:10px; font-size:13px; resize:vertical;
+}
+.pin{
+  border:1px solid var(--border); border-radius:var(--r-md); padding:10px 12px; margin-bottom:8px;
+  background:var(--surface-2); display:grid; gap:4px;
+}
+.pin.important{ border-color:var(--warn-line); background:var(--warn-soft); }
+.pin-head{ display:flex; align-items:center; gap:6px; }
+.pin-head b{ font-size:12.5px; flex:1; min-width:0; }
+.pin-note{ font-size:12px; color:var(--muted); white-space:pre-wrap; }
+.pin-meta{ font-size:10.5px; color:var(--faint); }
+.pin-add{ display:grid; gap:6px; margin-bottom:12px; }
+.pin-add input, .pin-add textarea{
+  padding:6px 9px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:12.5px; background:var(--surface);
+}
+
+/* ============ TIMELINE (GANTT) ============ */
+.tl-toolbar{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+.tl-toolbar select{
+  padding:6px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); background:var(--surface); font-size:13px;
+}
+.tl-legend{ display:flex; gap:12px; margin-left:auto; flex-wrap:wrap; }
+.tl-legend span{ display:inline-flex; align-items:center; gap:5px; font-size:11.5px; color:var(--muted); font-weight:500; }
+.tl-legend i{ width:14px; height:8px; border-radius:3px; display:inline-block; }
+.gantt{
+  overflow:auto; max-height:calc(100vh - 200px); position:relative;
+  border:1px solid var(--border); border-radius:var(--r-lg); background:var(--surface); box-shadow:var(--shadow-1);
+}
+.gantt-sheet{ position:relative; }
+.gantt-hdr{ position:sticky; top:0; z-index:40; display:flex; background:var(--surface); border-bottom:1px solid var(--border); }
+.gantt-corner{
+  position:sticky; left:0; z-index:41; flex:0 0 250px; background:var(--surface);
+  border-right:1px solid var(--border); display:flex; align-items:flex-end; padding:0 0 4px 14px;
+  font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--faint);
+}
+.gantt-hdr-canvas{ position:relative; height:48px; flex:0 0 auto; }
+.gantt-month{
+  position:absolute; top:0; height:24px; display:flex; align-items:center; padding-left:8px;
+  font-size:11px; font-weight:700; color:var(--muted); border-left:1px solid var(--border);
+  white-space:nowrap; overflow:hidden;
+}
+.gantt-weeklabel{
+  position:absolute; top:24px; height:24px; display:flex; align-items:center; padding-left:6px;
+  font-size:10.5px; color:var(--faint); border-left:1px dashed var(--border); white-space:nowrap;
+}
+.gantt-row{ display:flex; border-bottom:1px solid var(--border); position:relative; }
+.gantt-name{
+  position:sticky; left:0; z-index:5; flex:0 0 250px; background:var(--surface);
+  border-right:1px solid var(--border); display:flex; align-items:center; gap:8px;
+  padding:0 10px 0 14px; font-size:12.5px; overflow:hidden; min-height:34px;
+}
+.gantt-name.is-phase{ background:var(--surface-2); font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); min-height:28px; }
+.gantt-name.is-plan{ min-height:44px; font-weight:600; cursor:pointer; }
+.gantt-name .gn-dot{ width:8px; height:8px; border-radius:2px; flex:0 0 8px; }
+.gantt-name .gn-label{ flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gantt-name .gn-due{ flex:0 0 auto; font-size:10.5px; color:var(--faint); font-weight:600; }
+.gantt-name .gn-check{ color:var(--ok); flex:0 0 auto; display:inline-flex; }
+.gantt-name.done .gn-label{ color:var(--faint); text-decoration:line-through; }
+.gantt-rowcanvas{ position:relative; flex:0 0 auto; }
+.gantt-row.is-phase .gantt-rowcanvas{ background:var(--surface-2); }
+.gantt-bar{
+  position:absolute; height:16px; top:9px; border-radius:5px; cursor:pointer;
+  background:var(--phase, var(--accent)); opacity:.92; min-width:9px; z-index:2;
+  border:1px solid rgba(0,0,0,.14);
+}
+.gantt-bar:hover{ opacity:1; box-shadow:var(--shadow-2); z-index:3; }
+.gantt-bar.bar-done{ opacity:.35; }
+.gantt-bar.bar-overdue{ outline:2px solid var(--danger); outline-offset:1px; opacity:1; }
+.gantt-bar.bar-manual{ border-style:dashed; }
+.gantt-phase-span{
+  position:absolute; height:7px; top:10.5px; border-radius:4px; opacity:.4; background:var(--phase, var(--accent));
+}
+.gantt-plan-seg{ position:absolute; height:18px; top:13px; border-radius:5px; opacity:.85; cursor:pointer; border:1px solid rgba(0,0,0,.1); z-index:2; }
+.gantt-plan-seg:hover{ opacity:1; }
+.gantt-plan-row .gantt-rowcanvas{ min-height:44px; }
+.gantt-stripe{ position:absolute; top:0; bottom:0; background:var(--surface-2); z-index:0; }
+.gantt-stripe.holiday{ background:var(--warn-soft); }
+.gantt-gridline{ position:absolute; top:0; bottom:0; width:1px; background:var(--border); opacity:.5; z-index:0; }
+.gantt-marker{ position:absolute; top:0; bottom:0; border-left:2px dashed; z-index:4; pointer-events:none; }
+.gantt-marker.gantt-today{ border-left-style:solid; }
+.gantt-marker i{
+  position:absolute; top:2px; left:-1px; transform:translateX(-50%);
+  font-style:normal; font-size:9px; font-weight:800; letter-spacing:.04em;
+  padding:1px 6px; border-radius:4px; color:#fff; white-space:nowrap;
+}
+.gantt-tip{
+  position:fixed; z-index:100; background:var(--surface); border:1px solid var(--border-strong);
+  border-radius:var(--r-md); box-shadow:var(--shadow-3); padding:9px 12px; font-size:12px;
+  pointer-events:none; max-width:280px; display:none;
+}
+.gantt-tip b{ display:block; font-size:12.5px; margin-bottom:2px; }
+.gantt-tip .tip-line{ color:var(--muted); }
+
+/* ============ MODALS / TOAST ============ */
+.modal-backdrop{
+  position:fixed; inset:0; z-index:80; background:rgba(15,20,30,.45); backdrop-filter:blur(2px);
+  display:none; align-items:center; justify-content:center; padding:20px;
+}
+.modal-backdrop.open{ display:flex; }
+.modal{
+  background:var(--surface); border-radius:14px; box-shadow:var(--shadow-3); border:1px solid var(--border);
+  width:min(560px, 100%); max-height:88vh; display:flex; flex-direction:column; overflow:hidden;
+}
+.modal-lg{ width:min(720px,100%); }
+.modal-head{ display:flex; align-items:flex-start; gap:12px; padding:18px 20px 12px; }
+.modal-head h3{ font-size:16px; }
+.modal-head p{ font-size:12.5px; color:var(--muted); margin-top:2px; }
+.modal-head .icon-btn{ margin-left:auto; }
+.modal-body{ padding:4px 20px 16px; overflow-y:auto; }
+.modal-foot{ display:flex; justify-content:flex-end; gap:8px; padding:12px 20px 18px; border-top:1px solid var(--border); }
+.diff-row{ display:flex; align-items:center; gap:10px; padding:7px 4px; font-size:12.5px; border-bottom:1px dashed var(--border); }
+.diff-row .d-label{ flex:1; font-weight:600; min-width:0; }
+.diff-row .d-old{ color:var(--faint); text-decoration:line-through; }
+.diff-row .d-arrow{ color:var(--faint); }
+.diff-row .d-new{ font-weight:700; color:var(--accent-strong); }
+.knob-row{ display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px dashed var(--border); }
+.knob-row label{ flex:1; font-size:13px; font-weight:500; }
+.knob-row small{ display:block; color:var(--faint); font-size:11px; font-weight:400; }
+.knob-row input{ width:70px; padding:5px 8px; border:1px solid var(--border-strong); border-radius:var(--r-sm); text-align:center; font-size:13px; background:var(--surface); }
+.toast-wrap{ position:fixed; bottom:22px; left:50%; transform:translateX(-50%); z-index:120; display:grid; gap:8px; }
+.toast{
+  background:var(--text); color:var(--bg); padding:10px 18px; border-radius:99px; font-size:13px; font-weight:600;
+  box-shadow:var(--shadow-3); animation:toastIn .2s ease;
+}
+@keyframes toastIn{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:none; } }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1180px){ .context{ display:none; } .context.force{ display:flex; position:fixed; right:0; top:0; bottom:0; z-index:70; box-shadow:var(--shadow-3); } }
+@media (max-width: 900px){
+  .app{ grid-template-columns: var(--rail-collapsed) minmax(0,1fr) auto; }
+  .rail-title,.rail-label,.rail-item span,.rail-item .rail-count,.rail-plan-meta,.rail-plan .dot,.btn-new-plan span{ display:none; }
+  .rail-head{ justify-content:center; padding-inline:8px; } .rail-collapse{ display:none; }
+  .rail-item,.rail-plan{ justify-content:center; } .btn-new-plan{ justify-content:center; padding:8px; }
+  .form-grid,.type-cards{ grid-template-columns:1fr; }
+  .screen{ padding:14px 12px 60px; }
+}
+@media print{
+  .rail,.cmdbar,.context,.tl-toolbar,.cl-filters,.task-tools,.add-task-row{ display:none !important; }
+  body{ overflow:visible; } .content{ overflow:visible; } .app{ display:block; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="appRoot">
+
+  <!-- ================= LEFT RAIL ================= -->
+  <aside class="rail" id="rail">
+    <div class="rail-head">
+      <div class="rail-logo">L3</div>
+      <div class="rail-title">
+        <h1>LMDC Planner</h1>
+        <p>Conversion workspace</p>
+      </div>
+      <button class="icon-btn rail-collapse" onclick="toggleRail()" title="Collapse navigation" data-icon="panel"></button>
+    </div>
+    <div class="rail-new">
+      <button class="btn-new-plan" onclick="startNewPlan()"><i data-icon="plus"></i><span>New Plan</span></button>
+    </div>
+    <div class="rail-scroll">
+      <nav class="rail-section" id="railNav"></nav>
+      <div class="rail-section">
+        <div class="rail-label">Active plans</div>
+        <div id="railPlans"></div>
+      </div>
+    </div>
+    <div class="rail-foot" id="railFoot"></div>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <div class="main">
+    <header class="cmdbar" id="cmdbar"></header>
+    <div class="content" id="contentScroll">
+
+      <!-- HOME -->
+      <section class="screen" id="screen-home"></section>
+
+      <!-- INTAKE -->
+      <section class="screen" id="screen-intake">
+        <div class="intake-wrap">
+          <input type="hidden" id="inPlanId">
+          <div class="card intake-section">
+            <h3>Plan information</h3>
+            <p class="sec-sub">Identifiers and the dates every due date hangs off.</p>
+            <div class="form-grid">
+              <label class="field full"><span>Plan / client name <b>*</b></span>
+                <input id="inPlanName" placeholder="Acme Corp 401(k)"></label>
+              <label class="field"><span>Case number <b>*</b></span>
+                <input id="inCaseNumber" placeholder="CASE-00123"></label>
+              <label class="field"><span>Case start (Day&nbsp;1)</span>
+                <input id="inDay1" type="date"></label>
+              <label class="field"><span>Effective date <b>*</b></span>
+                <input id="inEffectiveDate" type="date"></label>
+              <label class="field"><span>First payroll in TA</span>
+                <input id="inFirstPayroll" type="date"></label>
+              <label class="field conditional non-startup"><span>Wire date</span>
+                <input id="inWireDate" type="date"></label>
+              <label class="field"><span>Client folder URL</span>
+                <input id="inFolderUrl" type="url" placeholder="https://..."></label>
+            </div>
+          </div>
+
+          <div class="card intake-section">
+            <h3>Plan type</h3>
+            <p class="sec-sub">Drives which phases and tasks are generated.</p>
+            <div class="type-cards" id="typeCards">
+              <button type="button" class="type-card" data-type="startup" onclick="pickType('startup')">
+                <b>Startup</b><small>Brand-new plan. Setup, payroll, and core data loads only.</small>
+              </button>
+              <button type="button" class="type-card" data-type="conversion" onclick="pickType('conversion')">
+                <b>Conversion</b><small>Full takeover from a prior record keeper, wire and all.</small>
+              </button>
+              <button type="button" class="type-card" data-type="merger" onclick="pickType('merger')">
+                <b>Merger</b><small>Plan merging into an existing plan. Internal or external.</small>
+              </button>
+            </div>
+            <div class="form-grid" style="margin-top:12px">
+              <label class="field conditional merger-only"><span>Merger type <b>*</b></span>
+                <select id="inMergerType">
+                  <option value="">Select…</option>
+                  <option value="internal">Internal</option>
+                  <option value="external">External</option>
+                </select></label>
+            </div>
+            <div class="conditional non-startup" style="margin-top:14px">
+              <div class="rail-label" style="padding-left:0">Conversion strategy <b style="color:var(--danger)">*</b></div>
+              <div class="toggle-row" id="strategyRow">
+                <button type="button" class="toggle-chip" data-strategy="cash" onclick="toggleStrategy('cash')">Cash</button>
+                <button type="button" class="toggle-chip" data-strategy="mapping" onclick="toggleStrategy('mapping')">Mapping</button>
+                <button type="button" class="toggle-chip" data-strategy="tik" onclick="toggleStrategy('tik')">TIK</button>
+              </div>
+            </div>
+            <div style="margin-top:14px">
+              <div class="rail-label" style="padding-left:0">Plan characteristics</div>
+              <div class="toggle-row" id="charRow">
+                <button type="button" class="toggle-chip" data-char="loans" onclick="toggleChar('loans')">Has Loans</button>
+                <button type="button" class="toggle-chip" data-char="roth" onclick="toggleChar('roth')">Has Roth</button>
+                <button type="button" class="toggle-chip" data-char="autoEnroll" onclick="toggleChar('autoEnroll')">Auto-Enroll</button>
+                <button type="button" class="toggle-chip" data-char="nonQual" onclick="toggleChar('nonQual')">Non-Qual</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card intake-section">
+            <h3>Team</h3>
+            <p class="sec-sub">Who owns this conversion internally.</p>
+            <div class="form-grid">
+              <label class="field"><span>Transition Manager</span>
+                <div class="team-row"><span id="tmAvatar"></span><select id="inTm"></select></div></label>
+              <label class="field"><span>Transition Coordinator</span>
+                <div class="team-row"><span id="tcAvatar"></span><select id="inTc"></select></div></label>
+              <label class="field"><span>DC File Coordinator</span>
+                <select id="inDcfc"></select></label>
+            </div>
+          </div>
+
+          <div class="card intake-section">
+            <h3>Contacts</h3>
+            <p class="sec-sub">Client, payroll, and prior record keeper.</p>
+            <div class="form-grid">
+              <label class="field"><span>Client contact</span><input id="inClientName" placeholder="Name"></label>
+              <label class="field"><span>Client email</span><input id="inClientEmail" type="email" placeholder="email@client.com"></label>
+              <label class="field"><span>Payroll vendor</span><select id="inPayrollVendor"></select></label>
+              <label class="field conditional payroll-other"><span>Payroll vendor (other)</span><input id="inPayrollVendorOther" placeholder="Vendor name"></label>
+              <label class="field"><span>Payroll contact</span><input id="inPayrollName" placeholder="Name"></label>
+              <label class="field"><span>Payroll email</span><input id="inPayrollEmail" type="email" placeholder="email@vendor.com"></label>
+              <label class="field conditional non-startup"><span>Prior record keeper</span><select id="inPriorVendor"></select></label>
+              <label class="field conditional non-startup prior-other"><span>Prior RK (other)</span><input id="inPriorVendorOther" placeholder="Vendor name"></label>
+              <label class="field conditional non-startup"><span>Prior RK contact</span><input id="inPriorName" placeholder="Name"></label>
+              <label class="field conditional non-startup"><span>Prior RK email</span><input id="inPriorEmail" type="email" placeholder="email@vendor.com"></label>
+            </div>
+          </div>
+
+          <div class="card intake-section">
+            <h3>Scheduling</h3>
+            <p class="sec-sub">How Due Date Engine 2.0 should count days for this plan.</p>
+            <div class="toggle-row">
+              <button type="button" class="toggle-chip" id="bizDaysChip" onclick="toggleBizDays()">Business days (skip weekends + federal holidays)</button>
+            </div>
+            <label class="field full" style="margin-top:12px"><span>Plan notes</span>
+              <textarea id="inNotes" rows="3" placeholder="Quick context. Keep it useful."></textarea></label>
+          </div>
+
+          <div class="intake-foot">
+            <span class="note" id="intakeHint"></span>
+            <button class="btn btn-subtle" onclick="cancelIntake()">Cancel</button>
+            <button class="btn btn-primary" id="intakeSubmit" onclick="submitIntake()">Generate checklist</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- CHECKLIST -->
+      <section class="screen" id="screen-checklist"></section>
+
+      <!-- TIMELINE -->
+      <section class="screen screen-full" id="screen-timeline"></section>
+
+    </div>
+  </div>
+
+  <!-- ================= CONTEXT PANEL ================= -->
+  <aside class="context hidden" id="contextPanel"></aside>
+</div>
+
+<!-- ================= MODALS ================= -->
+<div class="modal-backdrop" id="confirmModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="confirmTitle">Confirm</h3>
+      <button class="icon-btn" onclick="closeModal('confirmModal')" data-icon="x"></button></div>
+    <div class="modal-body"><p id="confirmBody" style="color:var(--muted); font-size:13.5px"></p></div>
+    <div class="modal-foot">
+      <button class="btn btn-subtle" onclick="closeModal('confirmModal')">Cancel</button>
+      <button class="btn btn-primary" id="confirmGo">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="diffModal">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div><h3>Schedule impact preview</h3>
+        <p id="diffSub">These dates changed — every affected due date re-flows before anything is saved.</p></div>
+      <button class="icon-btn" onclick="closeModal('diffModal')" data-icon="x"></button>
+    </div>
+    <div class="modal-body" id="diffBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-subtle" onclick="closeModal('diffModal')">Go back</button>
+      <button class="btn btn-primary" id="diffApply">Apply new schedule</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="timelineModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div><h3>Timeline settings</h3>
+        <p>Per-plan offsets, in business days when enabled. Blank = default.</p></div>
+      <button class="icon-btn" onclick="closeModal('timelineModal')" data-icon="x"></button>
+    </div>
+    <div class="modal-body" id="timelineKnobs"></div>
+    <div class="modal-foot">
+      <button class="btn btn-subtle" onclick="closeModal('timelineModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTimelineSettings()">Save & re-flow</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="settingsModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Settings</h3>
+      <button class="icon-btn" onclick="closeModal('settingsModal')" data-icon="x"></button></div>
+    <div class="modal-body" id="settingsBody"></div>
+    <div class="modal-foot"><button class="btn btn-primary" onclick="closeModal('settingsModal')">Done</button></div>
+  </div>
+</div>
+
+<input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="handleImportFile(event)">
+<div class="gantt-tip" id="ganttTip"></div>
+<div class="toast-wrap" id="toastWrap"></div>
+<script>
+/* ============================================================
+   LMDC PLANNER 3
+   ------------------------------------------------------------
+   MODULE MAP
+     1. UTILS + ICONS
+     2. HOLIDAY / BUSINESS-DAY ENGINE  (algorithmic, any year)
+     3. TASK CATALOG + APPLICABILITY
+     4. DUE DATE ENGINE 2.0            (graph resolution, actuals re-flow)
+     5. PLAN ANALYTICS                 (agenda, health, payroll watch, what-if)
+     6. STORE + MIGRATION
+     7. SHELL (rail, command bar, routing)
+     8. SCREENS: home / intake / checklist / timeline (gantt)
+     9. CONTEXT PANEL, MODALS, IMPORT/EXPORT, INIT
+   ============================================================ */
+
+/* ================= 1. UTILS + ICONS ================= */
+const $  = (sel, root=document) => root.querySelector(sel);
+const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
+
+function esc(v){
+  return String(v ?? '')
+    .replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
+    .replaceAll('"','&quot;').replaceAll("'",'&#039;');
+}
+const uid = () => 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const todayISO = () => toISO(new Date());
+function toISO(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function parseD(iso){ return new Date(iso + 'T00:00:00'); }
+function addDaysISO(iso, n){ const d = parseD(iso); d.setDate(d.getDate()+n); return toISO(d); }
+function daysBetween(aISO, bISO){ return Math.round((parseD(bISO) - parseD(aISO)) / 86400000); }
+function fmtDate(iso){
+  if(!iso) return '—';
+  return parseD(iso).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+}
+function fmtShort(iso){
+  if(!iso) return '—';
+  return parseD(iso).toLocaleDateString('en-US', { month:'short', day:'numeric' });
+}
+function debounce(fn, ms){ let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+
+const ICONS = {
+  home:   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/></svg>',
+  check:  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h9"/><path d="M4 12h9"/><path d="M4 18h9"/><path d="m16 12 2.2 2.2L22.5 9.5"/></svg>',
+  gantt:  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 5h9"/><path d="M7 10h11"/><path d="M5 15h8"/><path d="M11 20h9"/></svg>',
+  archive:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg>',
+  gear:   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19 12c0-.5 0-1-.1-1.4l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2.4-1.4L13.7 2h-3.4l-.4 2.6a7 7 0 0 0-2.4 1.4l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.8l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2.4 1.4l.4 2.6h3.4l.4-2.6a7 7 0 0 0 2.4-1.4l2.4 1 2-3.4-2-1.6c.1-.4.1-.9.1-1.4Z"/></svg>',
+  plus:   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  x:      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>',
+  panel:  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9.5 4v16"/></svg>',
+  tick:   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4.5 4.5L19 7"/></svg>',
+  warn:   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4"/><path d="M12 17.2v.1"/></svg>',
+  pin:    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6l1 7 2.5 2.5H5.5L8 11l1-7Z"/><path d="M12 13.5V21"/></svg>',
+  star:   '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="m12 3 2.7 5.8 6.3.7-4.7 4.3 1.3 6.2L12 16.9 6.4 20l1.3-6.2L3 9.5l6.3-.7L12 3z"/></svg>',
+  save:   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l5 5v13H5V3Z" transform="translate(-1,0)"/><path d="M8 3v6h7V3" transform="translate(-1,0)"/><path d="M8 21v-7h8v7" transform="translate(-1,0)"/></svg>',
+  edit:   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L20.5 7.5a2.1 2.1 0 0 0-3-3L5 17v3Z"/><path d="m14.5 6.5 3 3"/></svg>',
+  down:   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+  export: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M4 15v5h16v-5"/></svg>',
+  import: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 15v5h16v-5"/></svg>',
+  sun:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  moon:   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></svg>',
+};
+function hydrateIcons(root=document){
+  $$('[data-icon]', root).forEach(el => { el.innerHTML = ICONS[el.dataset.icon] || ''; });
+}
+
+/* ================= 2. HOLIDAY / BUSINESS-DAY ENGINE =================
+   Algorithmic US federal holidays — works for ANY year, unlike the old
+   hardcoded 2024–2030 table. Sat observed Fri, Sun observed Mon. */
+const _holidayCache = {};
+function nthWeekday(year, month, dow, n){ // month 0-based
+  const first = new Date(year, month, 1);
+  let day = 1 + ((dow - first.getDay() + 7) % 7) + (n - 1) * 7;
+  return new Date(year, month, day);
+}
+function lastWeekday(year, month, dow){
+  const last = new Date(year, month + 1, 0);
+  return new Date(year, month, last.getDate() - ((last.getDay() - dow + 7) % 7));
+}
+function observed(d){
+  const dow = d.getDay();
+  const copy = new Date(d);
+  if(dow === 6) copy.setDate(copy.getDate() - 1); // Sat -> Fri
+  if(dow === 0) copy.setDate(copy.getDate() + 1); // Sun -> Mon
+  return copy;
+}
+function holidaysFor(year){
+  if(_holidayCache[year]) return _holidayCache[year];
+  const set = new Set();
+  const add = d => set.add(toISO(observed(d)));
+  add(new Date(year, 0, 1));            // New Year's Day
+  add(nthWeekday(year, 0, 1, 3));       // MLK Day
+  add(nthWeekday(year, 1, 1, 3));       // Presidents Day
+  add(lastWeekday(year, 4, 1));         // Memorial Day
+  add(new Date(year, 5, 19));           // Juneteenth
+  add(new Date(year, 6, 4));            // Independence Day
+  add(nthWeekday(year, 8, 1, 1));       // Labor Day
+  add(nthWeekday(year, 10, 4, 4));      // Thanksgiving
+  add(new Date(year, 11, 25));          // Christmas
+  // New Year's of next year can observe back into this year (Jan 1 on Sat)
+  set.add(toISO(observed(new Date(year + 1, 0, 1))));
+  _holidayCache[year] = set;
+  return set;
+}
+function isHoliday(d){ return holidaysFor(d.getFullYear()).has(toISO(d)); }
+function isBizDay(d){ const dow = d.getDay(); return dow !== 0 && dow !== 6 && !isHoliday(d); }
+function addBizDays(iso, n){
+  const d = parseD(iso);
+  if(n === 0) return iso; // zero offset keeps the anchor as-is
+  const step = n > 0 ? 1 : -1;
+  let left = Math.abs(n);
+  while(left > 0){ d.setDate(d.getDate() + step); if(isBizDay(d)) left--; }
+  return toISO(d);
+}
+function nextBizDay(iso){ // roll forward to a business day (inclusive)
+  const d = parseD(iso);
+  while(!isBizDay(d)) d.setDate(d.getDate() + 1);
+  return toISO(d);
+}
+function addSla(plan, iso, n){
+  if(!iso) return '';
+  return plan.intake.useBusinessDays === false ? addDaysISO(iso, n) : addBizDays(iso, n);
+}
+/* Week buckets: Week 1 = anchor (rolled to a business day) through that Friday.
+   Week N = the Monday (N-1) weeks later through its Friday. Due = bucket end. */
+function weekBucket(anchorISO, week){
+  const start1 = nextBizDay(anchorISO);
+  const d = parseD(start1);
+  const fri1 = new Date(d); fri1.setDate(fri1.getDate() + (5 - fri1.getDay()));
+  if(week === 1) return { start: start1, end: toISO(fri1) };
+  const mon = new Date(fri1); mon.setDate(mon.getDate() + 3 + (week - 2) * 7);
+  const fri = new Date(mon); fri.setDate(fri.getDate() + 4);
+  return { start: toISO(mon), end: toISO(fri) };
+}
+
+/* ================= 3. TASK CATALOG ================= */
+const PHASES = [
+  { id:'setup',       label:'Setup',        color:'#0f6cbd', sub:'Documents, templates, connections' },
+  { id:'payroll',     label:'Payroll',      color:'#6b5bd2', sub:'Files, validation, handoff' },
+  { id:'prk',         label:'PRK',          color:'#0e8074', sub:'Prior record keeper coordination' },
+  { id:'preparation', label:'Preparation',  color:'#3d7d23', sub:'Mapping and pre-wire readiness' },
+  { id:'wire_day',    label:'Wire Day',     color:'#c26a00', sub:'The money moves' },
+  { id:'post_wire',   label:'Post Wire',    color:'#a63d6f', sub:'Final files and balances' },
+  { id:'data_load',   label:'Data Load',    color:'#8250c8', sub:'Participant data into TA' },
+  { id:'closeout',    label:'Closeout',     color:'#5c6a7e', sub:'Go-live and wrap-up' },
+];
+const phaseById = id => PHASES.find(p => p.id === id);
+
+/* due rule shapes:
+   {week:N}                      -> week-bucket off the Documents Received trigger
+   {anchor:'wire'|'eff'|'day1'|'firstPayroll', days:N, key:'knobName'}
+   {anchor:'task:<id>', days:N, key}  -> off another task's ACTUAL completion, else its due
+   key -> per-plan override knob (timeline settings)                        */
+function T(id, phase, label, applies = {}, o = {}){
+  return { id, phase, label, applies,
+    desc: o.desc || '', warning: o.warning || '',
+    working: !!o.working, allowNA: o.allowNA !== false,
+    critical: !!o.critical, due: o.due || null, dynamicLabel: !!o.dynamicLabel,
+    milestone: !!o.milestone };
+}
+const NS = { planTypes:['conversion','merger'] };           // non-startup
+const ALL = { planTypes:['startup','conversion','merger'] };
+
+const TASKS = [
+  // --- Setup ---
+  T('setup-all-docs','setup','Obtain All Documents', ALL,
+    { allowNA:false, critical:true, milestone:true, due:{week:1},
+      desc:'PRD/Onboarding + TOA. Recording the received date anchors the whole schedule.' }),
+  T('setup-base-template','setup','Base Template', ALL,
+    { due:{week:1}, warning:'Usually waits for PRD/Onboarding + TOA.' }),
+  T('setup-payroll-template','setup','Payroll Template', ALL,
+    { due:{week:1}, warning:'Usually waits for PRD/Onboarding + TOA.' }),
+  T('setup-re-registration','setup','Re-Registration', { ...NS, strategiesAny:['tik'] },
+    { working:true, due:{week:2} }),
+  T('setup-ftp-connection','setup','FTP Connection', ALL, { working:true, due:{week:2} }),
+  T('setup-eds-layouts','setup','EDS Setup', ALL, { due:{week:2} }),
+  T('setup-vendor-workflow-confirm','setup','Vendor Workflow Confirm', NS, { due:{week:2} }),
+  T('setup-informatica-prep','setup','Informatica Prep', NS, { due:{week:3} }),
+  T('setup-wire-instructions-prk','setup','Wire Instructions to PRK', NS, { critical:true, due:{week:3} }),
+
+  // --- Payroll ---
+  T('payroll-ftp-setup','payroll','Confirm FTP Setup', ALL, { due:{week:3} }),
+  T('payroll-obf-confirm','payroll','Confirm OBF Details', ALL,
+    { due:{week:3}, desc:'Custom vs existing payroll layout.' }),
+  T('payroll-receive-test-file','payroll','Receive Test File', ALL, { due:{week:4} }),
+  T('payroll-validate-test-file','payroll','Validate Test File', ALL, { due:{week:5} }),
+  T('payroll-one-payroll','payroll','One Payroll Validation', ALL, { due:{week:5} }),
+  T('payroll-finalize','payroll','Payroll Handoff / Finalize', ALL,
+    { allowNA:false, critical:true, due:{anchor:'firstPayroll', days:-3, key:'payrollLead'},
+      desc:'Must land before the first payroll hits TA.' }),
+
+  // --- PRK ---
+  T('prk-wire-instructions','prk','Wire Instructions', NS, { critical:true, due:{week:2} }),
+  T('prk-all-details-dates','prk','Get All Asset Transfer Details', NS, { due:{week:3} }),
+  T('prk-test-files','prk','Coordinate Conversion Files & Asset Transfer Details', NS, { due:{week:4} }),
+  T('prk-tik-account-details','prk','TIK Account Details', { ...NS, strategiesAny:['tik'] },
+    { critical:true, due:{anchor:'wire', days:-7, key:'tikLead'},
+      warning:'Wire cannot happen without TIK account details.' }),
+
+  // --- Preparation ---
+  T('prep-source-mapping','preparation','Source Mapping', NS, { due:{week:4} }),
+  T('prep-fund-mapping','preparation','Fund Mapping', { ...NS, excludeCashOnly:true },
+    { due:{week:4}, warning:'Normally needs TOA / document readiness.' }),
+  T('prep-informatica','preparation','Informatica Workflow Testing', NS, { due:{week:5} }),
+  T('prep-fmc','preparation','Fund Management Calendar Entry', NS,
+    { critical:true, due:{anchor:'wire', days:-10, key:'fmcLead'} }),
+  T('prep-tik','preparation','TIK Follow-Up with Matt', { ...NS, strategiesAny:['tik'] },
+    { due:{anchor:'wire', days:-10, key:'fmcLead'} }),
+  T('prep-pre-wire-emails','preparation','Pre-Wire Emails', NS,
+    { critical:true, due:{anchor:'wire', days:-5, key:'wireAdvance'},
+      desc:'Advance notice to vendor, cashiering, client.' }),
+
+  // --- Wire Day ---
+  T('wire-morning-emails','wire_day','Morning Emails', NS, { critical:true, due:{anchor:'wire', days:0} }),
+  T('wire-receive-wire','wire_day','Receive Wire', NS,
+    { critical:true, milestone:true, due:{anchor:'wire', days:0} }),
+  T('wire-move-process-wire','wire_day','Move / Process Wire', { ...NS, excludeTikOnly:true },
+    { critical:true, dynamicLabel:true, due:{anchor:'wire', days:0} }),
+
+  // --- Post Wire ---
+  T('post-receive-final-files','post_wire','Receive Final Files', NS,
+    { critical:true, milestone:true, due:{anchor:'wire', days:7, key:'finalFiles'},
+      desc:'Recording completion re-anchors every data load.' }),
+  T('post-liquidate-ae','post_wire','Liquidate Advanced Employer', { ...NS, strategiesAny:['cash'] },
+    { due:{anchor:'task:post-receive-final-files', days:1} }),
+  T('post-check-tik-shares','post_wire','Check TIK Spreadsheet for Incoming Shares',
+    { ...NS, strategiesAll:['tik'], strategiesNone:['cash','mapping'] },
+    { working:true, due:{anchor:'task:post-receive-final-files', days:1} }),
+  T('post-ppt-balances','post_wire','Participant Balances', NS,
+    { critical:true, due:{anchor:'task:post-receive-final-files', days:2} }),
+
+  // --- Data Load ---
+  T('p5-extra-participants','data_load','Census', ALL,
+    { critical:true, due:{anchor:'task:post-receive-final-files', days:7, key:'dataLoad'} }),
+  T('p5-elections','data_load','Elections', ALL,
+    { critical:true, due:{anchor:'task:post-receive-final-files', days:7, key:'dataLoad'} }),
+  T('p5-def','data_load','Deferrals', ALL,
+    { critical:true, due:{anchor:'task:post-receive-final-files', days:7, key:'dataLoad'} }),
+  T('p5-elig','data_load','Eligibility', ALL,
+    { critical:true, due:{anchor:'task:post-receive-final-files', days:7, key:'dataLoad'} }),
+  T('p5-loans','data_load','Loans', { ...ALL, characteristics:{loans:true} },
+    { due:{anchor:'task:post-receive-final-files', days:7, key:'dataLoad'} }),
+  T('p5-basis-roth','data_load','Basis / Roth', { ...ALL, characteristics:{roth:true} },
+    { due:{anchor:'task:post-receive-final-files', days:7, key:'dataLoad'} }),
+  T('p5-yos','data_load','Years of Service', NS, { due:{anchor:'task:post-receive-final-files', days:7, key:'dataLoad'} }),
+  T('p5-ytd-comp','data_load','YTD Compensation', NS, { due:{anchor:'task:post-receive-final-files', days:7, key:'dataLoad'} }),
+  T('p5-ytd-contrib','data_load','YTD Contributions', NS, { due:{anchor:'task:post-receive-final-files', days:7, key:'dataLoad'} }),
+  T('p5-ytd-hours','data_load','YTD Hours', NS, { due:{anchor:'task:post-receive-final-files', days:7, key:'dataLoad'} }),
+  T('p5-ben','data_load','Beneficiaries', NS, { due:{anchor:'task:post-receive-final-files', days:7, key:'dataLoad'} }),
+  T('p5-py-comp','data_load','Prior Year Compensation', NS, { due:{anchor:'task:post-receive-final-files', days:7, key:'dataLoad'} }),
+  T('p5-py-hours','data_load','Prior Year Hours', NS, { due:{anchor:'task:post-receive-final-files', days:7, key:'dataLoad'} }),
+  T('p5-py-end-balance','data_load','Prior Year End Balance', NS, { due:{anchor:'task:post-receive-final-files', days:7, key:'dataLoad'} }),
+  T('post-final-check','data_load','Final Check', NS,
+    { critical:true, due:{anchor:'task:post-receive-final-files', days:14, key:'finalCheck'} }),
+
+  // --- Closeout ---
+  T('close-go-live-meeting','closeout','Go-Live Meeting Complete', ALL,
+    { allowNA:false, critical:true, milestone:true, due:{anchor:'task:post-final-check', days:5, key:'goLive'} }),
+];
+const taskById = Object.fromEntries(TASKS.map(t => [t.id, t]));
+
+const LINKED_TASKS = {
+  'setup-ftp-connection':'payroll-ftp-setup', 'payroll-ftp-setup':'setup-ftp-connection',
+  'setup-wire-instructions-prk':'prk-wire-instructions', 'prk-wire-instructions':'setup-wire-instructions-prk',
+};
+
+/* Timeline knobs (per-plan overrides live in plan.schedOverrides) */
+const SCHED_KNOBS = [
+  { key:'wireAdvance', label:'Pre-wire emails lead', desc:'Days before wire', def:-5, neg:true },
+  { key:'fmcLead',     label:'Fund calendar / TIK follow-up lead', desc:'Days before wire', def:-10, neg:true },
+  { key:'tikLead',     label:'TIK account details lead', desc:'Days before wire', def:-7, neg:true },
+  { key:'finalFiles',  label:'Final files deadline', desc:'Days after wire', def:7 },
+  { key:'dataLoad',    label:'Data load window', desc:'Days after final files', def:7 },
+  { key:'finalCheck',  label:'Final check', desc:'Days after final files', def:14 },
+  { key:'payrollLead', label:'Payroll handoff lead', desc:'Days before first payroll', def:-3, neg:true },
+  { key:'goLive',      label:'Go-live meeting', desc:'Days after final check', def:5 },
+];
+function knob(plan, key, fallback){
+  const o = plan.schedOverrides || {};
+  if(key && key in o && o[key] !== '' && o[key] !== null && !isNaN(o[key])) return Number(o[key]);
+  return fallback;
+}
+
+function appliesToPlan(t, plan){
+  const r = t.applies, k = plan.intake;
+  if(r.planTypes && !r.planTypes.includes(k.planType)) return false;
+  const strat = k.strategies || [];
+  if(r.strategiesAny && !r.strategiesAny.some(s => strat.includes(s))) return false;
+  if(r.strategiesAll && !r.strategiesAll.every(s => strat.includes(s))) return false;
+  if(r.strategiesNone && r.strategiesNone.some(s => strat.includes(s))) return false;
+  if(r.excludeCashOnly && strat.length === 1 && strat[0] === 'cash') return false;
+  if(r.excludeTikOnly && strat.length === 1 && strat[0] === 'tik') return false;
+  if(r.characteristics){
+    for(const [key, val] of Object.entries(r.characteristics)){
+      if(!!(k.characteristics || {})[key] !== val) return false;
+    }
+  }
+  return true;
+}
+function taskLabel(plan, t){
+  if(t.id === 'wire-move-process-wire'){
+    const s = plan.intake.strategies || [];
+    if(s.includes('cash')) return 'Transfer Wire to Advanced Employer';
+    if(s.includes('mapping')) return 'Map Funds';
+  }
+  return t.label;
+}
+function planCatalog(plan){
+  const byPhase = PHASES.map(ph => ({
+    ...ph,
+    tasks: TASKS.filter(t => t.phase === ph.id && appliesToPlan(t, plan)),
+    custom: (plan.customTasks?.[ph.id] || []),
+  })).filter(ph => ph.tasks.length || ph.custom.length);
+  return byPhase;
+}
+function planTaskList(plan){
+  return TASKS.filter(t => appliesToPlan(t, plan));
+}
+
+/* ================= 4. DUE DATE ENGINE 2.0 =================
+   Resolution order per task:
+     1. manual override        (plan.tasks[id].manualDue)
+     2. week bucket            -> anchored on the Documents Received trigger
+     3. offset rule            -> anchor = milestone date or upstream task's
+                                  ACTUAL completion (falls back to its due)
+   Every date passes through business-day math when enabled.       */
+function taskState(plan, id){
+  return plan.tasks[id] || { status:'open', note:'', completedAt:'', manualDue:'' };
+}
+function docsAnchor(plan){
+  // the schedule's root: actual Documents Received date, else completion date, else null
+  const trig = plan.triggers?.['setup-all-docs'];
+  if(trig) return trig;
+  const st = taskState(plan, 'setup-all-docs');
+  if(st.status === 'done' && st.completedAt) return st.completedAt.slice(0, 10);
+  return null;
+}
+function resolveDue(plan, id, stack = []){
+  const t = taskById[id];
+  if(!t || !t.due) return { date:null, kind:'none' };
+  if(stack.includes(id)) return { date:null, kind:'none' }; // cycle guard
+  const st = taskState(plan, id);
+  if(st.manualDue) return { date: st.manualDue, kind:'manual' };
+
+  const rule = t.due;
+  if(rule.week){
+    const anchor = docsAnchor(plan);
+    if(!anchor) return { date:null, kind:'pending', week: rule.week, waitingOn:'Documents Received' };
+    const b = weekBucket(anchor, rule.week);
+    return { date: b.end, kind:'auto', week: rule.week, bucket: b };
+  }
+  let anchorISO = null, waitingOn = '';
+  const days = knob(plan, rule.key, rule.days);
+  if(rule.anchor === 'wire'){ anchorISO = plan.intake.wireDate || plan.intake.effectiveDate; waitingOn = 'Wire Date'; }
+  else if(rule.anchor === 'eff'){ anchorISO = plan.intake.effectiveDate; waitingOn = 'Effective Date'; }
+  else if(rule.anchor === 'day1'){ anchorISO = plan.intake.day1 || (plan.createdAt || '').slice(0,10); waitingOn = 'Day 1'; }
+  else if(rule.anchor === 'firstPayroll'){ anchorISO = plan.intake.firstPayrollDate; waitingOn = 'First Payroll'; }
+  else if(rule.anchor && rule.anchor.startsWith('task:')){
+    const upId = rule.anchor.slice(5);
+    const upState = taskState(plan, upId);
+    if(upState.status === 'done' && upState.completedAt){
+      anchorISO = upState.completedAt.slice(0, 10);           // re-flow from ACTUALS
+    } else {
+      const up = resolveDue(plan, upId, [...stack, id]);
+      anchorISO = up.date;
+      waitingOn = taskById[upId] ? taskById[upId].label : upId;
+    }
+  }
+  if(!anchorISO) return { date:null, kind:'pending', waitingOn };
+  return { date: addSla(plan, anchorISO, days), kind:'auto' };
+}
+/* status: done | na | pending | overdue | today | soon | week | future */
+function dueStatus(plan, id){
+  const st = taskState(plan, id);
+  if(st.status === 'done') return { cls:'done', res: resolveDue(plan, id) };
+  if(st.status === 'na')   return { cls:'na',   res: { date:null, kind:'none' } };
+  const res = resolveDue(plan, id);
+  if(!res.date) return { cls: res.kind === 'pending' ? 'pending' : 'none', res };
+  const today = todayISO();
+  // week-bucket tasks only go overdue after the bucket closes
+  const diff = daysBetween(today, res.date);
+  if(diff < 0)  return { cls:'overdue', res, diff };
+  if(diff === 0) return { cls:'today', res, diff };
+  if(diff <= 3) return { cls:'soon', res, diff };
+  if(diff <= 7) return { cls:'week', res, diff };
+  return { cls:'future', res, diff };
+}
+function dueBadgeText(plan, id){
+  const { cls, res, diff } = dueStatus(plan, id);
+  if(cls === 'done'){
+    const st = taskState(plan, id);
+    return { cls:'due-done', text: st.completedAt ? 'Done ' + fmtShort(st.completedAt.slice(0,10)) : 'Done' };
+  }
+  if(cls === 'na') return { cls:'', text:'' };
+  if(cls === 'pending') return { cls:'due-pending', text: 'Awaiting ' + (res.waitingOn || 'anchor') };
+  if(cls === 'none') return { cls:'', text:'' };
+  const manual = res.kind === 'manual' ? ' due-manual' : '';
+  const wk = res.week ? `<span class="wk-tag">W${res.week}</span> ` : '';
+  if(cls === 'overdue') return { cls:'due-overdue' + manual, text: wk + `${Math.abs(diff)}d late · ` + fmtShort(res.date) };
+  if(cls === 'today')   return { cls:'due-today' + manual, text: wk + 'Due today' };
+  if(cls === 'soon')    return { cls:'due-soon' + manual, text: wk + `${diff}d · ` + fmtShort(res.date) };
+  if(cls === 'week')    return { cls:'due-week' + manual, text: wk + fmtShort(res.date) };
+  return { cls:'' + manual, text: wk + fmtShort(res.date) };
+}
+
+/* ================= 5. PLAN ANALYTICS ================= */
+function planSummary(plan){
+  const list = planTaskList(plan);
+  const custom = Object.values(plan.customTasks || {}).flat();
+  let done = 0, total = 0, overdue = 0;
+  for(const t of list){
+    const st = taskState(plan, t.id);
+    if(st.status === 'na') continue;
+    total++;
+    if(st.status === 'done') done++;
+    else if(dueStatus(plan, t.id).cls === 'overdue') overdue++;
+  }
+  for(const c of custom){ total++; if(c.done) done++; }
+  return { done, total, overdue, pct: total ? Math.round(done / total * 100) : 0 };
+}
+function planAgenda(plan){
+  const buckets = { overdue:[], today:[], thisWeek:[], later:[], waiting:[] };
+  for(const t of planTaskList(plan)){
+    const st = taskState(plan, t.id);
+    if(st.status === 'done' || st.status === 'na') continue;
+    const ds = dueStatus(plan, t.id);
+    const item = { id: t.id, label: taskLabel(plan, t), phase: t.phase, due: ds.res.date,
+                   critical: t.critical, working: st.status === 'working' };
+    if(ds.cls === 'overdue') buckets.overdue.push(item);
+    else if(ds.cls === 'today' || ds.cls === 'soon') buckets.today.push(item);
+    else if(ds.cls === 'week') buckets.thisWeek.push(item);
+    else if(ds.cls === 'pending') buckets.waiting.push(item);
+    else buckets.later.push(item);
+  }
+  const byDue = (a, b) => (a.due || '9999').localeCompare(b.due || '9999');
+  Object.values(buckets).forEach(b => b.sort(byDue));
+  return buckets;
+}
+/* Schedule health: looks only at CRITICAL-path tasks. */
+function scheduleHealth(plan){
+  let lateDays = 0, lateCount = 0, pendingRoot = !docsAnchor(plan);
+  for(const t of planTaskList(plan)){
+    if(!t.critical) continue;
+    const st = taskState(plan, t.id);
+    if(st.status !== 'open' && st.status !== 'working') continue;
+    const ds = dueStatus(plan, t.id);
+    if(ds.cls === 'overdue'){ lateCount++; lateDays = Math.max(lateDays, Math.abs(ds.diff)); }
+  }
+  if(lateCount) return { tone:'danger', label:`Critical path ${lateDays}d behind`, detail:`${lateCount} critical task${lateCount>1?'s':''} overdue` };
+  if(pendingRoot && plan.status === 'active') return { tone:'wait', label:'Waiting on documents', detail:'Schedule anchors when documents are received' };
+  const soon = planTaskList(plan).filter(t => t.critical && ['today','soon'].includes(dueStatus(plan, t.id).cls)).length;
+  if(soon) return { tone:'warn', label:`${soon} critical task${soon>1?'s':''} due within 3 days`, detail:'' };
+  return { tone:'ok', label:'On track', detail:'No critical tasks late' };
+}
+function payrollWatch(plan){
+  const fp = plan.intake.firstPayrollDate;
+  if(!fp) return null;
+  if(taskState(plan, 'payroll-finalize').status === 'done') return null;
+  const days = daysBetween(todayISO(), fp);
+  if(days > 14) return null;
+  return {
+    urgent: days <= 7,
+    message: days < 0
+      ? `First payroll passed ${Math.abs(days)}d ago — payroll not handed off.`
+      : `First payroll in ${days}d and Payroll Handoff is not done.`,
+  };
+}
+/* What-if: diff every task due between two intake/override snapshots */
+function scheduleDiff(planBefore, planAfter){
+  const changes = [];
+  const ids = new Set([...planTaskList(planBefore), ...planTaskList(planAfter)].map(t => t.id));
+  for(const id of ids){
+    const t = taskById[id];
+    const stA = taskState(planAfter, id);
+    if(stA.status === 'done' || stA.status === 'na') continue;
+    const a = resolveDue(planBefore, id).date;
+    const b = resolveDue(planAfter, id).date;
+    if(a !== b) changes.push({ id, label: taskLabel(planAfter, t), phase: t.phase, oldDue: a, newDue: b });
+  }
+  changes.sort((x, y) => (x.newDue || '9999').localeCompare(y.newDue || '9999'));
+  return changes;
+}
+</script>
+<script>
+/* ================= 6. STORE + MIGRATION ================= */
+const K = {
+  db: 'lmdc3:db:v1',
+  theme: 'lmdc3:theme',
+  rail: 'lmdc3:railCollapsed',
+  migrated: 'lmdc3:migratedLegacy:v1',
+  legacySaves: 'icg_plan_saves_v1',
+};
+const TRASH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+
+let DB = { plans: [], selectedId: '' };
+const UI = {
+  screen: 'home',                 // home | intake | checklist | timeline
+  contextTab: 'details',
+  clFilter: 'all',                // all | open | overdue | week | working | done
+  tlPlan: 'current',              // plan id | 'all'
+  collapsedPhases: {},
+  showArchive: false, showTrash: false,
+};
+
+const TEAM = {
+  tm: ['Alicia Johnson','Courtney Moses','Damien Hurm','Dawn Sander','Donna Eliasson','Katy Sweeney','Lexi Westenskow','Paul Falatico','Sarah Juhl','Tawnya Neighbor','Tiffany Castro'],
+  tc: ['Beth Turnwall','Connie Halter','Dan Clifford','Gabe Ceballos','Krystal Tournier','Theresa Herzner'],
+  dcfc: ['Selena Cherry','Amy Jiang','Beth Flores','Kayla Hartmann'],
+};
+const VENDORS = {
+  payroll: ['In House','ADP','Paylocity','Paychex','UKG','Dayforce','Paykonnect','Exponent HR','Other'],
+  prior: ['Empower','Fidelity','Principal','Vanguard','Voya','Nationwide','Newport','ADP','Other'],
+};
+const AVATAR_HUES = [211, 262, 174, 96, 32, 338, 200, 280, 150, 20, 240, 300, 120, 55, 190, 350];
+function avatarFor(name){
+  if(!name) return '';
+  const initials = name.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  let h = 0; for(const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const hue = AVATAR_HUES[h % AVATAR_HUES.length];
+  return `<span class="avatar" style="background:hsl(${hue} 48% 46%)">${esc(initials)}</span>`;
+}
+
+function blankPlan(){
+  return {
+    id: uid(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    status: 'active', trashedAt: '',
+    intake: {
+      planName:'', caseNumber:'', planType:'conversion', mergerType:'', strategies:[],
+      effectiveDate:'', wireDate:'', day1: todayISO(), firstPayrollDate:'', clientFolderUrl:'',
+      dcFileCoordinator:'', tmName:'', tcName:'',
+      clientName:'', clientEmail:'',
+      payrollVendor:'', payrollName:'', payrollEmail:'',
+      priorVendor:'', priorName:'', priorEmail:'',
+      characteristics: { loans:false, roth:false, autoEnroll:false, nonQual:false },
+      useBusinessDays: true,
+    },
+    tasks: {},        // id -> {status, note, completedAt, manualDue, updatedAt}
+    triggers: {},     // id -> ISO date ("Documents Received")
+    customTasks: {},  // phaseId -> [{id, text, done, note}]
+    pins: [],         // {id, title, note, important, ts, taskId?}
+    notes: '',
+    dateHistory: [],  // {field, oldDate, newDate, changedAt}
+    schedOverrides: {},
+  };
+}
+function loadDB(){
+  try{
+    const raw = localStorage.getItem(K.db);
+    if(raw){ DB = JSON.parse(raw); }
+  }catch(e){ console.warn('DB parse failed', e); }
+  if(!Array.isArray(DB.plans)) DB.plans = [];
+  // purge expired trash
+  const cutoff = Date.now() - TRASH_RETENTION_MS;
+  DB.plans = DB.plans.filter(p => !(p.status === 'trash' && p.trashedAt && Date.parse(p.trashedAt) < cutoff));
+}
+function saveDB(){ localStorage.setItem(K.db, JSON.stringify(DB)); }
+const plan = () => DB.plans.find(p => p.id === DB.selectedId) || null;
+const activePlans = () => DB.plans.filter(p => p.status === 'active' || p.status === 'hold');
+const touch = p => { p.updatedAt = new Date().toISOString(); };
+
+/* ---- migration from the legacy single-file app (icg_plan_saves_v1) ---- */
+function migrateLegacySaveRecord(key, rec){
+  const p = blankPlan();
+  p.id = 'legacy_' + key;
+  p.createdAt = new Date(rec.ts || Date.now()).toISOString();
+  p.updatedAt = p.createdAt;
+  p.status = rec.deletedAt ? 'trash' : ({ active:'active', complete:'complete', hold:'hold' }[rec.status] || 'active');
+  if(rec.deletedAt) p.trashedAt = new Date(rec.deletedAt).toISOString();
+  const S = rec.S || {};
+  const chars = rec.chars || {};
+  p.intake = { ...p.intake,
+    planName: S.planName || rec.planName || 'Untitled Plan',
+    caseNumber: S.caseNumber || rec.caseNumber || '',
+    planType: S.planType || 'conversion',
+    mergerType: S.mergerType || '',
+    strategies: Array.isArray(S.strategies) ? S.strategies : [],
+    effectiveDate: S.effectiveDate || '', wireDate: S.wireDate || '',
+    day1: S.day1 || (rec.ts ? toISO(new Date(rec.ts)) : todayISO()),
+    clientFolderUrl: S.spUrl || '',
+    dcFileCoordinator: S.dcFileCoordinator || '',
+    tmName: S.tmName || '', tcName: S.tcName || '',
+    clientName: S.clientName || '', clientEmail: S.clientEmail || '',
+    payrollVendor: S.payrollVendor || '', payrollName: S.payrollName || '', payrollEmail: S.payrollEmail || '',
+    priorVendor: S.priorVendorName || '', priorName: S.priorContactName || '', priorEmail: S.priorContactEmail || '',
+    characteristics: {
+      loans: !!chars.loans, roth: !!chars.roth,
+      autoEnroll: !!(chars.autoenroll ?? chars.autoEnroll), nonQual: !!(chars.nonqual ?? chars.nonQual),
+    },
+    useBusinessDays: S.useBusinessDays !== false,
+  };
+  const CS = rec.CS || {}, WS = rec.WS || {}, CN = rec.CN || {}, CD = rec.CD || {};
+  const ids = new Set([...Object.keys(CS), ...Object.keys(WS), ...Object.keys(CN), ...Object.keys(CD)]);
+  for(const id of ids){
+    const done = !!CS[id];
+    p.tasks[id] = {
+      status: done ? 'done' : (WS[id] ? 'working' : 'open'),
+      note: CN[id] || '',
+      completedAt: done && typeof CS[id] === 'number' ? new Date(CS[id]).toISOString() : (done ? p.updatedAt : ''),
+      manualDue: CD[id] || '',
+      updatedAt: p.updatedAt,
+    };
+  }
+  p.triggers = rec.TE || {};
+  if(rec.CT) p.customTasks = Object.fromEntries(
+    Object.entries(rec.CT).map(([ph, arr]) => [ph, (arr || []).map(c => ({ id: c.id || uid(), text: c.text || '', note: c.note || '', done: false }))])
+  );
+  p.pins = (rec.PINS || []).map(pin => ({
+    id: pin.id || uid(), title: pin.title || '', note: pin.note || '',
+    important: !!pin.important, ts: pin.ts || rec.ts || Date.now(), taskId: pin.taskId || '',
+  }));
+  p.notes = rec.notes || '';
+  p.schedOverrides = rec.schedOverrides || {};
+  return p;
+}
+function migrateLegacy(){
+  if(localStorage.getItem(K.migrated)) return 0;
+  let count = 0;
+  try{
+    const raw = localStorage.getItem(K.legacySaves);
+    if(raw){
+      const saves = JSON.parse(raw);
+      for(const [key, rec] of Object.entries(saves || {})){
+        if(!rec || typeof rec !== 'object') continue;
+        if(DB.plans.some(p => p.id === 'legacy_' + key)) continue;
+        DB.plans.push(migrateLegacySaveRecord(key, rec));
+        count++;
+      }
+    }
+  }catch(e){ console.warn('legacy migration failed', e); }
+  localStorage.setItem(K.migrated, '1');
+  if(count) saveDB();
+  return count;
+}
+
+/* ================= 7. SHELL ================= */
+function render(){
+  renderRail();
+  renderCmdbar();
+  $$('.screen').forEach(s => s.classList.remove('active'));
+  const el = $('#screen-' + UI.screen);
+  if(el) el.classList.add('active');
+  if(UI.screen === 'home') renderHome();
+  if(UI.screen === 'checklist') renderChecklist();
+  if(UI.screen === 'timeline') renderTimeline();
+  renderContext();
+  hydrateIcons();
+}
+function go(screen){
+  if(screen !== 'intake' && UI.screen === 'intake') { /* leaving intake is safe: nothing saved until submit */ }
+  UI.screen = screen;
+  render();
+  $('#contentScroll').scrollTop = 0;
+}
+function openPlan(id, screen){
+  DB.selectedId = id; saveDB();
+  go(screen || 'checklist');
+}
+function renderRail(){
+  const items = [
+    { id:'home', icon:'home', label:'Home', count: activePlans().length },
+    { id:'checklist', icon:'check', label:'Checklist' },
+    { id:'timeline', icon:'gantt', label:'Timeline' },
+  ];
+  $('#railNav').innerHTML = items.map(it => `
+    <button class="rail-item ${UI.screen === it.id ? 'active' : ''}" onclick="railNavTo('${it.id}')" title="${it.label}">
+      <i data-icon="${it.icon}"></i><span>${it.label}</span>
+      ${it.count ? `<span class="rail-count">${it.count}</span>` : ''}
+    </button>`).join('');
+
+  const plans = activePlans().sort((a, b) => (a.intake.planName || '').localeCompare(b.intake.planName || ''));
+  $('#railPlans').innerHTML = plans.length ? plans.map(p => {
+    const sum = planSummary(p);
+    return `
+    <button class="rail-plan ${p.id === DB.selectedId ? 'active' : ''}" onclick="openPlan('${p.id}')" title="${esc(p.intake.planName)}">
+      <span class="plan-ring" style="--pct:${sum.pct}"><span>${sum.pct}</span></span>
+      <span class="rail-plan-meta">
+        <strong>${esc(p.intake.planName || 'Untitled')}</strong>
+        <small>${esc(p.intake.caseNumber || 'No case')}</small>
+      </span>
+      ${sum.overdue ? '<span class="dot dot-overdue" title="Overdue tasks"></span>'
+        : (p.status === 'hold' ? '<span class="dot dot-hold" title="On hold"></span>' : '')}
+    </button>`;
+  }).join('') : '<div class="rail-empty">No active plans yet.</div>';
+
+  $('#railFoot').innerHTML = `
+    <button class="rail-item" onclick="openSettings()"><i data-icon="gear"></i><span>Settings</span></button>
+    <button class="rail-item" onclick="toggleTheme()"><i data-icon="${currentTheme() === 'dark' ? 'sun' : 'moon'}"></i><span>${currentTheme() === 'dark' ? 'Light mode' : 'Dark mode'}</span></button>`;
+}
+function railNavTo(id){
+  if((id === 'checklist' || id === 'timeline') && !plan()){
+    const first = activePlans()[0];
+    if(!first){ toast('Create a plan first'); return; }
+    DB.selectedId = first.id; saveDB();
+  }
+  go(id);
+}
+function renderCmdbar(){
+  const p = plan();
+  let title = '', sub = '', actions = '';
+  if(UI.screen === 'home'){
+    title = 'Home'; sub = 'Every active conversion at a glance';
+    actions = `
+      <button class="btn btn-subtle" onclick="$('#importFile').click()"><i data-icon="import"></i>Import</button>
+      <button class="btn btn-subtle" onclick="exportAll()"><i data-icon="export"></i>Export all</button>`;
+  } else if(UI.screen === 'intake'){
+    const editing = !!$('#inPlanId').value;
+    title = editing ? 'Edit plan' : 'New plan';
+    sub = editing ? 'Changing dates previews the schedule impact before saving' : 'Create the shell — the checklist generates from these answers';
+  } else if(p){
+    title = p.intake.planName || 'Untitled plan';
+    sub = `${p.intake.caseNumber || 'No case'} · ${cap(p.intake.planType)}${p.intake.strategies.length ? ' · ' + p.intake.strategies.map(s => s.toUpperCase()).join(' + ') : ''}`;
+    const statusPill = `<span class="pill-status pill-${p.status === 'hold' ? 'hold' : p.status === 'complete' ? 'complete' : 'active'}">${cap(p.status)}</span>`;
+    actions = `
+      ${statusPill}
+      <button class="btn btn-subtle" onclick="editIntake()"><i data-icon="edit"></i>Edit intake</button>
+      <button class="btn btn-subtle" onclick="openTimelineSettings()">Timeline</button>
+      <button class="btn btn-subtle" onclick="exportPlan()"><i data-icon="export"></i>Export</button>
+      ${UI.screen === 'checklist' ? `<button class="btn btn-subtle" onclick="toggleContext()">Details</button>` : ''}
+      ${p.status !== 'complete'
+        ? `<button class="btn btn-subtle" onclick="setPlanStatus('${p.id}','${p.status === 'hold' ? 'active' : 'hold'}')">${p.status === 'hold' ? 'Resume' : 'Hold'}</button>
+           <button class="btn btn-primary" onclick="markComplete('${p.id}')">Mark complete</button>`
+        : `<button class="btn btn-subtle" onclick="setPlanStatus('${p.id}','active')">Reopen</button>`}`;
+  } else {
+    title = 'LMDC Planner'; sub = '';
+  }
+  $('#cmdbar').innerHTML = `
+    <div class="cmd-title"><h2>${esc(title)}</h2><p>${esc(sub)}</p></div>
+    <div class="cmd-spacer"></div>
+    <div class="cmd-actions">${actions}</div>`;
+}
+const cap = s => (s || '').charAt(0).toUpperCase() + (s || '').slice(1);
+
+function currentTheme(){ return document.documentElement.dataset.theme || 'light'; }
+function toggleTheme(){
+  const next = currentTheme() === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem(K.theme, next);
+  render();
+}
+function toggleRail(){
+  $('#appRoot').classList.toggle('rail-collapsed');
+  localStorage.setItem(K.rail, $('#appRoot').classList.contains('rail-collapsed') ? '1' : '');
+}
+
+/* ================= 8a. HOME ================= */
+function renderHome(){
+  const el = $('#screen-home');
+  const plans = activePlans();
+  const completed = DB.plans.filter(p => p.status === 'complete');
+  const trashed = DB.plans.filter(p => p.status === 'trash');
+
+  if(!DB.plans.length){
+    el.innerHTML = `
+      <div class="empty-state">
+        <h2>Welcome to LMDC Planner 3</h2>
+        <p>Ground-up rebuild: one workspace for every conversion, a schedule engine that re-flows from actual completion dates, and a timeline view built for wire day.</p>
+        <button class="btn btn-primary" onclick="startNewPlan()"><i data-icon="plus"></i>Create your first plan</button>
+        <button class="btn btn-subtle" onclick="$('#importFile').click()">Import from the old planner (.json)</button>
+        <button class="btn btn-ghost" onclick="seedSample()">Load a sample plan</button>
+      </div>`;
+    hydrateIcons(el);
+    return;
+  }
+
+  let overdueTotal = 0, weekTotal = 0, waitingTotal = 0;
+  const cards = plans.map(p => {
+    const agenda = planAgenda(p);
+    overdueTotal += agenda.overdue.length;
+    weekTotal += agenda.today.length + agenda.thisWeek.length;
+    waitingTotal += agenda.waiting.length;
+    return renderPlanCard(p, agenda);
+  }).join('');
+
+  el.innerHTML = `
+    <div class="stats-row">
+      <div class="stat tone-danger"><b class="num">${overdueTotal}</b><span>Overdue</span></div>
+      <div class="stat tone-warn"><b class="num">${weekTotal}</b><span>Due this week</span></div>
+      <div class="stat"><b class="num">${waitingTotal}</b><span>Waiting</span></div>
+      <div class="stat tone-accent"><b class="num">${plans.length}</b><span>Active plans</span></div>
+      <div class="stat tone-ok"><b class="num">${completed.length}</b><span>Completed</span></div>
+    </div>
+    <div class="home-grid">${cards || '<div class="empty-state"><h2>No active plans</h2><p>Everything is complete or on hold.</p></div>'}</div>
+    ${completed.length ? `
+      <div class="section-head"><h3>Completed archive (${completed.length})</h3><hr>
+        <button class="btn btn-ghost btn-sm" onclick="UI.showArchive=!UI.showArchive;renderHome()">${UI.showArchive ? 'Hide' : 'Show'}</button></div>
+      ${UI.showArchive ? `<div class="mini-list">${completed.map(p => `
+        <div class="mini-row">
+          <strong>${esc(p.intake.planName)}</strong><small>${esc(p.intake.caseNumber)}</small><span class="grow"></span>
+          <button class="btn btn-ghost btn-sm" onclick="openPlan('${p.id}')">Open</button>
+          <button class="btn btn-ghost btn-sm" onclick="setPlanStatus('${p.id}','active')">Restore</button>
+          <button class="btn btn-ghost btn-sm" onclick="trashPlan('${p.id}')">Delete</button>
+        </div>`).join('')}</div>` : ''}` : ''}
+    ${trashed.length ? `
+      <div class="section-head"><h3>Trash (${trashed.length}) — auto-purges after 30 days</h3><hr>
+        <button class="btn btn-ghost btn-sm" onclick="UI.showTrash=!UI.showTrash;renderHome()">${UI.showTrash ? 'Hide' : 'Show'}</button></div>
+      ${UI.showTrash ? `<div class="mini-list">${trashed.map(p => `
+        <div class="mini-row">
+          <strong>${esc(p.intake.planName)}</strong><small>${esc(p.intake.caseNumber)}</small><span class="grow"></span>
+          <button class="btn btn-ghost btn-sm" onclick="restorePlan('${p.id}')">Restore</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteForever('${p.id}')">Delete forever</button>
+        </div>`).join('')}</div>` : ''}` : ''}`;
+  hydrateIcons(el);
+}
+function renderPlanCard(p, agenda){
+  const sum = planSummary(p);
+  const health = scheduleHealth(p);
+  const pw = payrollWatch(p);
+  const milestones = [
+    p.intake.effectiveDate ? { label:'Effective', date: p.intake.effectiveDate } : null,
+    p.intake.wireDate ? { label:'Wire', date: p.intake.wireDate } : null,
+  ].filter(Boolean).filter(m => m.date >= todayISO()).sort((a, b) => a.date.localeCompare(b.date));
+  const next = milestones[0];
+
+  const bucket = (title, items, max = 4) => !items.length ? '' : `
+    <div class="agenda-bucket"><h4>${title} <em>· ${items.length}</em></h4>
+      ${items.slice(0, max).map(it => `
+        <div class="agenda-item" onclick="openPlan('${p.id}');scrollToTask('${it.id}')">
+          <span class="a-phase" style="background:${phaseById(it.phase).color}"></span>
+          <span class="a-label">${it.critical ? '⚑ ' : ''}${esc(it.label)}</span>
+          <span class="a-due num">${it.due ? fmtShort(it.due) : 'awaiting'}</span>
+        </div>`).join('')}
+      ${items.length > max ? `<div class="agenda-more">+${items.length - max} more</div>` : ''}
+    </div>`;
+
+  return `<article class="card plan-card">
+    <div class="plan-card-head">
+      <div>
+        <h3><button onclick="openPlan('${p.id}')">${esc(p.intake.planName || 'Untitled')}</button></h3>
+        <div class="plan-card-sub">
+          <span class="chip">${esc(p.intake.caseNumber || 'No case')}</span>
+          <span class="chip chip-accent">${cap(p.intake.planType)}</span>
+          ${p.intake.strategies.map(s => `<span class="chip">${s.toUpperCase()}</span>`).join('')}
+          ${p.status === 'hold' ? '<span class="chip chip-warn">On hold</span>' : ''}
+          ${next ? `<span class="chip">${next.label} in ${daysBetween(todayISO(), next.date)}d</span>` : ''}
+        </div>
+      </div>
+      <div class="plan-card-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openPlan('${p.id}','timeline')">Timeline</button>
+        <button class="btn btn-subtle btn-sm" onclick="openPlan('${p.id}')">Open</button>
+      </div>
+    </div>
+    <div class="progress-row"><div class="progress"><i style="width:${sum.pct}%"></i></div><small class="num">${sum.done}/${sum.total} · ${sum.pct}%</small></div>
+    <div class="health-line health-${health.tone}"><i data-icon="${health.tone === 'ok' ? 'tick' : 'warn'}"></i>${esc(health.label)}${health.detail ? ` <span style="font-weight:500;opacity:.8">— ${esc(health.detail)}</span>` : ''}</div>
+    ${pw ? `<div class="health-line health-${pw.urgent ? 'danger' : 'warn'}"><i data-icon="warn"></i>${esc(pw.message)}</div>` : ''}
+    <div class="agenda">
+      ${bucket('Overdue', agenda.overdue)}
+      ${bucket('Due now (≤3d)', agenda.today)}
+      ${bucket('This week', agenda.thisWeek)}
+      ${!agenda.overdue.length && !agenda.today.length && !agenda.thisWeek.length ? bucket('Next steps', [...agenda.waiting, ...agenda.later], 3) : ''}
+    </div>
+  </article>`;
+}
+function setPlanStatus(id, status){
+  const p = DB.plans.find(x => x.id === id); if(!p) return;
+  p.status = status; touch(p); saveDB(); render();
+  toast(status === 'hold' ? 'Plan on hold' : status === 'active' ? 'Plan active' : 'Updated');
+}
+function markComplete(id){
+  const p = DB.plans.find(x => x.id === id); if(!p) return;
+  const sum = planSummary(p);
+  confirmAction('Mark plan complete?',
+    sum.pct < 100 ? `${sum.total - sum.done} task(s) are still open. The plan moves to the archive either way.` : 'The plan moves to the completed archive.',
+    () => { p.status = 'complete'; touch(p); saveDB(); go('home'); toast('Plan completed 🎉'); });
+}
+function trashPlan(id){
+  const p = DB.plans.find(x => x.id === id); if(!p) return;
+  confirmAction('Move plan to trash?', 'It stays recoverable for 30 days, then purges automatically.', () => {
+    p.status = 'trash'; p.trashedAt = new Date().toISOString(); touch(p);
+    if(DB.selectedId === id) DB.selectedId = '';
+    saveDB(); render(); toast('Moved to trash');
+  });
+}
+function restorePlan(id){
+  const p = DB.plans.find(x => x.id === id); if(!p) return;
+  p.status = 'active'; p.trashedAt = ''; touch(p); saveDB(); render(); toast('Plan restored');
+}
+function deleteForever(id){
+  confirmAction('Delete forever?', 'This permanently removes the plan and all its data. No undo.', () => {
+    DB.plans = DB.plans.filter(x => x.id !== id);
+    if(DB.selectedId === id) DB.selectedId = '';
+    saveDB(); render(); toast('Deleted');
+  });
+}
+</script>
+<script>
+/* ================= 8b. INTAKE ================= */
+const intakeDraft = { planType:'conversion', strategies:[], characteristics:{}, useBusinessDays:true };
+
+function startNewPlan(){
+  $('#inPlanId').value = '';
+  fillIntakeForm(blankPlan());
+  $('#intakeSubmit').textContent = 'Generate checklist';
+  go('intake');
+}
+function editIntake(){
+  const p = plan(); if(!p) return;
+  $('#inPlanId').value = p.id;
+  fillIntakeForm(p);
+  $('#intakeSubmit').textContent = 'Save & preview schedule impact';
+  go('intake');
+}
+function fillIntakeForm(p){
+  const k = p.intake;
+  intakeDraft.planType = k.planType || 'conversion';
+  intakeDraft.strategies = [...(k.strategies || [])];
+  intakeDraft.characteristics = { ...(k.characteristics || {}) };
+  intakeDraft.useBusinessDays = k.useBusinessDays !== false;
+
+  $('#inPlanName').value = k.planName || '';
+  $('#inCaseNumber').value = k.caseNumber || '';
+  $('#inDay1').value = k.day1 || todayISO();
+  $('#inEffectiveDate').value = k.effectiveDate || '';
+  $('#inFirstPayroll').value = k.firstPayrollDate || '';
+  $('#inWireDate').value = k.wireDate || '';
+  $('#inFolderUrl').value = k.clientFolderUrl || '';
+  $('#inMergerType').value = k.mergerType || '';
+  $('#inClientName').value = k.clientName || '';
+  $('#inClientEmail').value = k.clientEmail || '';
+  $('#inPayrollName').value = k.payrollName || '';
+  $('#inPayrollEmail').value = k.payrollEmail || '';
+  $('#inPriorName').value = k.priorName || '';
+  $('#inPriorEmail').value = k.priorEmail || '';
+  $('#inNotes').value = p.notes || '';
+
+  fillSelect('#inTm', TEAM.tm, k.tmName, 'Select TM…');
+  fillSelect('#inTc', TEAM.tc, k.tcName, 'Select TC…');
+  fillSelect('#inDcfc', TEAM.dcfc, k.dcFileCoordinator, 'Select…');
+  fillVendorSelect('#inPayrollVendor', VENDORS.payroll, k.payrollVendor, '#inPayrollVendorOther');
+  fillVendorSelect('#inPriorVendor', VENDORS.prior, k.priorVendor, '#inPriorVendorOther');
+  $('#inTm').onchange = $('#inTc').onchange = syncIntakeUI;
+
+  syncIntakeUI();
+}
+function fillSelect(sel, options, value, placeholder){
+  const el = $(sel);
+  el.innerHTML = `<option value="">${placeholder}</option>` +
+    options.map(o => `<option${o === value ? ' selected' : ''}>${esc(o)}</option>`).join('');
+  if(value && !options.includes(value)) el.insertAdjacentHTML('beforeend', `<option selected>${esc(value)}</option>`);
+}
+function fillVendorSelect(sel, options, value, otherSel){
+  const known = options.includes(value);
+  const el = $(sel);
+  el.innerHTML = `<option value="">Select…</option>` +
+    options.map(o => `<option${o === value ? ' selected' : ''}>${esc(o)}</option>`).join('');
+  if(value && !known){ el.value = 'Other'; $(otherSel).value = value; }
+  else $(otherSel).value = '';
+  el.onchange = syncIntakeUI;
+}
+function pickType(t){ intakeDraft.planType = t; syncIntakeUI(); }
+function toggleStrategy(s){
+  const i = intakeDraft.strategies.indexOf(s);
+  i >= 0 ? intakeDraft.strategies.splice(i, 1) : intakeDraft.strategies.push(s);
+  syncIntakeUI();
+}
+function toggleChar(c){ intakeDraft.characteristics[c] = !intakeDraft.characteristics[c]; syncIntakeUI(); }
+function toggleBizDays(){ intakeDraft.useBusinessDays = !intakeDraft.useBusinessDays; syncIntakeUI(); }
+function syncIntakeUI(){
+  $$('#typeCards .type-card').forEach(c => c.classList.toggle('selected', c.dataset.type === intakeDraft.planType));
+  $$('#strategyRow .toggle-chip').forEach(c => c.classList.toggle('selected', intakeDraft.strategies.includes(c.dataset.strategy)));
+  $$('#charRow .toggle-chip').forEach(c => c.classList.toggle('selected', !!intakeDraft.characteristics[c.dataset.char]));
+  $('#bizDaysChip').classList.toggle('selected', intakeDraft.useBusinessDays);
+  const nonStartup = intakeDraft.planType !== 'startup';
+  $$('.conditional.non-startup').forEach(el => el.style.display = nonStartup ? '' : 'none');
+  $$('.conditional.merger-only').forEach(el => el.style.display = intakeDraft.planType === 'merger' ? '' : 'none');
+  $$('.conditional.payroll-other').forEach(el => el.style.display = $('#inPayrollVendor').value === 'Other' ? '' : 'none');
+  $$('.conditional.prior-other').forEach(el => el.style.display = ($('#inPriorVendor').value === 'Other' && nonStartup) ? '' : 'none');
+  $('#tmAvatar').innerHTML = avatarFor($('#inTm')?.value);
+  $('#tcAvatar').innerHTML = avatarFor($('#inTc')?.value);
+  $('#intakeHint').textContent = nonStartup && !intakeDraft.strategies.length ? 'Pick at least one conversion strategy.' : '';
+}
+function collectIntake(base){
+  const k = { ...base.intake };
+  k.planName = $('#inPlanName').value.trim();
+  k.caseNumber = $('#inCaseNumber').value.trim();
+  k.day1 = $('#inDay1').value || todayISO();
+  k.effectiveDate = $('#inEffectiveDate').value;
+  k.firstPayrollDate = $('#inFirstPayroll').value;
+  k.planType = intakeDraft.planType;
+  k.mergerType = intakeDraft.planType === 'merger' ? $('#inMergerType').value : '';
+  k.strategies = intakeDraft.planType === 'startup' ? [] : [...intakeDraft.strategies];
+  k.wireDate = intakeDraft.planType === 'startup' ? '' : $('#inWireDate').value;
+  k.clientFolderUrl = $('#inFolderUrl').value.trim();
+  k.dcFileCoordinator = $('#inDcfc').value;
+  k.tmName = $('#inTm').value; k.tcName = $('#inTc').value;
+  k.clientName = $('#inClientName').value.trim(); k.clientEmail = $('#inClientEmail').value.trim();
+  k.payrollVendor = $('#inPayrollVendor').value === 'Other' ? $('#inPayrollVendorOther').value.trim() : $('#inPayrollVendor').value;
+  k.payrollName = $('#inPayrollName').value.trim(); k.payrollEmail = $('#inPayrollEmail').value.trim();
+  k.priorVendor = $('#inPriorVendor').value === 'Other' ? $('#inPriorVendorOther').value.trim() : $('#inPriorVendor').value;
+  k.priorName = $('#inPriorName').value.trim(); k.priorEmail = $('#inPriorEmail').value.trim();
+  k.characteristics = { ...intakeDraft.characteristics };
+  k.useBusinessDays = intakeDraft.useBusinessDays;
+  return k;
+}
+function validateIntake(k){
+  const problems = [];
+  const mark = (sel, bad) => $(sel).classList.toggle('invalid', !!bad);
+  mark('#inPlanName', !k.planName); if(!k.planName) problems.push('Plan name is required.');
+  mark('#inCaseNumber', !k.caseNumber); if(!k.caseNumber) problems.push('Case number is required.');
+  mark('#inEffectiveDate', !k.effectiveDate); if(!k.effectiveDate) problems.push('Effective date is required.');
+  if(k.planType !== 'startup' && !k.strategies.length) problems.push('Pick at least one conversion strategy.');
+  if(k.planType === 'merger' && !k.mergerType) problems.push('Pick a merger type.');
+  return problems;
+}
+function submitIntake(){
+  const editingId = $('#inPlanId').value;
+  const existing = editingId ? DB.plans.find(p => p.id === editingId) : null;
+  const base = existing || blankPlan();
+  const nextIntake = collectIntake(base);
+  const problems = validateIntake(nextIntake);
+  if(problems.length){ toast(problems[0]); return; }
+
+  if(existing){
+    // What-if preview: clone, apply, diff
+    const preview = structuredClone(existing);
+    preview.intake = nextIntake;
+    preview.notes = $('#inNotes').value;
+    const changes = scheduleDiff(existing, preview);
+    const dateFields = ['effectiveDate','wireDate','day1','firstPayrollDate'];
+    const movedDates = dateFields.filter(f => (existing.intake[f] || '') !== (nextIntake[f] || ''));
+    if(changes.length && movedDates.length){
+      showScheduleDiff(existing, preview, changes, () => applyIntake(existing, preview, movedDates));
+      return;
+    }
+    applyIntake(existing, preview, movedDates);
+    return;
+  }
+  // new plan
+  base.intake = nextIntake;
+  base.notes = $('#inNotes').value;
+  DB.plans.push(base);
+  DB.selectedId = base.id;
+  saveDB();
+  go('checklist');
+  toast('Checklist generated — record Documents Received to anchor the schedule');
+}
+function applyIntake(existing, preview, movedDates){
+  const now = new Date().toISOString();
+  for(const f of movedDates){
+    existing.dateHistory.push({ field: f, oldDate: existing.intake[f] || '', newDate: preview.intake[f] || '', changedAt: now });
+  }
+  existing.intake = preview.intake;
+  existing.notes = preview.notes;
+  touch(existing); saveDB();
+  closeModal('diffModal');
+  go('checklist');
+  toast(movedDates.length ? 'Schedule re-flowed' : 'Plan updated');
+}
+function cancelIntake(){ go(plan() ? 'checklist' : 'home'); }
+function showScheduleDiff(before, after, changes, onApply){
+  const fieldNames = { effectiveDate:'Effective Date', wireDate:'Wire Date', day1:'Day 1', firstPayrollDate:'First Payroll' };
+  const moved = Object.keys(fieldNames)
+    .filter(f => (before.intake[f] || '') !== (after.intake[f] || ''))
+    .map(f => `${fieldNames[f]}: ${fmtShort(before.intake[f]) || '—'} → <b>${fmtShort(after.intake[f]) || '—'}</b>`);
+  $('#diffSub').innerHTML = moved.join(' · ') || 'Schedule settings changed';
+  $('#diffBody').innerHTML = `
+    <p style="font-size:12.5px;color:var(--muted);margin:4px 0 10px">${changes.length} due date${changes.length > 1 ? 's' : ''} will move. Manual overrides and completed tasks are untouched.</p>
+    ${changes.map(c => `
+      <div class="diff-row">
+        <span class="a-phase" style="width:8px;height:8px;border-radius:2px;background:${phaseById(c.phase).color}"></span>
+        <span class="d-label">${esc(c.label)}</span>
+        <span class="d-old num">${c.oldDue ? fmtShort(c.oldDue) : 'pending'}</span>
+        <span class="d-arrow">→</span>
+        <span class="d-new num">${c.newDue ? fmtShort(c.newDue) : 'pending'}</span>
+      </div>`).join('')}`;
+  $('#diffApply').onclick = onApply;
+  openModal('diffModal');
+}
+
+/* ================= 8c. CHECKLIST ================= */
+function renderChecklist(){
+  const p = plan();
+  const el = $('#screen-checklist');
+  if(!p){
+    el.innerHTML = `<div class="empty-state"><h2>No plan selected</h2><p>Pick a plan from the rail or create a new one.</p>
+      <button class="btn btn-primary" onclick="startNewPlan()">New Plan</button></div>`;
+    return;
+  }
+  const sum = planSummary(p);
+  const health = scheduleHealth(p);
+  const countdowns = [];
+  if(p.intake.effectiveDate){
+    const d = daysBetween(todayISO(), p.intake.effectiveDate);
+    countdowns.push({ label:'To effective', val: d, tone: d < 0 ? '' : d <= 7 ? 'tone-warn' : '' });
+  }
+  if(p.intake.wireDate){
+    const d = daysBetween(todayISO(), p.intake.wireDate);
+    countdowns.push({ label:'To wire', val: d, tone: d < 0 ? '' : d <= 3 ? 'tone-danger' : d <= 7 ? 'tone-warn' : '' });
+  }
+  const filters = [
+    ['all','All'], ['open','Open'], ['overdue','Overdue'], ['week','Next 7 days'], ['working','Working'], ['done','Done'],
+  ];
+  const catalog = planCatalog(p);
+
+  el.innerHTML = `<div class="cl-wrap">
+    <div class="card cl-hero">
+      <div class="cl-hero-top">
+        <div style="flex:1;min-width:220px">
+          <div class="progress-row" style="margin-bottom:6px">
+            <div class="progress" style="height:8px"><i style="width:${sum.pct}%"></i></div>
+            <small class="num">${sum.done} / ${sum.total} · ${sum.pct}%</small>
+          </div>
+          <div class="health-line health-${health.tone}" style="display:inline-flex"><i data-icon="${health.tone === 'ok' ? 'tick' : 'warn'}"></i>${esc(health.label)}</div>
+        </div>
+        <div class="cl-countdowns">
+          ${countdowns.map(c => `<div class="countdown ${c.tone}"><b class="num">${c.val >= 0 ? c.val + 'd' : Math.abs(c.val) + 'd ago'}</b><span>${c.label}</span></div>`).join('')}
+        </div>
+      </div>
+      <div class="cl-filters">
+        <div class="seg">${filters.map(([id, label]) =>
+          `<button class="${UI.clFilter === id ? 'active' : ''}" onclick="UI.clFilter='${id}';renderChecklist();hydrateIcons()">${label}</button>`).join('')}</div>
+        <span class="cmd-spacer"></span>
+        <button class="btn btn-ghost btn-sm" onclick="setAllPhases(true)">Collapse all</button>
+        <button class="btn btn-ghost btn-sm" onclick="setAllPhases(false)">Expand all</button>
+      </div>
+    </div>
+    ${catalog.map((ph, i) => renderPhaseBlock(p, ph, i + 1)).join('')}
+  </div>`;
+  hydrateIcons(el);
+}
+function taskMatchesFilter(p, t){
+  if(UI.clFilter === 'all') return true;
+  const st = taskState(p, t.id);
+  const ds = dueStatus(p, t.id);
+  switch(UI.clFilter){
+    case 'open': return st.status === 'open' || st.status === 'working';
+    case 'overdue': return ds.cls === 'overdue';
+    case 'week': return ['today','soon','week'].includes(ds.cls);
+    case 'working': return st.status === 'working';
+    case 'done': return st.status === 'done';
+  }
+  return true;
+}
+function renderPhaseBlock(p, ph, num){
+  const visible = ph.tasks.filter(t => taskMatchesFilter(p, t));
+  const customVisible = UI.clFilter === 'all' || UI.clFilter === 'open' || UI.clFilter === 'done';
+  if(!visible.length && !(customVisible && ph.custom.length) && UI.clFilter !== 'all') return '';
+  const eligible = ph.tasks.filter(t => taskState(p, t.id).status !== 'na');
+  const done = eligible.filter(t => taskState(p, t.id).status === 'done').length;
+  const overdue = ph.tasks.filter(t => dueStatus(p, t.id).cls === 'overdue').length;
+  const collapsed = !!UI.collapsedPhases[ph.id];
+
+  return `<section class="card phase-block ${collapsed ? 'collapsed' : ''}" style="--phase:${ph.color}" id="phase-${ph.id}">
+    <button class="phase-head" onclick="togglePhase('${ph.id}')">
+      <span class="phase-num">${num}</span>
+      <span><h3>${esc(ph.label)}</h3><span class="phase-sub">${esc(ph.sub)}</span></span>
+      <span class="phase-meta">
+        ${overdue ? `<span class="chip chip-danger">${overdue} overdue</span>` : ''}
+        <span class="phase-count num">${done} / ${eligible.length}</span>
+        <span class="phase-chevron" data-icon="down"></span>
+      </span>
+    </button>
+    <div class="phase-body">
+      ${visible.map(t => renderTaskRow(p, t)).join('')}
+      ${customVisible ? ph.custom.map(c => renderCustomRow(p, ph.id, c)).join('') : ''}
+      <div class="add-task-row">
+        <input id="addTask-${ph.id}" placeholder="Add a task to ${esc(ph.label)}…" onkeydown="if(event.key==='Enter')addCustomTask('${ph.id}')">
+        <button class="btn btn-subtle btn-sm" onclick="addCustomTask('${ph.id}')">Add</button>
+        ${eligible.length > done ? `<button class="btn btn-ghost btn-sm" onclick="bulkPhase('${ph.id}')">Complete phase</button>` : ''}
+      </div>
+    </div>
+  </section>`;
+}
+function renderTaskRow(p, t){
+  const st = taskState(p, t.id);
+  const badge = dueBadgeText(p, t.id);
+  const label = taskLabel(p, t);
+  const linked = LINKED_TASKS[t.id];
+  const showTrigger = t.id === 'setup-all-docs';
+  const warn = !p.tasks['setup-all-docs']?.status?.match(/done/) &&
+    ['setup-base-template','setup-payroll-template','prep-fund-mapping'].includes(t.id);
+  return `<div class="task-row ${st.status}" id="task-${t.id}">
+    <div class="task-main">
+      <button class="task-check" onclick="toggleTask('${t.id}')" aria-label="Toggle ${esc(label)}">${ICONS.tick}</button>
+      <div class="task-body">
+        <div class="task-label">${t.critical ? '<span title="Critical path" style="color:var(--warn)">⚑</span> ' : ''}${esc(label)}</div>
+        ${t.desc ? `<div class="task-desc">${esc(t.desc)}</div>` : ''}
+        ${warn ? `<div class="task-warn">${ICONS.warn} ${esc(t.warning || 'Usually waits for Obtain All Documents.')}</div>` : ''}
+        ${linked && st.status !== 'done' ? `<div class="task-desc">Linked with “${esc(taskById[linked].label)}” — completing one completes both.</div>` : ''}
+      </div>
+      <div class="task-side">
+        ${badge.text ? `<button class="due-badge ${badge.cls}" onclick="openDueEditor(event,'${t.id}')">${badge.text}</button>` : ''}
+        <div class="task-tools">
+          ${t.working && st.status !== 'done' ? `<button class="tool-btn ${st.status === 'working' ? 'on' : ''}" onclick="toggleWorking('${t.id}')">${st.status === 'working' ? 'Working…' : 'Start'}</button>` : ''}
+          <button class="tool-btn ${st.note ? 'on' : ''}" onclick="toggleNote('${t.id}')">Note</button>
+          ${t.allowNA && st.status !== 'done' ? `<button class="tool-btn ${st.status === 'na' ? 'on' : ''}" onclick="toggleNA('${t.id}')">N/A</button>` : ''}
+          <button class="tool-btn" onclick="pinTask('${t.id}')" title="Pin to board">${ICONS.pin}</button>
+        </div>
+      </div>
+    </div>
+    ${showTrigger ? `<div class="trigger-row">
+        <b>Documents received:</b>
+        <input type="date" value="${esc(p.triggers['setup-all-docs'] || '')}" onchange="setTrigger('setup-all-docs', this.value)">
+        <span>${p.triggers['setup-all-docs'] ? 'Week buckets anchored here.' : '← set this to anchor Weeks 1–5.'}</span>
+      </div>` : ''}
+    <div class="task-note-area" id="note-${t.id}" style="display:${st.note ? '' : 'none'}">
+      <textarea placeholder="Two sentences max — future you will thank you." oninput="setTaskNote('${t.id}', this.value)">${esc(st.note || '')}</textarea>
+    </div>
+  </div>`;
+}
+function renderCustomRow(p, phaseId, c){
+  return `<div class="task-row ${c.done ? 'done' : ''}">
+    <div class="task-main">
+      <button class="task-check" onclick="toggleCustom('${phaseId}','${c.id}')">${ICONS.tick}</button>
+      <div class="task-body">
+        <div class="task-label">${esc(c.text)} <span class="chip" style="font-size:10px">custom</span></div>
+        ${c.note ? `<div class="task-desc">${esc(c.note)}</div>` : ''}
+      </div>
+      <div class="task-side"><div class="task-tools">
+        <button class="tool-btn" onclick="removeCustom('${phaseId}','${c.id}')">Remove</button>
+      </div></div>
+    </div>
+  </div>`;
+}
+function togglePhase(id){ UI.collapsedPhases[id] = !UI.collapsedPhases[id]; $('#phase-' + id)?.classList.toggle('collapsed'); }
+function setAllPhases(collapsed){
+  planCatalog(plan()).forEach(ph => UI.collapsedPhases[ph.id] = collapsed);
+  renderChecklist(); hydrateIcons();
+}
+function ensureTask(p, id){
+  if(!p.tasks[id]) p.tasks[id] = { status:'open', note:'', completedAt:'', manualDue:'', updatedAt:'' };
+  return p.tasks[id];
+}
+function setTaskStatus(p, id, status){
+  const st = ensureTask(p, id);
+  st.status = status;
+  st.updatedAt = new Date().toISOString();
+  st.completedAt = status === 'done' ? st.updatedAt : '';
+  if(id === 'setup-all-docs' && status === 'done' && !p.triggers['setup-all-docs']){
+    p.triggers['setup-all-docs'] = todayISO(); // auto-anchor the schedule
+  }
+}
+function toggleTask(id){
+  const p = plan(); if(!p) return;
+  const st = ensureTask(p, id);
+  const next = st.status === 'done' ? 'open' : 'done';
+  setTaskStatus(p, id, next);
+  const linked = LINKED_TASKS[id];
+  if(linked && taskById[linked] && appliesToPlan(taskById[linked], p)) setTaskStatus(p, linked, next);
+  touch(p); saveDB();
+  renderChecklist(); renderRail(); renderContext(); hydrateIcons();
+  if(id === 'setup-all-docs' && next === 'done') toast('Schedule anchored to ' + fmtShort(p.triggers['setup-all-docs']));
+}
+function toggleWorking(id){
+  const p = plan(); if(!p) return;
+  const st = ensureTask(p, id);
+  st.status = st.status === 'working' ? 'open' : 'working';
+  st.updatedAt = new Date().toISOString();
+  touch(p); saveDB(); renderChecklist(); hydrateIcons();
+}
+function toggleNA(id){
+  const p = plan(); if(!p) return;
+  const st = ensureTask(p, id);
+  st.status = st.status === 'na' ? 'open' : 'na';
+  st.updatedAt = new Date().toISOString();
+  touch(p); saveDB(); renderChecklist(); renderRail(); hydrateIcons();
+}
+function toggleNote(id){
+  const area = $('#note-' + id);
+  if(!area) return;
+  area.style.display = area.style.display === 'none' ? '' : 'none';
+  if(area.style.display === '') area.querySelector('textarea')?.focus();
+}
+const setTaskNote = debounce((id, val) => {
+  const p = plan(); if(!p) return;
+  ensureTask(p, id).note = val;
+  touch(p); saveDB();
+}, 400);
+function setTrigger(id, val){
+  const p = plan(); if(!p) return;
+  const old = p.triggers[id] || '';
+  p.triggers[id] = val;
+  if(old && old !== val) p.dateHistory.push({ field:'documentsReceived', oldDate: old, newDate: val, changedAt: new Date().toISOString() });
+  touch(p); saveDB();
+  renderChecklist(); renderRail(); hydrateIcons();
+  toast(val ? 'Week buckets re-anchored to ' + fmtShort(val) : 'Anchor cleared');
+}
+function bulkPhase(phaseId){
+  const p = plan(); if(!p) return;
+  confirmAction('Complete entire phase?', 'Every open task in this phase gets marked done.', () => {
+    planCatalog(p).find(ph => ph.id === phaseId)?.tasks.forEach(t => {
+      if(taskState(p, t.id).status === 'open' || taskState(p, t.id).status === 'working') setTaskStatus(p, t.id, 'done');
+    });
+    touch(p); saveDB(); renderChecklist(); renderRail(); hydrateIcons();
+  });
+}
+function addCustomTask(phaseId){
+  const p = plan(); if(!p) return;
+  const input = $('#addTask-' + phaseId);
+  const text = input.value.trim();
+  if(!text) return;
+  if(!p.customTasks[phaseId]) p.customTasks[phaseId] = [];
+  p.customTasks[phaseId].push({ id: uid(), text, note:'', done:false });
+  touch(p); saveDB(); renderChecklist(); hydrateIcons();
+  $('#addTask-' + phaseId)?.focus();
+}
+function toggleCustom(phaseId, id){
+  const p = plan(); if(!p) return;
+  const c = (p.customTasks[phaseId] || []).find(x => x.id === id);
+  if(c){ c.done = !c.done; touch(p); saveDB(); renderChecklist(); renderRail(); hydrateIcons(); }
+}
+function removeCustom(phaseId, id){
+  const p = plan(); if(!p) return;
+  p.customTasks[phaseId] = (p.customTasks[phaseId] || []).filter(x => x.id !== id);
+  touch(p); saveDB(); renderChecklist(); hydrateIcons();
+}
+function scrollToTask(id){
+  setTimeout(() => {
+    const el = $('#task-' + id);
+    if(el){ el.scrollIntoView({ behavior:'smooth', block:'center' }); el.style.outline = '2px solid var(--accent)';
+      setTimeout(() => el.style.outline = '', 1600); }
+  }, 120);
+}
+/* --- manual due editor popover --- */
+let dueEditorEl = null;
+function openDueEditor(ev, id){
+  ev.stopPropagation();
+  closeDueEditor();
+  const p = plan(); if(!p) return;
+  const st = taskState(p, id);
+  if(st.status === 'done') return;
+  const res = resolveDue(p, id);
+  const box = document.createElement('div');
+  box.className = 'due-editor';
+  box.innerHTML = `
+    <h5>Due date — ${esc(taskLabel(p, taskById[id]))}</h5>
+    <div class="row"><input type="date" id="dueEditInput" value="${esc(st.manualDue || res.date || '')}"></div>
+    <div class="row">
+      <button class="btn btn-primary btn-sm" onclick="applyManualDue('${id}')">Apply</button>
+      ${st.manualDue ? `<button class="btn btn-subtle btn-sm" onclick="clearManualDue('${id}')">Auto</button>` : ''}
+      <button class="btn btn-ghost btn-sm" onclick="closeDueEditor()">Cancel</button>
+    </div>
+    <small>${st.manualDue ? 'Manual override active — “Auto” returns it to the engine.' : res.week ? `Engine: Week ${res.week}${res.bucket ? ' · ' + fmtShort(res.bucket.start) + ' – ' + fmtShort(res.bucket.end) : ''}` : 'Engine-calculated. Setting a date overrides it.'}</small>`;
+  document.body.appendChild(box);
+  const r = ev.currentTarget.getBoundingClientRect();
+  box.style.top = Math.min(window.innerHeight - 170, r.bottom + 6) + 'px';
+  box.style.left = Math.max(10, Math.min(window.innerWidth - 260, r.left - 60)) + 'px';
+  dueEditorEl = box;
+  setTimeout(() => document.addEventListener('click', dueEditorOutside), 0);
+}
+function dueEditorOutside(e){ if(dueEditorEl && !dueEditorEl.contains(e.target)) closeDueEditor(); }
+function closeDueEditor(){
+  if(dueEditorEl){ dueEditorEl.remove(); dueEditorEl = null; document.removeEventListener('click', dueEditorOutside); }
+}
+function applyManualDue(id){
+  const p = plan(); if(!p) return;
+  const val = $('#dueEditInput').value;
+  if(!val) return;
+  ensureTask(p, id).manualDue = val;
+  touch(p); saveDB(); closeDueEditor();
+  renderChecklist(); renderRail(); hydrateIcons();
+  toast('Manual due date set');
+}
+function clearManualDue(id){
+  const p = plan(); if(!p) return;
+  ensureTask(p, id).manualDue = '';
+  touch(p); saveDB(); closeDueEditor();
+  renderChecklist(); renderRail(); hydrateIcons();
+  toast('Back to engine schedule');
+}
+function pinTask(id){
+  const p = plan(); if(!p) return;
+  const t = taskById[id];
+  const st = taskState(p, id);
+  if(p.pins.some(x => x.taskId === id)){ toast('Already pinned'); return; }
+  p.pins.unshift({ id: uid(), title: taskLabel(p, t), note: st.note || '', important:false, ts: Date.now(), taskId: id });
+  touch(p); saveDB();
+  UI.contextTab = 'pins';
+  $('#contextPanel').classList.remove('hidden');
+  renderContext(); hydrateIcons();
+  toast('Pinned');
+}
+</script>
+<script>
+/* ================= 8d. TIMELINE (GANTT) ================= */
+const GANTT = { dayW: 26, nameW: 250 };
+
+function renderTimeline(){
+  const el = $('#screen-timeline');
+  const plans = activePlans();
+  if(!plans.length){
+    el.innerHTML = `<div class="empty-state"><h2>Nothing to chart yet</h2><p>Create a plan and the timeline builds itself from the schedule engine.</p>
+      <button class="btn btn-primary" onclick="startNewPlan()">New Plan</button></div>`;
+    return;
+  }
+  if(UI.tlPlan === 'current') UI.tlPlan = plan()?.id && plans.some(p => p.id === plan().id) ? plan().id : plans[0].id;
+  if(UI.tlPlan !== 'all' && !plans.some(p => p.id === UI.tlPlan)) UI.tlPlan = plans[0].id;
+
+  const selector = `<select onchange="UI.tlPlan=this.value;renderTimeline()">
+      ${plans.map(p => `<option value="${p.id}" ${UI.tlPlan === p.id ? 'selected' : ''}>${esc(p.intake.planName || 'Untitled')}</option>`).join('')}
+      <option value="all" ${UI.tlPlan === 'all' ? 'selected' : ''}>— All plans —</option>
+    </select>`;
+  const legend = `<div class="tl-legend">
+      <span><i style="background:var(--accent)"></i> Scheduled</span>
+      <span><i style="background:var(--accent);opacity:.35"></i> Done</span>
+      <span><i style="background:var(--surface);outline:2px solid var(--danger);outline-offset:-1px"></i> Overdue</span>
+      <span><i style="border:1px dashed var(--muted);background:transparent"></i> Manual due</span>
+      <span><i style="background:var(--warn-soft);border:1px solid var(--warn-line)"></i> Holiday</span>
+    </div>`;
+  el.innerHTML = `
+    <div class="tl-toolbar">
+      <b style="font-size:13px">Timeline</b>
+      ${selector}
+      <button class="btn btn-ghost btn-sm" onclick="ganttToToday()">Today</button>
+      ${legend}
+    </div>
+    <div class="gantt" id="ganttScroll">${UI.tlPlan === 'all' ? buildAllPlansGantt(plans) : buildPlanGantt(plans.find(p => p.id === UI.tlPlan))}</div>`;
+  hydrateIcons(el);
+  bindGanttTips();
+  ganttToToday(true);
+}
+function ganttRange(dates){
+  const today = todayISO();
+  let min = today, max = today;
+  for(const d of dates){ if(d && d < min) min = d; if(d && d > max) max = d; }
+  min = addDaysISO(min, -6);
+  max = addDaysISO(max, 12);
+  if(daysBetween(min, max) < 56) max = addDaysISO(min, 56);
+  return { min, max, days: daysBetween(min, max) + 1 };
+}
+const X = (range, iso) => daysBetween(range.min, iso) * GANTT.dayW;
+
+function ganttHeader(range){
+  const W = range.days * GANTT.dayW;
+  let months = '', weeks = '';
+  let cur = parseD(range.min);
+  const end = parseD(range.max);
+  // month labels
+  let mCursor = new Date(cur);
+  while(mCursor <= end){
+    const monthStart = toISO(mCursor) === range.min ? range.min : toISO(new Date(mCursor.getFullYear(), mCursor.getMonth(), 1));
+    const nextMonth = new Date(mCursor.getFullYear(), mCursor.getMonth() + 1, 1);
+    const segEnd = nextMonth > end ? range.max : toISO(new Date(nextMonth - 86400000));
+    const x = Math.max(0, X(range, monthStart));
+    const w = X(range, segEnd) + GANTT.dayW - x;
+    months += `<div class="gantt-month" style="left:${x}px;width:${w}px">${mCursor.toLocaleDateString('en-US', { month:'long', year:'numeric' })}</div>`;
+    mCursor = nextMonth;
+  }
+  // week (Monday) labels
+  let d = parseD(range.min);
+  while(d.getDay() !== 1) d.setDate(d.getDate() + 1);
+  while(d <= end){
+    weeks += `<div class="gantt-weeklabel" style="left:${X(range, toISO(d))}px">${d.toLocaleDateString('en-US', { month:'short', day:'numeric' })}</div>`;
+    d.setDate(d.getDate() + 7);
+  }
+  return `<div class="gantt-hdr">
+      <div class="gantt-corner">Task</div>
+      <div class="gantt-hdr-canvas" style="width:${W}px">${months}${weeks}</div>
+    </div>`;
+}
+function ganttDecor(range){
+  // weekend/holiday stripes + Monday gridlines, repeated per row canvas
+  let out = '';
+  const d = parseD(range.min);
+  for(let i = 0; i < range.days; i++){
+    const iso = toISO(d);
+    const dow = d.getDay();
+    if(dow === 0 || dow === 6) out += `<div class="gantt-stripe" style="left:${i * GANTT.dayW}px;width:${GANTT.dayW}px"></div>`;
+    else if(isHoliday(d)) out += `<div class="gantt-stripe holiday" style="left:${i * GANTT.dayW}px;width:${GANTT.dayW}px"></div>`;
+    if(dow === 1) out += `<div class="gantt-gridline" style="left:${i * GANTT.dayW}px"></div>`;
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
+}
+function ganttMarkers(p, range){
+  const today = todayISO();
+  const marks = [{ iso: today, label:'TODAY', color:'var(--accent)', today:true }];
+  if(p){
+    if(p.intake.effectiveDate) marks.push({ iso: p.intake.effectiveDate, label:'EFFECTIVE', color:'var(--ok)' });
+    if(p.intake.wireDate) marks.push({ iso: p.intake.wireDate, label:'WIRE', color:'var(--warn)' });
+    const ff = resolveDue(p, 'post-receive-final-files');
+    const ffState = taskState(p, 'post-receive-final-files');
+    const ffDate = ffState.status === 'done' && ffState.completedAt ? ffState.completedAt.slice(0,10) : ff.date;
+    if(ffDate && appliesToPlan(taskById['post-receive-final-files'], p)) marks.push({ iso: ffDate, label:'FINAL FILES', color:'var(--danger)' });
+    const docs = docsAnchor(p);
+    if(docs) marks.push({ iso: docs, label:'DOCS', color:'var(--wait)' });
+  }
+  return marks.filter(m => m.iso >= range.min && m.iso <= range.max)
+    .sort((a, b) => a.iso.localeCompare(b.iso))
+    .map((m, i) =>
+      `<div class="gantt-marker ${m.today ? 'gantt-today' : ''}" style="left:${X(range, m.iso) + GANTT.dayW / 2}px;border-color:${m.color}">
+         <i style="background:${m.color};top:${2 + (i % 3) * 15}px">${m.label}</i></div>`).join('');
+}
+function barGeometry(p, t, range){
+  const st = taskState(p, t.id);
+  const res = resolveDue(p, t.id);
+  const done = st.status === 'done';
+  const doneDate = done && st.completedAt ? st.completedAt.slice(0, 10) : null;
+  let start, end;
+  if(res.bucket){ start = res.bucket.start; end = res.bucket.end; }
+  else if(res.date){ start = addDaysISO(res.date, -1); end = res.date; }
+  else if(doneDate){ start = addDaysISO(doneDate, -1); end = doneDate; }
+  else return null;
+  if(doneDate){ if(doneDate < start) start = doneDate; if(doneDate > end) end = doneDate; }
+  start = start < range.min ? range.min : start;
+  end = end > range.max ? range.max : end;
+  const x = X(range, start);
+  const w = Math.max(9, X(range, end) - x + GANTT.dayW);
+  return { x, w, res, st, done };
+}
+function buildPlanGantt(p){
+  if(!p) return '';
+  const catalog = planCatalog(p);
+  const allDates = [p.intake.effectiveDate, p.intake.wireDate, p.intake.day1, p.intake.firstPayrollDate, docsAnchor(p)];
+  for(const t of planTaskList(p)){
+    const st = taskState(p, t.id);
+    if(st.status === 'na') continue;
+    const r = resolveDue(p, t.id);
+    if(r.bucket) allDates.push(r.bucket.start, r.bucket.end);
+    if(r.date) allDates.push(r.date);
+    if(st.completedAt) allDates.push(st.completedAt.slice(0, 10));
+  }
+  const range = ganttRange(allDates.filter(Boolean));
+  const W = range.days * GANTT.dayW;
+  const decor = ganttDecor(range);
+
+  let rows = '';
+  for(const ph of catalog){
+    const tasks = ph.tasks.filter(t => taskState(p, t.id).status !== 'na');
+    if(!tasks.length) continue;
+    // phase span row
+    let sMin = null, sMax = null;
+    const geos = [];
+    for(const t of tasks){
+      const g = barGeometry(p, t, range);
+      geos.push([t, g]);
+      if(g){ sMin = sMin === null ? g.x : Math.min(sMin, g.x); sMax = sMax === null ? g.x + g.w : Math.max(sMax, g.x + g.w); }
+    }
+    rows += `<div class="gantt-row is-phase">
+      <div class="gantt-name is-phase" style="border-left:3px solid ${ph.color}">${esc(ph.label)}</div>
+      <div class="gantt-rowcanvas" style="width:${W}px;min-height:28px">
+        ${sMin !== null ? `<div class="gantt-phase-span" style="--phase:${ph.color};left:${sMin}px;width:${Math.max(10, sMax - sMin)}px"></div>` : ''}
+      </div></div>`;
+    for(const [t, g] of geos){
+      const st = taskState(p, t.id);
+      const ds = dueStatus(p, t.id);
+      const label = taskLabel(p, t);
+      const dueTxt = g?.res?.date ? fmtShort(g.res.date) : (st.status === 'done' ? 'done' : 'awaiting');
+      const tip = `${esc(label)}|${esc(ph.label)}|${st.status === 'done' ? 'Done ' + fmtShort(st.completedAt?.slice(0,10)) : g?.res?.date ? 'Due ' + fmtDate(g.res.date) + (g.res.week ? ' (Week ' + g.res.week + ')' : '') : 'Awaiting anchor'}${ds.cls === 'overdue' ? '|' + Math.abs(ds.diff) + ' days late' : ''}`;
+      rows += `<div class="gantt-row">
+        <div class="gantt-name ${st.status === 'done' ? 'done' : ''}">
+          <span class="gn-dot" style="background:${ph.color}"></span>
+          <span class="gn-label" title="${esc(label)}">${t.critical ? '⚑ ' : ''}${esc(label)}</span>
+          ${st.status === 'done' ? `<span class="gn-check">${ICONS.tick}</span>` : `<span class="gn-due num">${dueTxt}</span>`}
+        </div>
+        <div class="gantt-rowcanvas" style="width:${W}px;min-height:34px">
+          ${decor}
+          ${g ? `<div class="gantt-bar ${g.done ? 'bar-done' : ''} ${ds.cls === 'overdue' ? 'bar-overdue' : ''} ${g.res.kind === 'manual' ? 'bar-manual' : ''}"
+              style="--phase:${ph.color};left:${g.x}px;width:${g.w}px"
+              data-tip="${tip}" onclick="openPlan('${p.id}');scrollToTask('${t.id}')"></div>` : ''}
+        </div></div>`;
+    }
+  }
+  return `<div class="gantt-sheet" style="width:${GANTT.nameW + W}px">
+    ${ganttHeader(range)}
+    <div style="position:relative">
+      ${rows}
+      <div style="position:absolute;left:${GANTT.nameW}px;top:0;bottom:0;right:0;pointer-events:none;overflow:hidden">
+        <div style="position:relative;width:${W}px;height:100%">${ganttMarkers(p, range)}</div>
+      </div>
+    </div>
+  </div>`;
+}
+function buildAllPlansGantt(plans){
+  const allDates = [];
+  const models = plans.map(p => {
+    const phases = [];
+    for(const ph of planCatalog(p)){
+      let min = null, max = null, done = 0, total = 0;
+      for(const t of ph.tasks){
+        const st = taskState(p, t.id);
+        if(st.status === 'na') continue;
+        total++;
+        if(st.status === 'done') done++;
+        const r = resolveDue(p, t.id);
+        const dates = [r.bucket?.start, r.bucket?.end, r.date, st.completedAt?.slice(0, 10)].filter(Boolean);
+        for(const d of dates){ if(!min || d < min) min = d; if(!max || d > max) max = d; }
+      }
+      if(min && max) phases.push({ ph, min, max, done, total });
+    }
+    allDates.push(p.intake.wireDate, p.intake.effectiveDate, ...phases.flatMap(x => [x.min, x.max]));
+    return { p, phases };
+  });
+  const range = ganttRange(allDates.filter(Boolean));
+  const W = range.days * GANTT.dayW;
+  const decor = ganttDecor(range);
+
+  const rows = models.map(({ p, phases }) => {
+    const sum = planSummary(p);
+    const segs = phases.map(x => {
+      const x1 = X(range, x.min < range.min ? range.min : x.min);
+      const x2 = X(range, x.max > range.max ? range.max : x.max) + GANTT.dayW;
+      return `<div class="gantt-plan-seg" style="background:${x.ph.color};left:${x1}px;width:${Math.max(10, x2 - x1)}px"
+        data-tip="${esc(p.intake.planName)}|${esc(x.ph.label)}|${fmtShort(x.min)} – ${fmtShort(x.max)} · ${x.done}/${x.total} done"
+        onclick="UI.tlPlan='${p.id}';renderTimeline()"></div>`;
+    }).join('');
+    const wireMark = p.intake.wireDate && p.intake.wireDate >= range.min && p.intake.wireDate <= range.max
+      ? `<div style="position:absolute;top:4px;bottom:4px;left:${X(range, p.intake.wireDate) + GANTT.dayW / 2}px;border-left:2px dashed var(--warn);z-index:3" data-tip="${esc(p.intake.planName)}|Wire Date|${fmtDate(p.intake.wireDate)}"></div>` : '';
+    return `<div class="gantt-row gantt-plan-row">
+      <div class="gantt-name is-plan" onclick="UI.tlPlan='${p.id}';renderTimeline()">
+        <span class="plan-ring" style="--pct:${sum.pct}"><span>${sum.pct}</span></span>
+        <span class="gn-label">${esc(p.intake.planName || 'Untitled')}</span>
+        ${sum.overdue ? '<span class="dot dot-overdue"></span>' : ''}
+      </div>
+      <div class="gantt-rowcanvas" style="width:${W}px;min-height:44px">${decor}${segs}${wireMark}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="gantt-sheet" style="width:${GANTT.nameW + W}px">
+    ${ganttHeader(range)}
+    <div style="position:relative">
+      ${rows}
+      <div style="position:absolute;left:${GANTT.nameW}px;top:0;bottom:0;right:0;pointer-events:none;overflow:hidden">
+        <div style="position:relative;width:${W}px;height:100%">${ganttMarkers(null, range)}</div>
+      </div>
+    </div>
+  </div>`;
+}
+function ganttToToday(instant){
+  const scroll = $('#ganttScroll');
+  const sheet = $('.gantt-sheet');
+  if(!scroll || !sheet) return;
+  const marker = scroll.querySelector('.gantt-today');
+  if(!marker) return;
+  const left = parseFloat(marker.style.left || '0');
+  scroll.scrollTo({ left: Math.max(0, GANTT.nameW + left - scroll.clientWidth / 2), behavior: instant ? 'auto' : 'smooth' });
+}
+function bindGanttTips(){
+  const tip = $('#ganttTip');
+  $$('#ganttScroll [data-tip]').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      const [title, line1, line2, line3] = el.dataset.tip.split('|');
+      tip.innerHTML = `<b>${title}</b><div class="tip-line">${line1 || ''}</div><div class="tip-line">${line2 || ''}</div>${line3 ? `<div class="tip-line" style="color:var(--danger);font-weight:600">${line3}</div>` : ''}`;
+      tip.style.display = 'block';
+    });
+    el.addEventListener('mousemove', e => {
+      tip.style.left = Math.min(window.innerWidth - 300, e.clientX + 14) + 'px';
+      tip.style.top = Math.min(window.innerHeight - 110, e.clientY + 14) + 'px';
+    });
+    el.addEventListener('mouseleave', () => tip.style.display = 'none');
+  });
+}
+
+/* ================= 9. CONTEXT PANEL ================= */
+function toggleContext(){
+  const panel = $('#contextPanel');
+  panel.classList.toggle('hidden');
+  panel.classList.toggle('force', !panel.classList.contains('hidden'));
+  renderContext();
+}
+function renderContext(){
+  const panel = $('#contextPanel');
+  const p = plan();
+  if(UI.screen !== 'checklist' || !p || panel.classList.contains('hidden')){
+    if(UI.screen !== 'checklist') panel.classList.add('hidden');
+    return;
+  }
+  const tabs = [['details','Details'], ['notes','Notes'], ['pins',`Pins${p.pins.length ? ' · ' + p.pins.length : ''}`]];
+  let body = '';
+  if(UI.contextTab === 'details') body = contextDetails(p);
+  if(UI.contextTab === 'notes') body = `<div class="context-notes">
+      <textarea placeholder="Plan-level notes…" oninput="savePlanNotes(this.value)">${esc(p.notes || '')}</textarea>
+      <p style="font-size:11px;color:var(--faint);margin-top:6px">Saves as you type.</p></div>`;
+  if(UI.contextTab === 'pins') body = contextPins(p);
+  panel.innerHTML = `
+    <div class="context-tabs">${tabs.map(([id, label]) =>
+      `<button class="${UI.contextTab === id ? 'active' : ''}" onclick="UI.contextTab='${id}';renderContext();hydrateIcons()">${label}</button>`).join('')}
+      <span style="flex:1"></span>
+      <button class="icon-btn" onclick="toggleContext()" data-icon="x" style="margin-bottom:4px"></button>
+    </div>
+    <div class="context-body">${body}</div>`;
+  hydrateIcons(panel);
+}
+function kv(label, value, opts = {}){
+  const missing = !value;
+  return `<div class="detail-kv"><span>${label}</span><b class="${missing ? 'missing' : ''}">${missing ? 'Enter data' : (opts.raw ? value : esc(value))}</b></div>`;
+}
+function contextDetails(p){
+  const k = p.intake;
+  const docs = docsAnchor(p);
+  const hist = (p.dateHistory || []).slice(-5).reverse();
+  const fieldNames = { effectiveDate:'Effective', wireDate:'Wire', day1:'Day 1', firstPayrollDate:'First payroll', documentsReceived:'Docs received' };
+  return `
+    <div class="detail-group"><h5>Identifiers</h5>
+      ${kv('Case', k.caseNumber)}
+      ${kv('Type', cap(k.planType) + (k.mergerType ? ' · ' + cap(k.mergerType) : ''))}
+      ${k.strategies.length ? kv('Strategy', k.strategies.map(s => s.toUpperCase()).join(' + ')) : ''}
+      ${kv('Characteristics', Object.entries(k.characteristics || {}).filter(([, v]) => v).map(([key]) => ({ loans:'Loans', roth:'Roth', autoEnroll:'Auto-enroll', nonQual:'Non-qual' }[key])).join(', ') || 'None')}
+      ${k.clientFolderUrl ? kv('Folder', `<a href="${esc(k.clientFolderUrl)}" target="_blank" rel="noopener">Open ↗</a>`, { raw:true }) : kv('Folder', '')}
+    </div>
+    <div class="detail-group"><h5>Timeline</h5>
+      ${kv('Day 1', fmtDate(k.day1))}
+      ${kv('Docs received', docs ? fmtDate(docs) : '')}
+      ${kv('Effective', fmtDate(k.effectiveDate))}
+      ${k.planType !== 'startup' ? kv('Wire', k.wireDate ? fmtDate(k.wireDate) : '') : ''}
+      ${kv('First payroll', k.firstPayrollDate ? fmtDate(k.firstPayrollDate) : '')}
+      ${kv('Day counting', k.useBusinessDays === false ? 'Calendar days' : 'Business days')}
+    </div>
+    <div class="detail-group"><h5>Team</h5>
+      ${kv('TM', k.tmName ? avatarFor(k.tmName) + ' ' + esc(k.tmName) : '', { raw:true })}
+      ${kv('TC', k.tcName ? avatarFor(k.tcName) + ' ' + esc(k.tcName) : '', { raw:true })}
+      ${kv('DC File Coord.', k.dcFileCoordinator)}
+    </div>
+    <div class="detail-group"><h5>Client</h5>
+      ${kv('Contact', k.clientName)}
+      ${kv('Email', k.clientEmail)}
+    </div>
+    <div class="detail-group"><h5>Payroll</h5>
+      ${kv('Vendor', k.payrollVendor)}
+      ${kv('Contact', k.payrollName)}
+      ${kv('Email', k.payrollEmail)}
+    </div>
+    ${k.planType !== 'startup' ? `<div class="detail-group"><h5>Prior record keeper</h5>
+      ${kv('Vendor', k.priorVendor)}
+      ${kv('Contact', k.priorName)}
+      ${kv('Email', k.priorEmail)}
+    </div>` : ''}
+    ${hist.length ? `<div class="detail-group"><h5>Date history</h5>
+      ${hist.map(h => `<div class="detail-kv"><span>${fieldNames[h.field] || h.field}</span>
+        <b>${h.oldDate ? fmtShort(h.oldDate) : '—'} → ${h.newDate ? fmtShort(h.newDate) : '—'}</b></div>`).join('')}
+    </div>` : ''}
+    <button class="btn btn-subtle btn-sm" onclick="editIntake()" style="width:100%;justify-content:center">Edit intake</button>`;
+}
+const savePlanNotes = debounce(val => {
+  const p = plan(); if(!p) return;
+  p.notes = val; touch(p); saveDB();
+}, 400);
+function contextPins(p){
+  return `
+    <div class="pin-add">
+      <input id="pinTitle" placeholder="Pin title…">
+      <textarea id="pinNote" rows="2" placeholder="Note (optional)"></textarea>
+      <button class="btn btn-subtle btn-sm" onclick="addPin()" style="justify-self:start">Add pin</button>
+    </div>
+    ${p.pins.map(pin => `
+      <div class="pin ${pin.important ? 'important' : ''}">
+        <div class="pin-head">
+          <b>${esc(pin.title)}</b>
+          <button class="icon-btn" style="width:22px;height:22px;color:${pin.important ? 'var(--warn)' : 'var(--faint)'}" onclick="togglePinStar('${pin.id}')" title="Important">${ICONS.star}</button>
+          <button class="icon-btn" style="width:22px;height:22px" onclick="removePin('${pin.id}')" title="Remove">${ICONS.x}</button>
+        </div>
+        ${pin.note ? `<div class="pin-note">${esc(pin.note)}</div>` : ''}
+        <div class="pin-meta">${pin.taskId ? 'From task · ' : ''}${new Date(pin.ts).toLocaleDateString('en-US', { month:'short', day:'numeric' })}
+          ${pin.taskId ? ` · <a href="javascript:void(0)" onclick="scrollToTask('${pin.taskId}')">go to task</a>` : ''}</div>
+      </div>`).join('') || '<p style="font-size:12.5px;color:var(--faint)">Nothing pinned. Pin tasks from the checklist or add a free note.</p>'}`;
+}
+function addPin(){
+  const p = plan(); if(!p) return;
+  const title = $('#pinTitle').value.trim();
+  if(!title){ toast('Give the pin a title'); return; }
+  p.pins.unshift({ id: uid(), title, note: $('#pinNote').value.trim(), important:false, ts: Date.now(), taskId:'' });
+  touch(p); saveDB(); renderContext(); hydrateIcons();
+}
+function togglePinStar(id){
+  const p = plan(); if(!p) return;
+  const pin = p.pins.find(x => x.id === id);
+  if(pin){ pin.important = !pin.important; p.pins.sort((a, b) => (b.important - a.important) || (b.ts - a.ts)); touch(p); saveDB(); renderContext(); hydrateIcons(); }
+}
+function removePin(id){
+  const p = plan(); if(!p) return;
+  p.pins = p.pins.filter(x => x.id !== id);
+  touch(p); saveDB(); renderContext(); hydrateIcons();
+}
+
+/* ================= MODALS / TOAST ================= */
+function openModal(id){ $('#' + id).classList.add('open'); }
+function closeModal(id){ $('#' + id).classList.remove('open'); }
+function confirmAction(title, body, cb){
+  $('#confirmTitle').textContent = title;
+  $('#confirmBody').textContent = body;
+  $('#confirmGo').onclick = () => { closeModal('confirmModal'); cb(); };
+  openModal('confirmModal');
+}
+function toast(msg){
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  $('#toastWrap').appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 320); }, 2600);
+}
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape'){ $$('.modal-backdrop.open').forEach(m => m.classList.remove('open')); closeDueEditor(); }
+});
+$$('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target === m) m.classList.remove('open'); }));
+
+/* --- timeline settings --- */
+function openTimelineSettings(){
+  const p = plan(); if(!p){ toast('Open a plan first'); return; }
+  $('#timelineKnobs').innerHTML = `
+    <p style="font-size:12px;color:var(--muted);margin:4px 0 8px">Negative = lead time before the anchor. Applies to this plan only.</p>
+    ${SCHED_KNOBS.map(kb => `
+      <div class="knob-row">
+        <label>${kb.label}<small>${kb.desc} · default ${kb.def}</small></label>
+        <input type="number" id="knob-${kb.key}" value="${p.schedOverrides?.[kb.key] ?? ''}" placeholder="${kb.def}">
+      </div>`).join('')}`;
+  openModal('timelineModal');
+}
+function saveTimelineSettings(){
+  const p = plan(); if(!p) return;
+  const before = structuredClone(p);
+  const o = {};
+  for(const kb of SCHED_KNOBS){
+    const v = $('#knob-' + kb.key).value.trim();
+    if(v !== '' && !isNaN(v) && Number(v) !== kb.def) o[kb.key] = Number(v);
+  }
+  p.schedOverrides = o;
+  touch(p); saveDB();
+  closeModal('timelineModal');
+  const changes = scheduleDiff(before, p);
+  render();
+  toast(changes.length ? `${changes.length} due date${changes.length > 1 ? 's' : ''} re-flowed` : 'Saved — no dates moved');
+}
+/* --- settings --- */
+function openSettings(){
+  $('#settingsBody').innerHTML = `
+    <div class="knob-row"><label>Theme<small>Light or dark, follows you everywhere</small></label>
+      <button class="btn btn-subtle btn-sm" onclick="toggleTheme();openSettings()">${currentTheme() === 'dark' ? 'Switch to light' : 'Switch to dark'}</button></div>
+    <div class="knob-row"><label>Legacy data<small>Re-scan this browser for old planner saves (icg_plan_saves_v1)</small></label>
+      <button class="btn btn-subtle btn-sm" onclick="rescanLegacy()">Scan</button></div>
+    <div class="knob-row"><label>Backup<small>Download every plan as one .json file</small></label>
+      <button class="btn btn-subtle btn-sm" onclick="exportAll()">Export all</button></div>
+    <div class="knob-row"><label>Danger zone<small>Erase all LMDC Planner 3 data in this browser</small></label>
+      <button class="btn btn-danger btn-sm" onclick="wipeAll()">Erase</button></div>
+    <p style="font-size:11.5px;color:var(--faint);margin-top:10px">Everything autosaves to this browser (localStorage). Use Export for backups or moving between machines.</p>`;
+  openModal('settingsModal');
+}
+function rescanLegacy(){
+  localStorage.removeItem(K.migrated);
+  const n = migrateLegacy();
+  render();
+  toast(n ? `Imported ${n} plan${n > 1 ? 's' : ''} from the old planner` : 'No new legacy plans found');
+}
+function wipeAll(){
+  confirmAction('Erase everything?', 'All plans, tasks, notes, and pins in this browser are permanently deleted. Export first if unsure.', () => {
+    localStorage.removeItem(K.db);
+    DB = { plans: [], selectedId: '' };
+    closeModal('settingsModal');
+    go('home');
+    toast('All data erased');
+  });
+}
+
+/* ================= IMPORT / EXPORT ================= */
+function download(name, data){
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+function exportPlan(){
+  const p = plan(); if(!p) return;
+  const safe = s => (s || 'plan').replace(/[^a-z0-9-_]+/gi, '_').slice(0, 40);
+  download(`lmdc3_${safe(p.intake.planName)}_${todayISO().replaceAll('-', '')}.json`, { _lmdc3: 1, exportedAt: new Date().toISOString(), plans: [p] });
+  toast('Plan exported');
+}
+function exportAll(){
+  download(`lmdc3_all_plans_${todayISO().replaceAll('-', '')}.json`, { _lmdc3: 1, exportedAt: new Date().toISOString(), plans: DB.plans });
+  toast(`Exported ${DB.plans.length} plan${DB.plans.length === 1 ? '' : 's'}`);
+}
+function handleImportFile(ev){
+  const file = ev.target.files?.[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const data = JSON.parse(reader.result);
+      let added = 0;
+      const upsert = p => {
+        const i = DB.plans.findIndex(x => x.id === p.id);
+        if(i >= 0) DB.plans[i] = p; else DB.plans.push(p);
+        added++;
+      };
+      if(data && data._lmdc3 && Array.isArray(data.plans)){
+        data.plans.forEach(upsert);
+      } else if(data && data._batchVersion && data.saves){                    // legacy batch
+        Object.entries(data.saves).forEach(([key, rec]) => upsert(migrateLegacySaveRecord(key, rec)));
+      } else if(data && (data._version || data.S)){                           // legacy single plan
+        upsert(migrateLegacySaveRecord('file_' + Date.now().toString(36), data));
+      } else throw new Error('Unrecognized format');
+      saveDB();
+      if(added && !plan()) DB.selectedId = DB.plans.find(x => x.status === 'active')?.id || '';
+      render();
+      toast(`Imported ${added} plan${added === 1 ? '' : 's'}`);
+    }catch(err){
+      console.warn(err);
+      toast('Could not read that file — expected a planner .json export');
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+}
+
+/* ================= SAMPLE PLAN ================= */
+function seedSample(){
+  const p = blankPlan();
+  p.intake = { ...p.intake,
+    planName:'Atlas Manufacturing 401(k)', caseNumber:'CASE-73011', planType:'conversion',
+    strategies:['cash','mapping'],
+    day1: addDaysISO(todayISO(), -24),
+    effectiveDate: addDaysISO(todayISO(), 21),
+    wireDate: addDaysISO(todayISO(), 9),
+    firstPayrollDate: addDaysISO(todayISO(), 16),
+    dcFileCoordinator:'Amy Jiang', tmName:'Alicia Johnson', tcName:'Dan Clifford',
+    clientName:'Jordan Reyes', clientEmail:'jordan.reyes@atlasmfg.com',
+    payrollVendor:'Paylocity', payrollName:'Sam Whitfield', payrollEmail:'swhitfield@paylocity.com',
+    priorVendor:'Empower', priorName:'Casey Lindqvist', priorEmail:'casey.lindqvist@empower.com',
+    characteristics:{ loans:true, roth:true, autoEnroll:false, nonQual:false },
+  };
+  p.triggers['setup-all-docs'] = addDaysISO(todayISO(), -21);
+  const done = ['setup-all-docs','setup-base-template','setup-payroll-template','setup-eds-layouts','setup-vendor-workflow-confirm','payroll-ftp-setup','setup-ftp-connection','prk-wire-instructions','setup-wire-instructions-prk','payroll-obf-confirm'];
+  for(const id of done){
+    p.tasks[id] = { status:'done', note:'', manualDue:'',
+      completedAt: new Date(parseD(addDaysISO(todayISO(), -Math.ceil(Math.random() * 12) - 2))).toISOString(),
+      updatedAt: new Date().toISOString() };
+  }
+  p.tasks['payroll-receive-test-file'] = { status:'working', note:'Vendor promised the file by Friday.', completedAt:'', manualDue:'', updatedAt:new Date().toISOString() };
+  p.tasks['prep-source-mapping'] = { status:'open', note:'Waiting on source list from Empower.', completedAt:'', manualDue:'', updatedAt:new Date().toISOString() };
+  p.pins = [{ id: uid(), title:'AE account check', note:'Cash merger — verify the Advanced Employer account before wire day.', important:true, ts: Date.now(), taskId:'' }];
+  p.notes = 'Sample plan seeded to show off the rebuild. Delete freely.';
+  DB.plans.push(p);
+  DB.selectedId = p.id;
+  saveDB();
+  go('checklist');
+  toast('Sample plan loaded');
+}
+
+/* ================= INIT ================= */
+(function init(){
+  const theme = localStorage.getItem(K.theme);
+  if(theme) document.documentElement.dataset.theme = theme;
+  if(localStorage.getItem(K.rail)) $('#appRoot').classList.add('rail-collapsed');
+  loadDB();
+  const migrated = migrateLegacy();
+  if(!DB.selectedId || !DB.plans.some(p => p.id === DB.selectedId)){
+    DB.selectedId = activePlans()[0]?.id || '';
+  }
+  UI.screen = 'home';
+  render();
+  if(migrated) setTimeout(() => toast(`Migrated ${migrated} plan${migrated > 1 ? 's' : ''} from the old planner`), 400);
+})();
+</script>
+</body>
+</html>
