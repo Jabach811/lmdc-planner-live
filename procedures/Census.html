@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Census · Procedure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/parchment.css">
+<style>
+  :root { --accent: var(--c-census); }
+
+  /* Census-specific hero illustration */
+  .hero-art {
+    margin-top: 36px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+  }
+  @media (max-width: 900px) { .hero-art { grid-template-columns: 1fr; } }
+
+  /* Roster diagram — silhouettes in a grid, ledger style */
+  .roster {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 26px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .roster::before {
+    content: "EMPLOYEE.CASE_NO";
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .18em;
+    color: var(--ink-faint);
+  }
+  .roster h5 {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin: 0 0 18px;
+  }
+  .roster-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 12px 8px;
+  }
+  .roster-grid .fig {
+    aspect-ratio: 1/1.4;
+    background: var(--bg-3);
+    border-radius: 4px 4px 50% 50% / 4px 4px 32% 32%;
+    position: relative;
+    transition: background .5s var(--ease);
+  }
+  .roster-grid .fig::before {
+    content: "";
+    position: absolute;
+    top: 12%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 38%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--ink-2);
+    opacity: .82;
+  }
+  .roster-grid .fig::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 78%;
+    aspect-ratio: 1.5;
+    background: var(--ink-2);
+    opacity: .82;
+    border-radius: 50% 50% 0 0;
+  }
+  .roster-grid .fig.miss::before, .roster-grid .fig.miss::after {
+    background: var(--clay-2);
+    opacity: .7;
+  }
+  .roster-grid .fig.miss { background: var(--clay-wash); border: 1px dashed var(--clay-2); animation: pulse-soft 2.6s ease-in-out infinite; }
+  .roster-grid .fig.miss:nth-of-type(2)  { animation-delay: -.6s; }
+  .roster-grid .fig.miss:nth-of-type(3)  { animation-delay: -1.2s; }
+
+  .roster-legend {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .roster-legend .here { color: var(--c-census); }
+
+  /* Hero copy block */
+  .hero-side h1 { margin-top: 0; }
+
+  /* Demographic field flow */
+  .field-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 28px;
+  }
+  .field {
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg-card);
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-2);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field .col {
+    color: var(--c-census);
+    font-size: 10px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+  }
+  .field .desc { color: var(--ink-dim); font-family: var(--sans); font-size: 12px; line-height: 1.5; }
+
+  /* Audit checks (the 6 missing-data probes) */
+  .audit-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-top: 24px;
+  }
+  @media (max-width: 800px) { .audit-grid { grid-template-columns: 1fr; } }
+  .audit {
+    padding: 22px 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    position: relative;
+    transition: border-color .4s var(--ease);
+  }
+  .audit:hover { border-color: var(--c-census); }
+  .audit .num {
+    position: absolute;
+    top: 18px; right: 22px;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 22px;
+    color: var(--c-census);
+    opacity: .6;
+  }
+  .audit .label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--c-census);
+    margin-bottom: 6px;
+  }
+  .audit h4 {
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 460;
+    margin: 0 0 6px;
+  }
+  .audit p { font-size: 13px; color: var(--ink-dim); margin: 0 0 10px; line-height: 1.5; }
+  .audit .col-ref {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-2);
+    background: var(--bg-3);
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+
+  /* Flow diagram SVG */
+  .flow-diagram {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 36px 32px;
+    margin-top: 32px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============== TOP BAR ============== -->
+<header class="topbar">
+  <div class="shell topbar-inner">
+    <div class="crumb">
+      <span class="crumb-dot" style="--accent: var(--c-census);"></span>
+      <a href="index.html">Procedures</a>
+      <span class="sep">/</span>
+      <span class="here">Census</span>
+    </div>
+    <nav>
+      <a href="#flow">Flow</a>
+      <a href="#fields">Fields</a>
+      <a href="#audits">Audits</a>
+      <a href="#sql">SQL</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ============== HERO ============== -->
+<section class="hero">
+  <div class="shell">
+    <div class="hero-art">
+      <div class="hero-side reveal">
+        <span class="hero-eyebrow"><span class="dot"></span>Procedure 01 · Demographic Pull</span>
+        <h1>Take the<br><em>census</em> of a plan,<br>before you load it.</h1>
+        <p class="lead">A demographic pull from <code class="mono" style="background:var(--bg-3);padding:2px 8px;border-radius:5px;font-size:.9em;">CORP.EMPLOYEE</code> joined to address records — followed by six audits for the fields a load will reject if missing.</p>
+        <div class="hero-meta">
+          <div class="meta-item">
+            <span class="label">Source table</span>
+            <span class="value">CORP.EMPLOYEE</span>
+          </div>
+          <div class="meta-item">
+            <span class="label">Joined to</span>
+            <span class="value">EE_BEN_ADDRESS</span>
+          </div>
+          <div class="meta-item">
+            <span class="label">Audits</span>
+            <span class="value">6 missing-data probes</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="roster reveal">
+        <h5>Roster · 24 of 24 participants</h5>
+        <div class="roster-grid" id="rosterGrid"></div>
+        <div class="roster-legend">
+          <span><span style="display:inline-block;width:8px;height:8px;background:var(--ink-2);border-radius:50%;margin-right:6px;vertical-align:middle;opacity:.82;"></span>Complete</span>
+          <span class="here"><span style="display:inline-block;width:8px;height:8px;background:var(--clay-2);border-radius:50%;margin-right:6px;vertical-align:middle;opacity:.7;"></span>Missing field — flagged for audit</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== FLOW DIAGRAM ============== -->
+<section id="flow" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 01 · Flow</span>
+      <h2>Demographic pull, then six <em>audits</em>.</h2>
+    </div>
+    <p class="section-sub reveal">The core pull joins employee data to address. Then run each audit to surface participants the load would otherwise drop.</p>
+
+    <div class="flow-diagram reveal">
+      <svg viewBox="0 0 1100 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Census flow diagram">
+        <defs>
+          <marker id="arrow-c" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#3D4A6E"/>
+          </marker>
+          <pattern id="dots-c" x="0" y="0" width="6" height="6" patternUnits="userSpaceOnUse">
+            <circle cx="1" cy="1" r=".7" fill="#9A9385" opacity=".4"/>
+          </pattern>
+        </defs>
+
+        <rect width="1100" height="320" fill="url(#dots-c)"/>
+
+        <!-- Step 1: Update case_no -->
+        <g transform="translate(40,80)">
+          <rect width="180" height="120" rx="10" fill="#FBF8F2" stroke="#3D4A6E" stroke-width="1.5"/>
+          <text x="20" y="34" font-family="JetBrains Mono" font-size="10" fill="#3D4A6E" letter-spacing="2">STEP 01</text>
+          <text x="20" y="58" font-family="Fraunces" font-size="17" fill="#1F1B16">Update CASE_NO</text>
+          <text x="20" y="82" font-family="Inter" font-size="11.5" fill="#6B6457">Set case prefix +</text>
+          <text x="20" y="98" font-family="Inter" font-size="11.5" fill="#6B6457">REGION='CORP'</text>
+          <text x="20" y="118" font-family="JetBrains Mono" font-size="10" fill="#9A9385">QK63283_  00073%</text>
+        </g>
+        <line class="flow-dash" x1="220" y1="140" x2="262" y2="140" stroke="#3D4A6E" stroke-width="1.5" marker-end="url(#arrow-c)"/>
+
+        <!-- Step 2: Verify exists -->
+        <g transform="translate(265,80)">
+          <rect width="180" height="120" rx="10" fill="#FBF8F2" stroke="#3D4A6E" stroke-width="1.5"/>
+          <text x="20" y="34" font-family="JetBrains Mono" font-size="10" fill="#3D4A6E" letter-spacing="2">STEP 02</text>
+          <text x="20" y="58" font-family="Fraunces" font-size="17" fill="#1F1B16">Verify in table</text>
+          <text x="20" y="82" font-family="Inter" font-size="11.5" fill="#6B6457">SELECT * FROM</text>
+          <text x="20" y="98" font-family="Inter" font-size="11.5" fill="#6B6457">CORP.EMPLOYEE</text>
+          <text x="20" y="118" font-family="Caveat" font-size="14" fill="#D97757">— or PPT research</text>
+        </g>
+        <line class="flow-dash" x1="445" y1="140" x2="487" y2="140" stroke="#3D4A6E" stroke-width="1.5" marker-end="url(#arrow-c)"/>
+
+        <!-- Step 3: Demographic pull -->
+        <g transform="translate(490,40)">
+          <rect width="200" height="200" rx="10" fill="#3D4A6E" stroke="#3D4A6E" stroke-width="1.5"/>
+          <text x="20" y="34" font-family="JetBrains Mono" font-size="10" fill="#F2C7B3" letter-spacing="2">STEP 03 · CORE</text>
+          <text x="20" y="58" font-family="Fraunces" font-size="18" fill="#FBF8F2">Demographic pull</text>
+          <line x1="20" y1="72" x2="180" y2="72" stroke="#FBF8F2" stroke-width=".5" opacity=".4"/>
+          <text x="20" y="92" font-family="Inter" font-size="11" fill="#E5DDC9">EMPLOYEE  ⨝  EE_BEN_ADDRESS</text>
+          <text x="20" y="112" font-family="Inter" font-size="11" fill="#E5DDC9">on CASE_NO + SOC_SEC_NO</text>
+          <text x="20" y="138" font-family="Inter" font-size="11" fill="#BBB3A1">Reformats DOB, hire,</text>
+          <text x="20" y="153" font-family="Inter" font-size="11" fill="#BBB3A1">term dates → MM/DD/YYYY</text>
+          <text x="20" y="178" font-family="JetBrains Mono" font-size="10" fill="#F2C7B3">PAYEE_TYP_CD = '1'</text>
+        </g>
+
+        <!-- Step 4: Audit fan-out -->
+        <line class="flow-dash" x1="690" y1="140" x2="732" y2="140" stroke="#3D4A6E" stroke-width="1.5" marker-end="url(#arrow-c)"/>
+
+        <g transform="translate(735,30)">
+          <rect width="200" height="60" rx="8" fill="#FBF8F2" stroke="#3D4A6E" stroke-width="1"/>
+          <text x="14" y="22" font-family="JetBrains Mono" font-size="9" fill="#3D4A6E" letter-spacing="2">AUDIT 01–02</text>
+          <text x="14" y="42" font-family="Inter" font-size="12" fill="#1F1B16">Class · Division</text>
+        </g>
+        <g transform="translate(735,108)">
+          <rect width="200" height="60" rx="8" fill="#FBF8F2" stroke="#3D4A6E" stroke-width="1"/>
+          <text x="14" y="22" font-family="JetBrains Mono" font-size="9" fill="#3D4A6E" letter-spacing="2">AUDIT 03–04</text>
+          <text x="14" y="42" font-family="Inter" font-size="12" fill="#1F1B16">Employee No · Term</text>
+        </g>
+        <g transform="translate(735,186)">
+          <rect width="200" height="60" rx="8" fill="#FBF8F2" stroke="#3D4A6E" stroke-width="1"/>
+          <text x="14" y="22" font-family="JetBrains Mono" font-size="9" fill="#3D4A6E" letter-spacing="2">AUDIT 05–06</text>
+          <text x="14" y="42" font-family="Inter" font-size="12" fill="#1F1B16">Gender · Payroll Freq.</text>
+        </g>
+
+        <!-- Output -->
+        <line x1="935" y1="60" x2="965" y2="60" stroke="#3D4A6E" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="935" y1="138" x2="965" y2="138" stroke="#3D4A6E" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="935" y1="216" x2="965" y2="216" stroke="#3D4A6E" stroke-width="1" stroke-dasharray="3 3"/>
+
+        <text x="970" y="65" font-family="Caveat" font-size="16" fill="#D97757">→</text>
+        <text x="985" y="65" font-family="Inter" font-size="11" fill="#6B6457">missing rows</text>
+        <text x="970" y="143" font-family="Caveat" font-size="16" fill="#D97757">→</text>
+        <text x="985" y="143" font-family="Inter" font-size="11" fill="#6B6457">missing rows</text>
+        <text x="970" y="221" font-family="Caveat" font-size="16" fill="#D97757">→</text>
+        <text x="985" y="221" font-family="Inter" font-size="11" fill="#6B6457">missing rows</text>
+      </svg>
+      <div class="flow-legend">
+        <span><span class="lg-shape screen"></span>Screen</span>
+        <span><span class="lg-shape system"></span>System pull</span>
+        <span><span class="lg-shape decision"></span>Decision</span>
+        <span><span class="lg-shape end"></span>Audit output</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== USER-FLOW / DECISION BRANCHES ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 01b · Branches</span>
+      <h2>Three outcomes per <em>participant row</em>.</h2>
+    </div>
+    <p class="section-sub reveal">Every row leaves the audits in one of three states. The latest-row pattern resolves the ambiguity when a participant has rehires.</p>
+
+    <div class="flow-diagram reveal" style="padding:32px 28px;">
+      <svg viewBox="0 0 1100 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Census branch outcomes">
+        <defs>
+          <marker id="arrow-cb" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#3D4A6E"/>
+          </marker>
+        </defs>
+
+        <!-- Decision diamond -->
+        <g transform="translate(80,100)">
+          <path d="M 80 0 L 160 50 L 80 100 L 0 50 Z" fill="#FBF8F2" stroke="#3D4A6E" stroke-width="1.5"/>
+          <text x="80" y="44" font-family="JetBrains Mono" font-size="9" fill="#3D4A6E" letter-spacing="2" text-anchor="middle">DECISION</text>
+          <text x="80" y="62" font-family="Fraunces" font-size="13" fill="#1F1B16" text-anchor="middle">field present?</text>
+        </g>
+
+        <!-- Branch A: clean -->
+        <line class="flow-dash" x1="240" y1="125" x2="320" y2="60" stroke="#3D4A6E" stroke-width="1.4" marker-end="url(#arrow-cb)"/>
+        <text x="252" y="80" font-family="Caveat" font-size="14" fill="#5C8A78">yes — clean</text>
+        <g transform="translate(330,30)">
+          <rect width="220" height="64" rx="10" fill="#FBF8F2" stroke="#5C8A78" stroke-width="1.4"/>
+          <text x="16" y="22" font-family="JetBrains Mono" font-size="9" fill="#5C8A78" letter-spacing="2">A · CLEAN</text>
+          <text x="16" y="42" font-family="Fraunces" font-size="14" fill="#1F1B16">Loads as-is</text>
+          <text x="16" y="56" font-family="Inter" font-size="11" fill="#6B6457">no manual touch</text>
+        </g>
+
+        <!-- Branch B: missing -->
+        <line class="flow-dash" x1="240" y1="150" x2="320" y2="150" stroke="#3D4A6E" stroke-width="1.4" marker-end="url(#arrow-cb)"/>
+        <text x="252" y="142" font-family="Caveat" font-size="14" fill="#B23A2E">no — flagged</text>
+        <g transform="translate(330,118)">
+          <rect width="220" height="64" rx="10" fill="#FBF8F2" stroke="#B23A2E" stroke-width="1.4"/>
+          <text x="16" y="22" font-family="JetBrains Mono" font-size="9" fill="#B23A2E" letter-spacing="2">B · FLAGGED</text>
+          <text x="16" y="42" font-family="Fraunces" font-size="14" fill="#1F1B16">Audit captures row</text>
+          <text x="16" y="56" font-family="Inter" font-size="11" fill="#6B6457">remediated before load</text>
+        </g>
+
+        <!-- Branch C: rehire -->
+        <line class="flow-dash" x1="240" y1="175" x2="320" y2="240" stroke="#3D4A6E" stroke-width="1.4" marker-end="url(#arrow-cb)"/>
+        <text x="252" y="218" font-family="Caveat" font-size="14" fill="#B07A1F">multi-row?</text>
+        <g transform="translate(330,206)">
+          <rect width="220" height="64" rx="10" fill="#FBF8F2" stroke="#B07A1F" stroke-width="1.4"/>
+          <text x="16" y="22" font-family="JetBrains Mono" font-size="9" fill="#B07A1F" letter-spacing="2">C · LATEST-ROW</text>
+          <text x="16" y="42" font-family="Fraunces" font-size="14" fill="#1F1B16">ROW_NUMBER() rn=1</text>
+          <text x="16" y="56" font-family="Inter" font-size="11" fill="#6B6457">term DESC, hire DESC</text>
+        </g>
+
+        <!-- Right side outcomes -->
+        <line class="flow-dash" x1="550" y1="62" x2="610" y2="62" stroke="#3D4A6E" stroke-width="1.4" marker-end="url(#arrow-cb)"/>
+        <line class="flow-dash" x1="550" y1="150" x2="610" y2="150" stroke="#3D4A6E" stroke-width="1.4" marker-end="url(#arrow-cb)"/>
+        <line class="flow-dash" x1="550" y1="238" x2="610" y2="238" stroke="#3D4A6E" stroke-width="1.4" marker-end="url(#arrow-cb)"/>
+
+        <g transform="translate(620,30)">
+          <circle cx="40" cy="32" r="22" fill="#FBF8F2" stroke="#5C8A78" stroke-width="3"/>
+          <text x="40" y="36" font-family="Fraunces" font-size="14" fill="#5C8A78" text-anchor="middle">LOAD</text>
+          <text x="78" y="38" font-family="Inter" font-size="11.5" fill="#6B6457">→ population grows by N</text>
+        </g>
+        <g transform="translate(620,118)">
+          <circle cx="40" cy="32" r="22" fill="#FBF8F2" stroke="#B23A2E" stroke-width="3"/>
+          <text x="40" y="36" font-family="Fraunces" font-size="13" fill="#B23A2E" text-anchor="middle">FIX</text>
+          <text x="78" y="32" font-family="Inter" font-size="11.5" fill="#6B6457">→ source PE_DIV_EMPL_DATA</text>
+          <text x="78" y="48" font-family="Inter" font-size="11.5" fill="#6B6457">→ or contact requester</text>
+        </g>
+        <g transform="translate(620,206)">
+          <circle cx="40" cy="32" r="22" fill="#FBF8F2" stroke="#B07A1F" stroke-width="3"/>
+          <text x="40" y="36" font-family="Fraunces" font-size="13" fill="#B07A1F" text-anchor="middle">re-eval</text>
+          <text x="78" y="38" font-family="Inter" font-size="11.5" fill="#6B6457">→ re-run audit on rn=1</text>
+        </g>
+      </svg>
+      <div class="flow-legend">
+        <span><span class="lg-shape decision"></span>Decision</span>
+        <span><span class="lg-shape screen"></span>Branch outcome</span>
+        <span><span class="lg-shape end"></span>Resolution</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== DEMOGRAPHIC FIELDS ============== -->
+<section id="fields" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 02 · Fields</span>
+      <h2>What the core pull <em>returns</em>.</h2>
+    </div>
+    <p class="section-sub reveal">Fields are joined from EMPLOYEE (A) and EE_BEN_ADDRESS (B). Date columns stored as <code class="mono" style="background:var(--bg-3);padding:1px 6px;border-radius:4px;">YYYYMMDD</code> are reformatted; <code class="mono" style="background:var(--bg-3);padding:1px 6px;border-radius:4px;">'00000000'</code> renders as empty.</p>
+
+    <div class="field-list reveal">
+      <div class="field"><span class="col">CASE_NO</span><span class="desc">Plan + sub-plan key</span></div>
+      <div class="field"><span class="col">SOC_SEC_NO</span><span class="desc">Participant identifier</span></div>
+      <div class="field"><span class="col">EE_LAST_NM · EE_FST_MID_NM</span><span class="desc">Surname, given, middle, suffix</span></div>
+      <div class="field"><span class="col">DATE_OF_BIRTH</span><span class="desc">EE_BRTH_DT → MM/DD/YYYY</span></div>
+      <div class="field"><span class="col">DATE_OF_HIRE</span><span class="desc">EE_HIRE_DT → MM/DD/YYYY</span></div>
+      <div class="field"><span class="col">DATE_OF_TERM</span><span class="desc">EE_TERM_DT → MM/DD/YYYY</span></div>
+      <div class="field"><span class="col">EE_REHIRE_DT</span><span class="desc">If rehired after termination</span></div>
+      <div class="field"><span class="col">STREET · CITY · ST · ZIP</span><span class="desc">Mailing address from B (PAYEE_TYP_CD = '1')</span></div>
+      <div class="field"><span class="col">COUNTRY_NM · COUNTRY_C</span><span class="desc">Country name + code</span></div>
+      <div class="field"><span class="col">EE_PAYROLL_FREQ_CD</span><span class="desc">W · BW · SM · M · A</span></div>
+      <div class="field"><span class="col">EE_SEX_CD</span><span class="desc">M · F · blank → audit</span></div>
+      <div class="field"><span class="col">PHONE · EVE · MOBILE</span><span class="desc">Three numbers, may be sparse</span></div>
+      <div class="field"><span class="col">EE_CYC_DT</span><span class="desc">Last cycle date</span></div>
+      <div class="field"><span class="col">MOD_TS · USER_I</span><span class="desc">Audit trail</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== 6 AUDITS ============== -->
+<section id="audits" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 03 · Audits</span>
+      <h2>Six probes for what the load <em>will reject</em>.</h2>
+    </div>
+    <p class="section-sub reveal">Each query partitions by SSN and keeps the <em>most recent</em> employment row (term desc null-last, then hire desc) — so prior rehires don't mask current gaps.</p>
+
+    <div class="audit-grid reveal">
+      <div class="audit">
+        <span class="num">01</span>
+        <span class="label">If loading</span>
+        <h4>Missing class codes</h4>
+        <p>Filters <code class="col-ref">CLASS_I = 0</code> on the latest row per SSN.</p>
+        <span class="col-ref">CORP.EMPLOYEE.CLASS_I</span>
+      </div>
+      <div class="audit">
+        <span class="num">02</span>
+        <span class="label">If loading for plan</span>
+        <h4>Missing divisions</h4>
+        <p>Filters <code class="col-ref">EE_DIV_NO = ''</code>. Pair with cross-ref to PE_DIV_EMPL_DATA.</p>
+        <span class="col-ref">CORP.EMPLOYEE.EE_DIV_NO</span>
+      </div>
+      <div class="audit">
+        <span class="num">03</span>
+        <span class="label">If loading for plan</span>
+        <h4>Missing employee numbers</h4>
+        <p>Filters <code class="col-ref">EE_NO = ''</code>. Latest row only.</p>
+        <span class="col-ref">CORP.EMPLOYEE.EE_NO</span>
+      </div>
+      <div class="audit">
+        <span class="num">04</span>
+        <span class="label">If loading for plan</span>
+        <h4>Term date — missing reason code</h4>
+        <p>Joins EMPLOYEE (term ≠ '00000000') with PE_DIV_EMPL_DATA / GET_PART_ENRL where <code class="col-ref">TERM_REASON_C = ''</code>.</p>
+        <span class="col-ref">PENSION.GET_PART_ENRL.TERM_REASON_C</span>
+      </div>
+      <div class="audit">
+        <span class="num">05</span>
+        <span class="label">Always</span>
+        <h4>Missing gender code</h4>
+        <p>Filters <code class="col-ref">EE_SEX_CD = ''</code>. Required for compliance reporting.</p>
+        <span class="col-ref">CORP.EMPLOYEE.EE_SEX_CD</span>
+      </div>
+      <div class="audit">
+        <span class="num">06</span>
+        <span class="label">Always</span>
+        <h4>Missing payroll frequency</h4>
+        <p>Filters <code class="col-ref">EE_PAYROLL_FREQ_CD = ''</code>. Drives deferral period math downstream.</p>
+        <span class="col-ref">CORP.EMPLOYEE.EE_PAYROLL_FREQ_CD</span>
+      </div>
+    </div>
+
+    <div class="callout warn reveal" style="margin-top:32px;">
+      <strong>Latest-row pattern</strong>
+      Every audit uses <code class="mono" style="background:var(--bg-3);padding:1px 6px;border-radius:4px;color:var(--ink-2);">ROW_NUMBER() OVER (PARTITION BY SOC_SEC_NO ORDER BY EE_TERM_DT DESC NULLS LAST, EE_HIRE_DT DESC)</code> and keeps <code class="mono" style="background:var(--bg-3);padding:1px 6px;border-radius:4px;color:var(--ink-2);">rn = 1</code>. Without this, a prior terminated employment row can hide a missing field on the current row.
+    </div>
+
+    <div class="ornament reveal" style="margin-top:42px;">audits at a glance</div>
+
+    <div class="icon-grid reveal">
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h16"/><circle cx="20" cy="12" r="2.5"/></svg></span>
+        <div><h4>Class codes</h4><p>CLASS_I = 0 on the latest row per SSN.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><path d="M3 12h18M12 3v18M5 7l2 2M19 7l-2 2M5 17l2-2M19 17l-2-2"/></svg></span>
+        <div><h4>Divisions</h4><p>EE_DIV_NO = '' · cross-ref to PE_DIV_EMPL_DATA.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M5 20c0-4 3-6 7-6s7 2 7 6"/></svg></span>
+        <div><h4>Employee numbers</h4><p>EE_NO = '' on rn=1.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 9h16M9 3v4M15 3v4M9 14l2 2 4-4"/></svg></span>
+        <div><h4>Term reason</h4><p>EE_TERM_DT ≠ '00000000' but TERM_REASON_C = ''.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="9" r="4"/><path d="M12 13v8M9 18h6"/></svg></span>
+        <div><h4>Gender code</h4><p>EE_SEX_CD = '' · always required.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+        <div><h4>Payroll frequency</h4><p>EE_PAYROLL_FREQ_CD = '' · drives deferral math.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== SQL EXCERPTS ============== -->
+<section id="sql" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 04 · SQL</span>
+      <h2>The core pull, <em>verbatim</em>.</h2>
+    </div>
+    <p class="section-sub reveal">Reformats date columns and joins address. Replace <code class="mono" style="background:var(--bg-3);padding:1px 6px;border-radius:4px;">QK63283_  00073%</code> with the target case prefix.</p>
+
+    <pre class="code reveal" data-lang="DB2 SQL"><span class="com">-- VERIFY IF DATA EXISTS IN TABLE BEFORE LOADING; USE TO DO INDIVIDUAL PPT RESEARCH TOO.</span>
+<span class="kw">SELECT</span> *
+<span class="kw">FROM</span> CORP.EMPLOYEE
+<span class="kw">WHERE</span> CASE_NO <span class="kw">LIKE</span> <span class="lit">'QK63283_  00073%'</span>;
+
+<span class="com">-- CENSUS DEMOGRAPHIC DATA</span>
+<span class="kw">SELECT</span> A.CASE_NO, A.SOC_SEC_NO, EE_LAST_NM, EE_FST_MID_NM, A.MIDDLE_NM, A.SUFFIX_NM,
+       DATE_OF_BIRTH, DATE_OF_HIRE, DATE_OF_TERM, EE_REHIRE_DT,
+       STREET_NM, ADDR_LINE_2_T, CITY_NM, ST_CD, ZIP_CD, COUNTRY_NM, COUNTRY_C,
+       EE_PAYROLL_FREQ_CD, EE_SEX_CD, PHONE_NO, EVE_PHONE_NO, MOBILE_PHONE_NO,
+       EE_CYC_DT, MOD_TS, USER_I
+<span class="kw">FROM</span> (
+  <span class="kw">SELECT</span> CASE_NO, SOC_SEC_NO, EE_LAST_NM, EE_FST_MID_NM, MIDDLE_NM, SUFFIX_NM,
+    <span class="kw">CASE</span> <span class="kw">WHEN</span> substr(EE_BRTH_DT,5,2)||<span class="lit">'/'</span>||substr(EE_BRTH_DT,7,2)||<span class="lit">'/'</span>||substr(EE_BRTH_DT,1,4) = <span class="lit">'00/00/0000'</span> <span class="kw">THEN</span> <span class="lit">''</span>
+         <span class="kw">ELSE</span> substr(EE_BRTH_DT,5,2)||<span class="lit">'/'</span>||substr(EE_BRTH_DT,7,2)||<span class="lit">'/'</span>||substr(EE_BRTH_DT,1,4) <span class="kw">END</span> <span class="kw">AS</span> DATE_OF_BIRTH,
+    <span class="com">-- (DATE_OF_HIRE, DATE_OF_TERM follow the same pattern)</span>
+    EE_REHIRE_DT, EE_PAYROLL_FREQ_CD, EE_SEX_CD, EE_CYC_DT, MOD_TS, USER_I
+  <span class="kw">FROM</span> CORP.EMPLOYEE
+  <span class="kw">WHERE</span> CASE_NO = <span class="lit">'QK63283   00073'</span>
+) <span class="kw">AS</span> A
+<span class="kw">LEFT JOIN</span> (
+  <span class="kw">SELECT</span> CASE_NO, SOC_SEC_NO, STREET_NM, ADDR_LINE_2_T, CITY_NM, ST_CD, ZIP_CD,
+         COUNTRY_NM, COUNTRY_C, REGION_ST_CD, PHONE_NO, EVE_PHONE_NO, MOBILE_PHONE_NO
+  <span class="kw">FROM</span> CORP.EE_BEN_ADDRESS
+  <span class="kw">WHERE</span> CASE_NO = <span class="lit">'QK63283   00073'</span>
+    <span class="kw">AND</span> PAYEE_TYP_CD = <span class="lit">'1'</span>
+) <span class="kw">AS</span> B
+  <span class="kw">ON</span> A.CASE_NO = B.CASE_NO <span class="kw">AND</span> A.SOC_SEC_NO = B.SOC_SEC_NO
+<span class="kw">ORDER BY</span> SOC_SEC_NO
+<span class="kw">FOR FETCH ONLY WITH UR</span>;</pre>
+
+    <div class="ornament reveal" style="margin-top:48px;">six audits follow</div>
+
+    <pre class="code reveal" data-lang="Audit · template" style="margin-top:24px;"><span class="com">-- Pattern reused for class, division, EE#, gender, payroll-freq</span>
+<span class="kw">SELECT</span>  CASE_NO, SOC_SEC_NO, EE_FST_MID_NM, EE_LAST_NM,
+        EE_BRTH_DT, EE_HIRE_DT, EE_TERM_DT, <span class="fn">&lt;COLUMN&gt;</span>
+<span class="kw">FROM</span> (
+  <span class="kw">SELECT</span> e.*,
+    <span class="fn">ROW_NUMBER</span>() <span class="kw">OVER</span> (
+      <span class="kw">PARTITION BY</span> SOC_SEC_NO
+      <span class="kw">ORDER BY</span>
+        EE_TERM_DT <span class="kw">DESC NULLS LAST</span>,
+        EE_HIRE_DT <span class="kw">DESC</span>
+    ) <span class="kw">AS</span> rn
+  <span class="kw">FROM</span> CORP.EMPLOYEE e
+  <span class="kw">WHERE</span> e.CASE_NO <span class="kw">LIKE</span> <span class="lit">'QK63283_  00073%'</span>
+    <span class="kw">AND</span> e.<span class="fn">&lt;COLUMN&gt;</span> = <span class="lit">''</span>   <span class="com">-- or = 0 for class</span>
+)
+<span class="kw">WHERE</span> rn = 1;</pre>
+  </div>
+</section>
+
+<!-- ============== FOOTER ============== -->
+<footer class="shell foot">
+  <span>Census · Procedure 01 of 07</span>
+  <span><a href="index.html">↩ all procedures</a></span>
+</footer>
+
+<script>
+  // Build the roster figure grid — 24 figures, ~3 flagged
+  (function(){
+    var grid = document.getElementById('rosterGrid');
+    var miss = new Set([5, 13, 19]);
+    for (var i = 0; i < 24; i++) {
+      var d = document.createElement('div');
+      d.className = 'fig' + (miss.has(i) ? ' miss' : '');
+      grid.appendChild(d);
+    }
+  })();
+
+  // Reveal on scroll
+  (function(){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) e.target.classList.add('in'); });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+  })();
+</script>
+</body>
+</html>

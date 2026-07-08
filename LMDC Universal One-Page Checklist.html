@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>LMDC Universal Implementation Checklist</title>
+<style>
+  @font-face { font-family: 'Archivo Fallback'; src: local('Arial'); }
+
+  :root {
+    --ink: #14181d;
+    --mut: #5c6672;
+    --line: #c9d0d8;
+    --line-soft: #e6eaef;
+    --accent: #1a4f9c;
+  }
+
+  * { box-sizing: border-box; margin: 0; }
+
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  body {
+    background: #e8ebef;
+    font-family: "Archivo", "Archivo Fallback", "Segoe UI", Arial, sans-serif;
+    color: var(--ink);
+  }
+
+  .page {
+    width: 8.5in;
+    height: 11in;
+    margin: 24px auto;
+    padding: 0.42in 0.45in 0.34in;
+    background: #fff;
+    box-shadow: 0 12px 34px rgba(20, 28, 40, .18);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  @media print {
+    @page { size: letter; margin: 0; }
+    body { background: #fff; }
+    .page { margin: 0; box-shadow: none; }
+  }
+
+  /* ── Header ── */
+  .masthead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 2.5px solid var(--ink);
+    padding-bottom: 5px;
+  }
+  h1 {
+    font-size: 17.5px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .masthead .co {
+    font-size: 8.5px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--mut);
+  }
+
+  /* ── Plan details band ── */
+  .details {
+    display: grid;
+    grid-template-columns: 2.2fr 1.4fr 1fr 1fr 1fr;
+    gap: 0 18px;
+    padding: 9px 0 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .fld .lbl {
+    font-size: 6.8px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--mut);
+    margin-bottom: 11px;
+  }
+  .fld .blank { border-bottom: 1px solid var(--ink); height: 1px; }
+
+  .selects {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 8.6px;
+  }
+  .sel-grp { display: flex; align-items: center; gap: 10px; }
+  .sel-grp .glbl {
+    font-size: 6.8px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--mut);
+  }
+  .opt { display: inline-flex; align-items: center; gap: 4px; font-weight: 500; }
+  .opt .bx {
+    width: 8px; height: 8px;
+    border: 1.2px solid var(--ink);
+    flex: none;
+  }
+  .sel-div { width: 1px; height: 14px; background: var(--line); }
+  .legend { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 7.4px; color: var(--mut); }
+  .legend .glbl { margin-right: 1px; }
+
+  /* ── Grid layout ── */
+  .grid-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding-top: 10px;
+    min-height: 0;
+  }
+  .row1 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 26px;
+  }
+  .row2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 26px;
+    margin-top: 16px;
+    flex: 1;
+    min-height: 0;
+  }
+  .col { min-width: 0; display: flex; flex-direction: column; }
+
+  .pr-task { padding: 8px 0; }
+
+  .note-box {
+    flex: 1;
+    margin-top: 12px;
+    border: 1.3px solid var(--line);
+    border-radius: 2px;
+    padding: 6px 8px;
+  }
+  .note-box .nb-lbl {
+    font-size: 6.8px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--mut);
+  }
+
+  .notes-phase { flex: 1; display: flex; flex-direction: column; }
+  .notes-phase .lines { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+  .notes-phase .line { border-bottom: 1px solid var(--line); }
+
+  /* ── Phase blocks ── */
+  .phase { margin-bottom: 20px; break-inside: avoid; }
+  .ph-hd {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    border-bottom: 1.6px solid var(--ink);
+    padding-bottom: 3px;
+    margin-bottom: 4px;
+  }
+  .ph-num {
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .ph-hd h2 {
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .ph-hd .scope {
+    margin-left: auto;
+    font-size: 6.8px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--mut);
+  }
+
+  .task {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 4.4px 0;
+    border-bottom: 1px solid var(--line-soft);
+    font-size: 9.8px;
+    line-height: 1.25;
+  }
+  .task:last-child { border-bottom: none; }
+  .cb {
+    width: 9px; height: 9px;
+    border: 1.3px solid var(--ink);
+    flex: none;
+    position: relative;
+    top: 1px;
+  }
+  .task .t { font-weight: 500; }
+  .task .note { color: var(--mut); font-size: 8px; }
+  .task .fill { flex: 1; }
+
+  .tag {
+    flex: none;
+    font-size: 6.6px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    padding: 1px 4px;
+    border: 1px solid var(--ink);
+    text-transform: uppercase;
+    position: relative;
+    top: -1px;
+  }
+  .tag.cash { background: var(--ink); color: #fff; }
+  .tag.tik  { background: #fff; }
+  .tag.map  { background: var(--line-soft); }
+  .tag.soft { border-color: var(--line); color: var(--mut); font-weight: 700; }
+
+  /* variant sub-lines under a task */
+  .variants { padding: 1px 0 3px 15px; border-bottom: 1px solid var(--line-soft); }
+  .variant {
+    display: flex; align-items: baseline; gap: 5px;
+    font-size: 8.2px; color: var(--mut); padding: 1.4px 0;
+  }
+  .variant b { color: var(--ink); font-weight: 700; }
+
+  /* data load grid */
+  .dl-hd {
+    display: flex; align-items: baseline; gap: 6px;
+    margin: 5px 0 2px;
+    font-size: 7.2px; font-weight: 800; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  .dl-hd::after { content: ""; flex: 1; border-bottom: 1px solid var(--line); }
+  .dl-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 14px;
+  }
+  .dl-grid .task { font-size: 9.2px; }
+  .core-dot {
+    flex: none;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    position: relative; top: -1px;
+  }
+
+  /* ── Footer ── */
+  .foot {
+    border-top: 1.5px solid var(--ink);
+    padding-top: 5px;
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    font-size: 7.6px;
+    color: var(--mut);
+    line-height: 1.45;
+  }
+  .foot b { color: var(--ink); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="masthead">
+    <h1>Implementation Checklist</h1>
+    <div class="co">Transamerica &middot; LMDC</div>
+  </div>
+
+  <div class="details">
+    <div class="fld"><div class="lbl">Plan / Client Name</div><div class="blank"></div></div>
+    <div class="fld"><div class="lbl">Case Number</div><div class="blank"></div></div>
+    <div class="fld"><div class="lbl">Effective Date</div><div class="blank"></div></div>
+    <div class="fld"><div class="lbl">Day 1</div><div class="blank"></div></div>
+    <div class="fld"><div class="lbl">Wire Date</div><div class="blank"></div></div>
+  </div>
+
+  <div class="selects">
+    <div class="sel-grp">
+      <span class="glbl">Type</span>
+      <span class="opt"><span class="bx"></span>Startup</span>
+      <span class="opt"><span class="bx"></span>Conversion</span>
+      <span class="opt"><span class="bx"></span>Merger&nbsp;<span class="note" style="font-size:7.6px;color:var(--mut)">int / ext</span></span>
+    </div>
+    <div class="sel-div"></div>
+    <div class="sel-grp">
+      <span class="glbl">Strategy</span>
+      <span class="opt"><span class="bx"></span>Cash</span>
+      <span class="opt"><span class="bx"></span>Mapping</span>
+      <span class="opt"><span class="bx"></span>TIK</span>
+    </div>
+    <div class="legend">
+      <span class="glbl">Tags</span>
+      <span class="tag cash">Cash</span>
+      <span class="tag map">Map</span>
+      <span class="tag tik">TIK</span>
+      <span>= only when that strategy applies</span>
+    </div>
+  </div>
+
+  <div class="grid-wrap">
+
+    <div class="row1">
+      <!-- ROW 1 · LEFT: Setup, PRK, Preparation -->
+      <div class="col">
+
+        <div class="phase">
+          <div class="ph-hd"><span class="ph-num">01</span><h2>Setup</h2><span class="scope">All plans</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Obtain All Documents</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Base Template</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Payroll Template</span></div>
+          <div class="task"><span class="cb"></span><span class="t">FTP Connection</span></div>
+          <div class="task"><span class="cb"></span><span class="t">EDS Layouts</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Re-Registration</span><span class="fill"></span><span class="tag tik">TIK</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Vendor Workflow Confirm</span><span class="fill"></span><span class="tag soft">not startup</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Informatica Prep</span><span class="fill"></span><span class="tag soft">not startup</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Wire Instructions to PRK</span><span class="fill"></span><span class="tag soft">not startup</span></div>
+        </div>
+
+        <div class="phase">
+          <div class="ph-hd"><span class="ph-num">03</span><h2>PRK</h2><span class="scope">Conversion / Merger</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Wire Instructions</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Get All Asset Transfer Details</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Coordinate Conversion Files &amp; Asset Transfer Details</span></div>
+          <div class="task"><span class="cb"></span><span class="t">TIK Account Details</span><span class="fill"></span><span class="tag tik">TIK</span></div>
+        </div>
+
+        <div class="phase">
+          <div class="ph-hd"><span class="ph-num">04</span><h2>Preparation</h2><span class="scope">Conversion / Merger</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Source Mapping</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Fund Mapping</span><span class="note">&mdash; skip if cash-only</span><span class="fill"></span><span class="tag map">Map</span><span class="tag tik">TIK</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Informatica Workflow Testing</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Fund Management Calendar Entry</span></div>
+          <div class="task"><span class="cb"></span><span class="t">TIK Follow-Up with Matt</span><span class="fill"></span><span class="tag tik">TIK</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Pre-Wire Emails</span></div>
+        </div>
+
+      </div>
+
+      <!-- ROW 1 · RIGHT: Payroll -->
+      <div class="col">
+        <div class="phase" style="flex:1;display:flex;flex-direction:column">
+          <div class="ph-hd"><span class="ph-num">02</span><h2>Payroll</h2><span class="scope">All plans</span></div>
+          <div class="task pr-task"><span class="cb"></span><span class="t">Confirm FTP Setup</span></div>
+          <div class="task pr-task"><span class="cb"></span><span class="t">Confirm OBF Details</span></div>
+          <div class="task pr-task"><span class="cb"></span><span class="t">Receive Test File</span></div>
+          <div class="task pr-task"><span class="cb"></span><span class="t">Validate Test File</span></div>
+          <div class="task pr-task"><span class="cb"></span><span class="t">One Payroll Validation</span></div>
+          <div class="task pr-task" style="border-bottom:none"><span class="cb"></span><span class="t">Finalize</span></div>
+
+          <div class="note-box">
+            <span class="nb-lbl">Notes</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row2">
+      <!-- ROW 2 · LEFT: Wire Day + Notes -->
+      <div class="col">
+
+        <div class="phase">
+          <div class="ph-hd"><span class="ph-num">05</span><h2>Wire Day</h2><span class="scope">Conversion / Merger</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Morning Emails</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Receive Wire</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Move / Process Wire</span><span class="note">&mdash; one of:</span></div>
+          <div class="variants">
+            <div class="variant"><span class="tag cash">Cash</span><b>Transfer wire to Advanced Employer</b></div>
+            <div class="variant"><span class="tag map">Map</span><b>Map funds</b></div>
+            <div class="variant"><span class="tag tik">TIK</span>TIK-only plans: skip this step &mdash; no wire to move</div>
+          </div>
+        </div>
+
+        <div class="phase notes-phase">
+          <div class="ph-hd"><span class="ph-num">&mdash;</span><h2>Notes</h2></div>
+          <div class="lines">
+            <div class="line"></div>
+            <div class="line"></div>
+            <div class="line"></div>
+            <div class="line"></div>
+            <div class="line"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ROW 2 · RIGHT: Post Wire -->
+      <div class="col">
+
+        <div class="phase">
+          <div class="ph-hd"><span class="ph-num">06</span><h2>Post Wire</h2><span class="scope">Conversion / Merger</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Receive Final Files</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Liquidate Advanced Employer</span><span class="fill"></span><span class="tag cash">Cash</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Check TIK Spreadsheet for Incoming Shares</span><span class="fill"></span><span class="tag tik">TIK only</span></div>
+          <div class="task"><span class="cb"></span><span class="t">Participant Balances</span></div>
+
+          <div class="dl-hd"><span class="core-dot"></span>Data Load &nbsp;&middot;&nbsp; dotted = core, all plans incl. startup</div>
+          <div class="dl-grid">
+            <div class="task"><span class="cb"></span><span class="t">Census</span><span class="fill"></span><span class="core-dot"></span></div>
+            <div class="task"><span class="cb"></span><span class="t">Years of Service</span></div>
+            <div class="task"><span class="cb"></span><span class="t">Elections</span><span class="fill"></span><span class="core-dot"></span></div>
+            <div class="task"><span class="cb"></span><span class="t">YTD Compensation</span></div>
+            <div class="task"><span class="cb"></span><span class="t">Eligibility</span><span class="fill"></span><span class="core-dot"></span></div>
+            <div class="task"><span class="cb"></span><span class="t">YTD Contributions</span></div>
+            <div class="task"><span class="cb"></span><span class="t">Deferrals</span><span class="fill"></span><span class="core-dot"></span></div>
+            <div class="task"><span class="cb"></span><span class="t">YTD Hours</span></div>
+            <div class="task"><span class="cb"></span><span class="t">Beneficiaries</span></div>
+            <div class="task"><span class="cb"></span><span class="t">Prior Year Compensation</span></div>
+            <div class="task"><span class="cb"></span><span class="t">Prior Year End Balance</span></div>
+            <div class="task"><span class="cb"></span><span class="t">Prior Year Hours</span></div>
+          </div>
+
+          <div class="task" style="border-top:1px solid var(--line-soft);margin-top:2px"><span class="cb"></span><span class="t">Final Check</span></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <div class="foot">
+    <div><b>Startup plans:</b> complete Setup (skip &ldquo;not startup&rdquo; items), Payroll, and the four core Data Loads only. PRK, Preparation, Wire Day, and the rest of Post Wire do not apply.</div>
+    <div style="text-align:right;flex:none"><b>Untagged tasks</b> apply to every<br>conversion / merger plan.</div>
+  </div>
+
+</div>
+</body>
+</html>

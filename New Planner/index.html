@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LMDC Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="brand">LMDC Planner</div>
+        <div class="brand-sub">Plan onboarding cockpit</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-outline" id="archiveBtn" type="button">Archive</button>
+        <button class="btn btn-outline" id="exportBtn" type="button">Export JSON</button>
+        <label class="btn btn-outline file-btn">
+          Import JSON
+          <input id="importInput" type="file" accept="application/json,.json">
+        </label>
+        <button class="btn btn-primary" id="newPlanBtn" type="button">New Plan</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="dashboard-panel">
+        <div class="panel-head">
+          <div>
+            <h1>This week</h1>
+            <p>Overdue work, next steps, and payroll risk by plan.</p>
+          </div>
+          <div class="summary-chips" id="summaryChips"></div>
+        </div>
+        <div id="dashboard" class="dashboard"></div>
+      </section>
+
+      <aside class="detail-panel" id="detailPanel">
+        <div class="empty-detail">
+          <h2>Select or create a plan</h2>
+          <p>Plans start in Pre-Start. Checking Obtain All Documents moves them to Active.</p>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="planModal" aria-hidden="true">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="planModalTitle">
+      <div class="modal-head">
+        <div>
+          <h2 id="planModalTitle">New Plan</h2>
+          <p>Create the shell now. Fill the rest in when the facts arrive.</p>
+        </div>
+        <button class="icon-btn" id="closeModalBtn" type="button" aria-label="Close">×</button>
+      </div>
+
+      <form id="planForm" class="plan-form">
+        <input type="hidden" id="planId">
+
+        <div class="form-grid">
+          <label class="field full">
+            <span>Plan / Client Name *</span>
+            <input id="planName" required placeholder="Acme Corp 401(k)">
+          </label>
+          <label class="field">
+            <span>Case Number *</span>
+            <input id="caseNumber" required placeholder="CASE-00123">
+          </label>
+          <label class="field">
+            <span>Plan Type *</span>
+            <select id="planType" required>
+              <option value="startup">Startup</option>
+              <option value="conversion">Conversion</option>
+              <option value="merger">Merger</option>
+            </select>
+          </label>
+          <label class="field conditional merger-only">
+            <span>Merger Type</span>
+            <select id="mergerType">
+              <option value="">Select merger type</option>
+              <option value="internal">Internal</option>
+              <option value="external">External</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Effective Date *</span>
+            <input id="effectiveDate" type="date" required>
+          </label>
+          <label class="field">
+            <span>First Payroll in TA Date *</span>
+            <input id="firstPayrollTaDate" type="date" required>
+          </label>
+          <label class="field conditional non-startup-only">
+            <span>Wire Date</span>
+            <input id="wireDate" type="date">
+          </label>
+        </div>
+
+        <div class="form-section conditional non-startup-only">
+          <div class="form-section-title">Conversion Strategy</div>
+          <div class="check-row">
+            <label><input type="checkbox" name="strategy" value="cash"> Cash</label>
+            <label><input type="checkbox" name="strategy" value="mapping"> Mapping</label>
+            <label><input type="checkbox" name="strategy" value="tik"> TIK</label>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Plan Characteristics</div>
+          <div class="check-row">
+            <label><input id="isOneOnePlan" type="checkbox"> 1/1 Plan</label>
+            <label><input id="autoEnroll" type="checkbox"> Auto Enroll</label>
+            <label><input id="loans" type="checkbox"> Loans</label>
+            <label><input id="roth" type="checkbox"> Roth</label>
+            <label><input id="nonQual" type="checkbox"> Non-Qual</label>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <label class="field">
+            <span>Payroll Vendor</span>
+            <input id="payrollVendor" placeholder="ADP, Paylocity, In House...">
+          </label>
+          <label class="field">
+            <span>Payroll Contact</span>
+            <input id="payrollName" placeholder="Name">
+          </label>
+          <label class="field">
+            <span>Payroll Email</span>
+            <input id="payrollEmail" type="email" placeholder="email@vendor.com">
+          </label>
+          <label class="field conditional non-startup-only">
+            <span>Prior Record Keeper</span>
+            <input id="priorVendor" placeholder="Fidelity, Empower...">
+          </label>
+          <label class="field conditional non-startup-only">
+            <span>Prior RK Contact</span>
+            <input id="priorName" placeholder="Name">
+          </label>
+          <label class="field conditional non-startup-only">
+            <span>Prior RK Email</span>
+            <input id="priorEmail" type="email" placeholder="email@vendor.com">
+          </label>
+          <label class="field">
+            <span>Client Folder URL</span>
+            <input id="clientFolderUrl" type="url" placeholder="https://...">
+          </label>
+          <label class="field">
+            <span>DC File Coordinator</span>
+            <select id="dcFileCoordinator">
+              <option value="">Select</option>
+              <option>Selena Cherry</option>
+              <option>Amy Jiang</option>
+              <option>Beth Flores</option>
+              <option>Kayla Hartmann</option>
+            </select>
+          </label>
+          <label class="field full">
+            <span>Plan Notes</span>
+            <textarea id="planNotes" rows="3" placeholder="Quick context. Keep it useful."></textarea>
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-outline" type="button" id="cancelFormBtn">Cancel</button>
+          <button class="btn btn-primary" type="submit">Save Plan</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

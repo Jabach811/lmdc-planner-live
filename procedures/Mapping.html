@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mapping · Balance Import</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/parchment.css">
+<style>
+  :root { --accent: var(--c-map); }
+
+  .hero-art {
+    margin-top: 36px;
+    display: grid;
+    grid-template-columns: 1fr .9fr;
+    gap: 48px;
+    align-items: center;
+  }
+  @media (max-width: 900px) { .hero-art { grid-template-columns: 1fr; } }
+
+  /* Cross-walk hero illustration */
+  .crosswalk {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px;
+    position: relative;
+  }
+  .crosswalk::before {
+    content: "FUND MAPPING · TOA";
+    position: absolute;
+    top: 14px; right: 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    color: var(--ink-faint);
+  }
+
+  /* Phases (same pattern as Cash, with map colours) */
+  .phases {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-top: 28px;
+  }
+  @media (max-width: 900px) { .phases { grid-template-columns: 1fr; } }
+  .phase {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 24px;
+    transition: border-color .4s var(--ease);
+  }
+  .phase:hover { border-color: var(--c-map); }
+  .phase .ph-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--c-map);
+    margin-bottom: 6px;
+  }
+  .phase h3 {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 460;
+    margin: 0 0 14px;
+    letter-spacing: -.014em;
+  }
+  .phase ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+  .phase li {
+    font-size: 13.5px;
+    color: var(--ink-2);
+    line-height: 1.55;
+    padding-left: 22px;
+    position: relative;
+  }
+  .phase li::before {
+    content: "—"; position: absolute; left: 0; color: var(--c-map); font-weight: 500;
+  }
+  .phase li b { color: var(--ink); font-weight: 500; }
+
+  /* Reqs */
+  .reqs { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; }
+  .req {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border-radius: 999px;
+    background: var(--bg-card); border: 1px solid var(--line);
+    font-size: 13px; color: var(--ink-2);
+  }
+  .req .icon { width: 14px; height: 14px; flex: none; }
+  .req.yes { border-color: var(--c-map); color: var(--c-map); }
+  .req.no { color: var(--ink-mute); text-decoration: line-through; text-decoration-color: var(--ink-faint); }
+
+  /* Twin-mapping diagram */
+  .twin {
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  @media (max-width: 800px) { .twin { grid-template-columns: 1fr; } }
+  .twin-card {
+    padding: 22px 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    position: relative;
+  }
+  .twin-card .tlabel {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--c-map);
+  }
+  .twin-card h4 {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 460;
+    margin: 4px 0 14px;
+  }
+  .twin-card p { font-size: 13px; color: var(--ink-dim); margin: 0 0 10px; line-height: 1.5; }
+  .twin-card .when {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--line);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--c-map);
+  }
+
+  /* Post-wire steps */
+  .post {
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 900px) { .post { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 600px) { .post { grid-template-columns: 1fr; } }
+  .post-step {
+    padding: 18px 20px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--bg-card);
+  }
+  .post-step .pn {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 24px;
+    color: var(--c-map);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .post-step h4 { font-family: var(--serif); font-size: 16px; font-weight: 460; margin: 0 0 4px; }
+  .post-step p { font-size: 12.5px; color: var(--ink-dim); margin: 0; line-height: 1.45; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="shell topbar-inner">
+    <div class="crumb">
+      <span class="crumb-dot" style="--accent: var(--c-map);"></span>
+      <a href="index.html">Procedures</a>
+      <span class="sep">/</span>
+      <span>Balance Import</span>
+      <span class="sep">/</span>
+      <span class="here">Mapping</span>
+    </div>
+    <nav>
+      <a href="#prep">Prep</a>
+      <a href="#wire">Wire Day</a>
+      <a href="#post">Post-Wire</a>
+      <a href="#twin">Twin Apply</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="shell">
+    <div class="hero-art">
+      <div class="hero-side reveal">
+        <span class="hero-eyebrow"><span class="dot"></span>Balance Import · Method 02 of 03</span>
+        <h1>Fund<br><em>mapping</em>.<br>Same wire, more bookkeeping.</h1>
+        <p class="lead">A wire arrives, the same as cash — but each prior fund maps to a receiving fund per the signed TOA. The mapping applies <em>twice</em>: once on wire day to the incoming assets, once post-wire to participant accounts.</p>
+        <div class="hero-meta">
+          <div class="meta-item"><span class="label">Pre-work</span><span class="value">Source + Fund map</span></div>
+          <div class="meta-item"><span class="label">QA gate</span><span class="value">Mapping doc approved</span></div>
+          <div class="meta-item"><span class="label">Validation</span><span class="value">Informatica dev mode</span></div>
+        </div>
+      </div>
+
+      <div class="crosswalk reveal">
+        <svg viewBox="0 0 380 320" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
+          <defs>
+            <marker id="arrow-m" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L7,3 z" fill="#D97757"/>
+            </marker>
+          </defs>
+
+          <!-- Left column: prior funds -->
+          <text x="20" y="22" font-family="JetBrains Mono" font-size="9" fill="#D97757" letter-spacing="2">PRIOR RK</text>
+          <g font-family="JetBrains Mono" font-size="11" fill="#1F1B16">
+            <rect x="20" y="36" width="120" height="32" rx="4" fill="#FBF8F2" stroke="#D97757" stroke-width=".8"/>
+            <text x="32" y="56">VFINX 12.4%</text>
+            <rect x="20" y="78" width="120" height="32" rx="4" fill="#FBF8F2" stroke="#D97757" stroke-width=".8"/>
+            <text x="32" y="98">VBMFX 8.0%</text>
+            <rect x="20" y="120" width="120" height="32" rx="4" fill="#FBF8F2" stroke="#D97757" stroke-width=".8"/>
+            <text x="32" y="140">VTSAX 31.0%</text>
+            <rect x="20" y="162" width="120" height="32" rx="4" fill="#FBF8F2" stroke="#D97757" stroke-width=".8"/>
+            <text x="32" y="182">VTRIX 4.2%</text>
+            <rect x="20" y="204" width="120" height="32" rx="4" fill="#FBF8F2" stroke="#D97757" stroke-width=".8"/>
+            <text x="32" y="224">PIMIX 9.1%</text>
+            <rect x="20" y="246" width="120" height="32" rx="4" fill="#FBF8F2" stroke="#D97757" stroke-width=".8"/>
+            <text x="32" y="266">VBTLX 5.0%</text>
+          </g>
+
+          <!-- Crosswalk arrows -->
+          <line x1="142" y1="52" x2="238" y2="52" stroke="#D97757" stroke-width="1" marker-end="url(#arrow-m)"/>
+          <line x1="142" y1="94" x2="238" y2="94" stroke="#D97757" stroke-width="1" marker-end="url(#arrow-m)"/>
+          <line x1="142" y1="136" x2="238" y2="136" stroke="#D97757" stroke-width="1" marker-end="url(#arrow-m)"/>
+          <line x1="142" y1="178" x2="238" y2="220" stroke="#D97757" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arrow-m)"/>
+          <line x1="142" y1="220" x2="238" y2="178" stroke="#D97757" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arrow-m)"/>
+          <line x1="142" y1="262" x2="238" y2="262" stroke="#D97757" stroke-width="1" marker-end="url(#arrow-m)"/>
+
+          <!-- Right column: receiving funds -->
+          <text x="240" y="22" font-family="JetBrains Mono" font-size="9" fill="#D97757" letter-spacing="2">RECEIVING</text>
+          <g font-family="JetBrains Mono" font-size="11" fill="#1F1B16">
+            <rect x="240" y="36" width="120" height="32" rx="4" fill="#F2C7B3" fill-opacity=".18" stroke="#D97757" stroke-width=".8"/>
+            <text x="252" y="56">SP500-IDX</text>
+            <rect x="240" y="78" width="120" height="32" rx="4" fill="#F2C7B3" fill-opacity=".18" stroke="#D97757" stroke-width=".8"/>
+            <text x="252" y="98">BOND-IDX</text>
+            <rect x="240" y="120" width="120" height="32" rx="4" fill="#F2C7B3" fill-opacity=".18" stroke="#D97757" stroke-width=".8"/>
+            <text x="252" y="140">TOTAL-MKT</text>
+            <rect x="240" y="162" width="120" height="32" rx="4" fill="#F2C7B3" fill-opacity=".18" stroke="#D97757" stroke-width=".8"/>
+            <text x="252" y="182">INTL-IDX</text>
+            <rect x="240" y="204" width="120" height="32" rx="4" fill="#F2C7B3" fill-opacity=".18" stroke="#D97757" stroke-width=".8"/>
+            <text x="252" y="224">BAL-INC</text>
+            <rect x="240" y="246" width="120" height="32" rx="4" fill="#F2C7B3" fill-opacity=".18" stroke="#D97757" stroke-width=".8"/>
+            <text x="252" y="266">AGG-BOND</text>
+          </g>
+
+          <!-- Caption -->
+          <text x="20" y="305" font-family="Caveat" font-size="14" fill="#D97757">cross-walk per signed TOA · QA approved before use</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== REQUIREMENTS ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 01 · Requires</span>
+      <h2>What's <em>needed</em>, what's not.</h2>
+    </div>
+    <div class="reqs reveal">
+      <span class="req yes">
+        <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8.5l3 3L13 4.5"/></svg>
+        Source Mapping
+      </span>
+      <span class="req yes">
+        <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8.5l3 3L13 4.5"/></svg>
+        Fund Mapping (TOA)
+      </span>
+      <span class="req yes">
+        <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8.5l3 3L13 4.5"/></svg>
+        Informatica dev-mode validation
+      </span>
+      <span class="req no">Re-registration</span>
+      <span class="req no">Account setup confirmation</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============== PHASES ============== -->
+<section id="prep" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 02 · Three phases</span>
+      <h2>Prep, <em>wire day</em>, post-wire.</h2>
+    </div>
+    <div class="phases reveal">
+      <div class="phase">
+        <div class="ph-tag">Phase · Prep</div>
+        <h3>Build, validate</h3>
+        <ul>
+          <li>Build <b>Fund Mapping</b> from signed TOA → QA / TC / TM</li>
+          <li>Build <b>Source Mapping</b> from test files → QA / TC / TM</li>
+          <li>Validate in <b>Informatica developer mode</b></li>
+          <li>Handle re-registration if any funds re-register</li>
+          <li><b>Do not use</b> until QA approves the mapping doc</li>
+        </ul>
+      </div>
+      <div class="phase" id="wire">
+        <div class="ph-tag">Phase · Wire Day</div>
+        <h3>Apply mapping</h3>
+        <ul>
+          <li><b>−3 days</b> · advance heads-up to vendor &amp; Cashiering</li>
+          <li>Day of · request <b>wire breakdown</b> ASAP</li>
+          <li>Book wire in system → notify Cashiering</li>
+          <li>Apply <b style="color:var(--c-map);">fund mapping</b> to incoming assets per QA-approved doc</li>
+        </ul>
+      </div>
+      <div class="phase" id="post">
+        <div class="ph-tag">Phase · Post-Wire</div>
+        <h3>Reverse, apply, reconcile</h3>
+        <ul>
+          <li>Receive final files, confirm completeness</li>
+          <li>Process <b>mapping reversal</b></li>
+          <li>Apply fund mapping to <b>participant accounts</b></li>
+          <li>Verify balances · final reconciliation</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== TWIN APPLY ============== -->
+<section id="twin" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 03 · Twin apply</span>
+      <h2>The mapping fires <em>twice</em>.</h2>
+    </div>
+    <p class="section-sub reveal">This is the rule that catches new analysts: the mapping doesn't apply once. It applies on the wire and again on participant accounts after reversal.</p>
+    <div class="twin reveal">
+      <div class="twin-card">
+        <span class="tlabel">First apply</span>
+        <h4>Wire day · incoming</h4>
+        <p>Fund mapping is applied to the wire as it lands. Same-day workflow follows the Day of Wire pattern.</p>
+        <p>This places the assets correctly at the plan level so reconciliation can begin.</p>
+        <div class="when">⌖ runs against the wire breakdown</div>
+      </div>
+      <div class="twin-card">
+        <span class="tlabel">Second apply</span>
+        <h4>Post-wire · participant</h4>
+        <p>After mapping reversal, the same fund mapping is applied to participant accounts so each individual lands in the receiving fund.</p>
+        <p>Skipping this leaves balances at the plan level only.</p>
+        <div class="when">⌖ runs against the final file</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== USER-FLOW ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 03b · Flow</span>
+      <h2>Wire arrives. <em>Mapping fires twice.</em></h2>
+    </div>
+    <p class="section-sub reveal">The plan-level apply is the bookkeeping pass. The participant-level apply is the one that actually moves assets into the right fund per person — skip it and balances strand at the plan level.</p>
+
+    <div class="flow-diagram reveal">
+      <svg viewBox="0 0 1100 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mapping user flow">
+        <defs>
+          <marker id="arrow-mf" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#D97757"/>
+          </marker>
+        </defs>
+
+        <!-- Entry -->
+        <g transform="translate(30,120)">
+          <circle cx="32" cy="32" r="28" fill="#FBF8F2" stroke="#D97757" stroke-width="1.6"/>
+          <text x="32" y="28" font-family="JetBrains Mono" font-size="8" fill="#D97757" letter-spacing="2" text-anchor="middle">START</text>
+          <text x="32" y="44" font-family="Fraunces" font-style="italic" font-size="11" fill="#1F1B16" text-anchor="middle">wire</text>
+        </g>
+        <line class="flow-dash" x1="90" y1="152" x2="128" y2="152" stroke="#D97757" stroke-width="1.5" marker-end="url(#arrow-mf)"/>
+
+        <!-- System: First apply -->
+        <g transform="translate(130,124)">
+          <rect width="180" height="60" rx="6" fill="#D97757" stroke="#D97757" stroke-width="1.5"/>
+          <line x1="6" y1="0" x2="6" y2="60" stroke="#FBF8F2" stroke-width="1.4" opacity=".5"/>
+          <line x1="174" y1="0" x2="174" y2="60" stroke="#FBF8F2" stroke-width="1.4" opacity=".5"/>
+          <text x="90" y="22" font-family="JetBrains Mono" font-size="9" fill="#F2C7B3" letter-spacing="2" text-anchor="middle">SYSTEM · 1st</text>
+          <text x="90" y="44" font-family="Fraunces" font-size="14" fill="#FBF8F2" text-anchor="middle">Apply at plan level</text>
+        </g>
+        <line class="flow-dash" x1="312" y1="152" x2="350" y2="152" stroke="#D97757" stroke-width="1.5" marker-end="url(#arrow-mf)"/>
+
+        <!-- Action: reversal -->
+        <g transform="translate(352,124)">
+          <rect width="160" height="60" rx="30" fill="#FBF8F2" stroke="#D97757" stroke-width="1.5"/>
+          <text x="80" y="22" font-family="JetBrains Mono" font-size="9" fill="#D97757" letter-spacing="2" text-anchor="middle">ACTION</text>
+          <text x="80" y="44" font-family="Fraunces" font-size="14" fill="#1F1B16" text-anchor="middle">Mapping reversal</text>
+        </g>
+        <line class="flow-dash" x1="514" y1="152" x2="552" y2="152" stroke="#D97757" stroke-width="1.5" marker-end="url(#arrow-mf)"/>
+
+        <!-- Decision: QA approved? -->
+        <g transform="translate(555,98)">
+          <path d="M 80 0 L 160 55 L 80 110 L 0 55 Z" fill="#FBF8F2" stroke="#D97757" stroke-width="1.6"/>
+          <text x="80" y="48" font-family="JetBrains Mono" font-size="9" fill="#D97757" letter-spacing="2" text-anchor="middle">DECISION</text>
+          <text x="80" y="68" font-family="Fraunces" font-size="13" fill="#1F1B16" text-anchor="middle">QA approved?</text>
+        </g>
+
+        <!-- No: hold -->
+        <line class="flow-dash" x1="635" y1="208" x2="635" y2="252" stroke="#D97757" stroke-width="1.4" marker-end="url(#arrow-mf)"/>
+        <text x="644" y="232" font-family="Caveat" font-size="14" fill="#B23A2E">no — hold</text>
+        <g transform="translate(560,254)">
+          <rect width="150" height="36" rx="6" fill="#FBF8F2" stroke="#B23A2E" stroke-width="1.2" stroke-dasharray="3 3"/>
+          <text x="75" y="23" font-family="Fraunces" font-style="italic" font-size="13" fill="#B23A2E" text-anchor="middle">do not run</text>
+        </g>
+
+        <!-- Yes: second apply -->
+        <line class="flow-dash" x1="715" y1="152" x2="755" y2="152" stroke="#D97757" stroke-width="1.5" marker-end="url(#arrow-mf)"/>
+        <text x="725" y="143" font-family="Caveat" font-size="14" fill="#5C8A78">yes</text>
+
+        <g transform="translate(758,124)">
+          <rect width="190" height="60" rx="6" fill="#D97757" stroke="#D97757" stroke-width="1.5"/>
+          <line x1="6" y1="0" x2="6" y2="60" stroke="#FBF8F2" stroke-width="1.4" opacity=".5"/>
+          <line x1="184" y1="0" x2="184" y2="60" stroke="#FBF8F2" stroke-width="1.4" opacity=".5"/>
+          <text x="95" y="22" font-family="JetBrains Mono" font-size="9" fill="#F2C7B3" letter-spacing="2" text-anchor="middle">SYSTEM · 2nd</text>
+          <text x="95" y="44" font-family="Fraunces" font-size="14" fill="#FBF8F2" text-anchor="middle">Apply at participant</text>
+        </g>
+        <line class="flow-dash" x1="950" y1="152" x2="988" y2="152" stroke="#D97757" stroke-width="1.5" marker-end="url(#arrow-mf)"/>
+
+        <!-- End -->
+        <g transform="translate(990,120)">
+          <circle cx="32" cy="32" r="28" fill="#FBF8F2" stroke="#D97757" stroke-width="3"/>
+          <circle cx="32" cy="32" r="22" fill="none" stroke="#D97757" stroke-width=".6"/>
+          <text x="32" y="36" font-family="Fraunces" font-size="12" fill="#D97757" text-anchor="middle">CLOSE</text>
+        </g>
+      </svg>
+      <div class="flow-legend">
+        <span><span class="lg-shape entry"></span>Entry</span>
+        <span><span class="lg-shape system"></span>System apply</span>
+        <span><span class="lg-shape action"></span>Action</span>
+        <span><span class="lg-shape decision"></span>Decision</span>
+        <span><span class="lg-shape end"></span>Close</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== POST-WIRE STEPS ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 04 · Post-wire</span>
+      <h2>Four steps from wire to <em>participant</em>.</h2>
+    </div>
+    <div class="post reveal">
+      <div class="post-step">
+        <div class="pn">①</div>
+        <h4>Receive final files</h4>
+        <p>Confirm completeness against the wire breakdown.</p>
+      </div>
+      <div class="post-step">
+        <div class="pn">②</div>
+        <h4>Mapping reversal</h4>
+        <p>Process the reversal so participant-level mapping can run cleanly.</p>
+      </div>
+      <div class="post-step">
+        <div class="pn">③</div>
+        <h4>Apply to participants</h4>
+        <p>Run the QA-approved fund mapping against participant accounts.</p>
+      </div>
+      <div class="post-step">
+        <div class="pn">④</div>
+        <h4>Verify &amp; reconcile</h4>
+        <p>Balance check at the participant level. Sign off the case.</p>
+      </div>
+    </div>
+
+    <div class="ornament reveal" style="margin-top:42px;">touch points</div>
+
+    <div class="icon-grid reveal">
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5z"/><path d="M16 3v3h3M8 12h8M8 16h6"/></svg></span>
+        <div><h4>Final file</h4><p>Confirm completeness against the wire breakdown.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><path d="M9 4l-4 4 4 4M5 8h14M15 12l4 4-4 4M19 16H5"/></svg></span>
+        <div><h4>Mapping reversal</h4><p>Process the reversal to clear plan-level apply.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 12l6-6M9 12l6 6"/></svg></span>
+        <div><h4>Apply to participants</h4><p>The second twin-apply — QA-approved fund mapping fans out per account.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg></span>
+        <div><h4>Reconcile</h4><p>Balance at participant level. Close the case.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== RULES ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="callout ok reveal">
+      <strong>Key rule</strong>
+      The mapping reversal happens post-wire — fund mapping applies twice: once on wire day to incoming assets, once post-wire to participant accounts.
+    </div>
+    <div class="callout warn reveal" style="margin-top:14px;">
+      <strong>Developer-mode tip</strong>
+      Workflow failures that look like a clean file are often hidden metadata issues. Always validate in Informatica dev mode before the final run — inspect what the workflow actually sees, not just what the file looks like.
+    </div>
+    <div class="callout stop reveal" style="margin-top:14px;">
+      <strong>Do not use until QA approves</strong>
+      The mapping document is approval-gated. Running an unapproved doc into the live workflow doesn't fail loudly — it just produces wrong receiving balances on real participant accounts.
+    </div>
+  </div>
+</section>
+
+<footer class="shell foot">
+  <span>Mapping · Method 02 of 03 · Procedure 04 of 07</span>
+  <span><a href="Cash-Conversion.html">← Method 01</a> &nbsp;·&nbsp; <a href="Transfer-In-Kind.html">Method 03 → TIK</a> &nbsp;·&nbsp; <a href="index.html">↩ all procedures</a></span>
+</footer>
+
+<script>
+  (function(){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) e.target.classList.add('in'); });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+  })();
+</script>
+</body>
+</html>

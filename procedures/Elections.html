@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elections · Procedure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/parchment.css">
+<style>
+  :root { --accent: var(--c-elect); }
+
+  .hero-art {
+    margin-top: 36px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+  }
+  @media (max-width: 900px) { .hero-art { grid-template-columns: 1fr; } }
+
+  /* Ballot stack */
+  .ballots {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 26px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .ballots::before {
+    content: "PART_ELECT_DETAIL";
+    position: absolute;
+    top: 14px; right: 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .18em;
+    color: var(--ink-faint);
+  }
+  .ballots h5 {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin: 0 0 22px;
+  }
+  .ballot {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 14px;
+    align-items: center;
+    padding: 14px 16px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    position: relative;
+    transition: border-color .4s var(--ease), transform .4s var(--ease);
+  }
+  .ballot:hover { border-color: var(--c-elect); transform: translateX(2px); }
+  .ballot .src {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+  }
+  .ballot .pct {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 26px;
+    color: var(--c-elect);
+    font-weight: 360;
+    line-height: 1;
+  }
+  .ballot .stamp {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border: 1px dashed var(--ink-mute);
+    border-radius: 4px;
+    color: var(--ink-mute);
+  }
+  .ballot.default {
+    background: rgba(176,122,31,.07);
+    border-color: var(--c-elect);
+  }
+  .ballot.default .stamp {
+    color: var(--c-elect);
+    border-style: solid;
+    border-color: var(--c-elect);
+  }
+  .ballot.default::after {
+    content: "default";
+    position: absolute;
+    bottom: -6px;
+    right: 16px;
+    font-family: var(--hand);
+    font-size: 14px;
+    color: var(--c-elect);
+    background: var(--bg-card);
+    padding: 0 8px;
+  }
+  .ballots-foot {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    display: flex;
+    justify-content: space-between;
+  }
+  .ballots-foot .here { color: var(--c-elect); }
+
+  /* Procedure variants */
+  .variants {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 28px;
+  }
+  @media (max-width: 900px) { .variants { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 600px) { .variants { grid-template-columns: 1fr; } }
+  .variant {
+    padding: 22px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    position: relative;
+    transition: border-color .4s var(--ease);
+  }
+  .variant:hover { border-color: var(--c-elect); }
+  .variant .v-num {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 28px;
+    color: var(--c-elect);
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+  .variant h4 {
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 460;
+    margin: 0 0 8px;
+    line-height: 1.2;
+  }
+  .variant p {
+    font-size: 13px;
+    color: var(--ink-dim);
+    margin: 0;
+    line-height: 1.5;
+  }
+  .variant .col-ref {
+    display: inline-block;
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-2);
+    background: var(--bg-3);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  /* Default-status legend */
+  .default-key {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 24px;
+  }
+  @media (max-width: 700px) { .default-key { grid-template-columns: 1fr; } }
+  .key-card {
+    padding: 18px 22px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg-card);
+  }
+  .key-card .kc-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--c-elect);
+  }
+  .key-card .kc-val {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 460;
+    margin: 4px 0 6px;
+  }
+  .key-card .kc-desc {
+    font-size: 13px;
+    color: var(--ink-dim);
+    line-height: 1.5;
+  }
+
+  .flow-diagram {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 36px 32px;
+    margin-top: 28px;
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="shell topbar-inner">
+    <div class="crumb">
+      <span class="crumb-dot" style="--accent: var(--c-elect);"></span>
+      <a href="index.html">Procedures</a>
+      <span class="sep">/</span>
+      <span class="here">Elections</span>
+    </div>
+    <nav>
+      <a href="#flow">Flow</a>
+      <a href="#variants">Variants</a>
+      <a href="#defaults">Defaults</a>
+      <a href="#sql">SQL</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="shell">
+    <div class="hero-art">
+      <div class="hero-side reveal">
+        <span class="hero-eyebrow"><span class="dot"></span>Procedure 02 · Election Copy</span>
+        <h1>Carry the<br><em>elections</em> through<br>conversion.</h1>
+        <p class="lead">Pull each participant's <em>most recent</em> deferral, fund, and e-statement elections from the prior plan — flag the ones still in default — and write them into the receiving plan.</p>
+        <div class="hero-meta">
+          <div class="meta-item"><span class="label">Source table</span><span class="value">PART_ELECT_DETAIL</span></div>
+          <div class="meta-item"><span class="label">Default join</span><span class="value">PART_PPA_DEFAULT</span></div>
+          <div class="meta-item"><span class="label">Variants</span><span class="value">4 election types</span></div>
+        </div>
+      </div>
+
+      <div class="ballots reveal">
+        <h5>Current elections · Account UN62203_00001</h5>
+        <div class="ballot">
+          <span class="src">EE Pre-Tax · Source 0501</span>
+          <span class="pct">6.0%</span>
+          <span class="stamp">elected</span>
+        </div>
+        <div class="ballot">
+          <span class="src">EE Roth · Source 0502</span>
+          <span class="pct">2.0%</span>
+          <span class="stamp">elected</span>
+        </div>
+        <div class="ballot default">
+          <span class="src">All Sources · Auto</span>
+          <span class="pct">3.0%</span>
+          <span class="stamp">default</span>
+        </div>
+        <div class="ballot">
+          <span class="src">Catch-Up · Source 0511</span>
+          <span class="pct">0.0%</span>
+          <span class="stamp">elected</span>
+        </div>
+        <div class="ballots-foot">
+          <span><span style="display:inline-block;width:8px;height:8px;background:var(--ink-2);border-radius:50%;margin-right:6px;vertical-align:middle;opacity:.7;"></span>Active election</span>
+          <span class="here"><span style="display:inline-block;width:8px;height:8px;background:var(--c-elect);border-radius:50%;margin-right:6px;vertical-align:middle;"></span>Currently in default</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== FLOW ============== -->
+<section id="flow" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 01 · Flow</span>
+      <h2>Pull, classify, <em>copy</em>.</h2>
+    </div>
+    <p class="section-sub reveal">A participant's election history is layered. Take only the latest <code class="mono" style="background:var(--bg-3);padding:1px 6px;border-radius:4px;">EFF_D</code> per <code class="mono" style="background:var(--bg-3);padding:1px 6px;border-radius:4px;">ENRL_PROV_GRP_I + PART_ENRL_I</code>, then resolve whether each row was elected or merely defaulted.</p>
+
+    <div class="flow-diagram reveal">
+      <svg viewBox="0 0 1100 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Elections flow diagram">
+        <defs>
+          <marker id="arrow-e" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#B07A1F"/>
+          </marker>
+          <pattern id="dots-e" x="0" y="0" width="6" height="6" patternUnits="userSpaceOnUse">
+            <circle cx="1" cy="1" r=".7" fill="#9A9385" opacity=".4"/>
+          </pattern>
+        </defs>
+        <rect width="1100" height="380" fill="url(#dots-e)"/>
+
+        <!-- Step 1 — pull current -->
+        <g transform="translate(40,40)">
+          <rect width="220" height="120" rx="10" fill="#FBF8F2" stroke="#B07A1F" stroke-width="1.5"/>
+          <text x="20" y="34" font-family="JetBrains Mono" font-size="10" fill="#B07A1F" letter-spacing="2">STEP 01</text>
+          <text x="20" y="58" font-family="Fraunces" font-size="17" fill="#1F1B16">Pull most-recent</text>
+          <text x="20" y="80" font-family="Inter" font-size="11.5" fill="#6B6457">EFF_D = MAX per</text>
+          <text x="20" y="96" font-family="Inter" font-size="11.5" fill="#6B6457">ENRL_PROV_GRP_I +</text>
+          <text x="20" y="112" font-family="Inter" font-size="11.5" fill="#6B6457">PART_ENRL_I</text>
+        </g>
+        <line x1="260" y1="100" x2="302" y2="100" class="flow-dash" stroke="#B07A1F" stroke-width="1.5" marker-end="url(#arrow-e)"/>
+
+        <!-- Step 2 — classify default -->
+        <g transform="translate(305,40)">
+          <rect width="220" height="120" rx="10" fill="#FBF8F2" stroke="#B07A1F" stroke-width="1.5"/>
+          <text x="20" y="34" font-family="JetBrains Mono" font-size="10" fill="#B07A1F" letter-spacing="2">STEP 02</text>
+          <text x="20" y="58" font-family="Fraunces" font-size="17" fill="#1F1B16">Classify default</text>
+          <text x="20" y="80" font-family="Inter" font-size="11.5" fill="#6B6457">LEFT JOIN</text>
+          <text x="20" y="96" font-family="Inter" font-size="11.5" fill="#6B6457">PART_PPA_DEFAULT</text>
+          <text x="20" y="112" font-family="JetBrains Mono" font-size="10" fill="#9A9385">on ENRL_SERV_TYP_C=2</text>
+        </g>
+        <line x1="525" y1="100" x2="567" y2="100" class="flow-dash" stroke="#B07A1F" stroke-width="1.5" marker-end="url(#arrow-e)"/>
+
+        <!-- Step 3 — resolve src_txt -->
+        <g transform="translate(570,40)">
+          <rect width="240" height="120" rx="10" fill="#B07A1F" stroke="#B07A1F" stroke-width="1.5"/>
+          <text x="20" y="34" font-family="JetBrains Mono" font-size="10" fill="#FBF8F2" letter-spacing="2">STEP 03 · CORE</text>
+          <text x="20" y="58" font-family="Fraunces" font-size="17" fill="#FBF8F2">Resolve src text</text>
+          <text x="20" y="80" font-family="Inter" font-size="11.5" fill="#E5DDC9">if SRC_I = 0 → 'ALL SOURCES'</text>
+          <text x="20" y="98" font-family="Inter" font-size="11.5" fill="#E5DDC9">else → REPORT_1_NM ||</text>
+          <text x="20" y="114" font-family="Inter" font-size="11.5" fill="#E5DDC9">           REPORT_2_NM</text>
+        </g>
+        <line x1="810" y1="100" x2="852" y2="100" class="flow-dash" stroke="#B07A1F" stroke-width="1.5" marker-end="url(#arrow-e)"/>
+
+        <!-- Step 4 — output -->
+        <g transform="translate(855,40)">
+          <rect width="200" height="120" rx="10" fill="#FBF8F2" stroke="#B07A1F" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <text x="20" y="34" font-family="JetBrains Mono" font-size="10" fill="#B07A1F" letter-spacing="2">STEP 04</text>
+          <text x="20" y="58" font-family="Fraunces" font-size="17" fill="#1F1B16">Output</text>
+          <text x="20" y="80" font-family="Inter" font-size="11.5" fill="#6B6457">to Excel · update</text>
+          <text x="20" y="96" font-family="Inter" font-size="11.5" fill="#6B6457">CASE + SRC_I</text>
+          <text x="20" y="118" font-family="Caveat" font-size="14" fill="#D97757">→ load into receiving plan</text>
+        </g>
+
+        <!-- Lower branch — copy variants -->
+        <line x1="150" y1="160" x2="150" y2="220" stroke="#B07A1F" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="150" y1="220" x2="950" y2="220" stroke="#B07A1F" stroke-width="1" stroke-dasharray="3 3"/>
+
+        <text x="40" y="248" font-family="JetBrains Mono" font-size="10" fill="#B07A1F" letter-spacing="2">VARIANTS</text>
+
+        <g transform="translate(40,260)">
+          <rect width="240" height="80" rx="8" fill="#FBF8F2" stroke="#B07A1F" stroke-width="1"/>
+          <text x="14" y="22" font-family="Inter" font-size="12" fill="#1F1B16" font-weight="500">Save Express copy</text>
+          <text x="14" y="42" font-family="Inter" font-size="11" fill="#6B6457">PART_AUTO_DEF · build holding</text>
+          <text x="14" y="58" font-family="Inter" font-size="11" fill="#6B6457">table SAVEXPRESSCOPY</text>
+          <text x="14" y="74" font-family="JetBrains Mono" font-size="10" fill="#9A9385">UPD_REASON_C = 'B'</text>
+        </g>
+        <g transform="translate(290,260)">
+          <rect width="240" height="80" rx="8" fill="#FBF8F2" stroke="#B07A1F" stroke-width="1"/>
+          <text x="14" y="22" font-family="Inter" font-size="12" fill="#1F1B16" font-weight="500">Multi-case query</text>
+          <text x="14" y="42" font-family="Inter" font-size="11" fill="#6B6457">When the receiving plan spans</text>
+          <text x="14" y="58" font-family="Inter" font-size="11" fill="#6B6457">several account numbers</text>
+        </g>
+        <g transform="translate(540,260)">
+          <rect width="240" height="80" rx="8" fill="#FBF8F2" stroke="#B07A1F" stroke-width="1"/>
+          <text x="14" y="22" font-family="Inter" font-size="12" fill="#1F1B16" font-weight="500">E-statement copy</text>
+          <text x="14" y="42" font-family="Inter" font-size="11" fill="#6B6457">Carry e-delivery preference</text>
+          <text x="14" y="58" font-family="Inter" font-size="11" fill="#6B6457">across the conversion</text>
+        </g>
+        <g transform="translate(790,260)">
+          <rect width="240" height="80" rx="8" fill="#FBF8F2" stroke="#B07A1F" stroke-width="1"/>
+          <text x="14" y="22" font-family="Inter" font-size="12" fill="#1F1B16" font-weight="500">Default-election check</text>
+          <text x="14" y="42" font-family="Inter" font-size="11" fill="#6B6457">Excelwise / Financial Guidelines</text>
+          <text x="14" y="58" font-family="Inter" font-size="11" fill="#6B6457">QC step before final load</text>
+        </g>
+      </svg>
+      <div class="flow-legend">
+        <span><span class="lg-shape screen"></span>Step</span>
+        <span><span class="lg-shape system"></span>Core query</span>
+        <span><span class="lg-shape end"></span>Output / variant</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== DEFAULT-STATUS DECISION TREE ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 01b · Default status</span>
+      <h2>Three ballots, three <em>verdicts</em>.</h2>
+    </div>
+    <p class="section-sub reveal">After the LEFT JOIN to <code class="mono" style="background:var(--bg-3);padding:1px 6px;border-radius:4px;">PART_PPA_DEFAULT</code>, every election row resolves to one of three states. The null state is the most common — and the easiest to misread.</p>
+
+    <div class="tree reveal">
+      <div class="tree-branch">
+        <div class="if">DEFAULT_STAT_C = 0</div>
+        <h4>Not in Default</h4>
+        <p>Participant made an explicit election. Their fund choices are real selections — copy them as-is.</p>
+      </div>
+      <div class="tree-branch">
+        <div class="if">DEFAULT_STAT_C = 1</div>
+        <h4>In Default</h4>
+        <p>Participant is sitting on the plan's default election. Carry the default forward, not the underlying allocation.</p>
+      </div>
+      <div class="tree-branch" style="border-top-color: var(--ink-mute);">
+        <div class="if" style="color: var(--ink-mute);">no row joined · NULL</div>
+        <h4>Status unknown</h4>
+        <p>No record in the default table at all. Investigate before loading — this is usually a missing PPA enrollment, not "no default."</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== VARIANTS ============== -->
+<section id="variants" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 02 · Variants</span>
+      <h2>Four flavors of the same <em>copy</em>.</h2>
+    </div>
+    <p class="section-sub reveal">The base query repeats with small joins added or replaced; each variant carries a different election surface.</p>
+
+    <div class="variants reveal">
+      <div class="variant">
+        <div class="v-num">i</div>
+        <h4>Default-code copy</h4>
+        <p>Single-case current elections joined to the default-status table to mark each row as <em>In Default</em>, <em>Not in Default</em>, or null.</p>
+        <span class="col-ref">PART_ELECT_DETAIL</span>
+      </div>
+      <div class="variant">
+        <div class="v-num">ii</div>
+        <h4>Multi-case</h4>
+        <p>Same join structure, but the case filter accepts a list — used when the receiving plan rolls up several prior accounts.</p>
+        <span class="col-ref">ACCOUNT_NO IN (…)</span>
+      </div>
+      <div class="variant">
+        <div class="v-num">iii</div>
+        <h4>Save Express</h4>
+        <p>Dumps <code class="col-ref">PART_AUTO_DEF</code> rows for one case into <code class="col-ref">SAVEXPRESSCOPY</code>, rehydrates ENRL keys + DEF_GRP_I from the receiving plan, then inserts back.</p>
+        <span class="col-ref">PART_AUTO_DEF</span>
+      </div>
+      <div class="variant">
+        <div class="v-num">iv</div>
+        <h4>E-statement</h4>
+        <p>Carries the participant's electronic-delivery preference across the conversion so receiving plan stays paperless on day one.</p>
+        <span class="col-ref">e-statement flag</span>
+      </div>
+    </div>
+
+    <div class="ornament reveal" style="margin-top:42px;">copy variants at a glance</div>
+
+    <div class="icon-grid reveal">
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 10h8M8 14h5"/></svg></span>
+        <div><h4>Default-code copy</h4><p>One case, one ballot. Status flag joined per row.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="6" width="14" height="14" rx="2"/><rect x="7" y="3" width="14" height="14" rx="2" fill="none"/></svg></span>
+        <div><h4>Multi-case</h4><p>Same query, but the receiving plan rolls up several accounts.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg></span>
+        <div><h4>Save Express</h4><p>Drop / load / rehydrate / insert into PART_AUTO_DEF.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 9l9 5 9-5"/></svg></span>
+        <div><h4>E-statement</h4><p>Carries paperless-delivery preference across the conversion.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== DEFAULT STATUS ============== -->
+<section id="defaults" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 03 · Defaults</span>
+      <h2>What <em>DEFAULT_STAT_C</em> resolves to.</h2>
+    </div>
+    <p class="section-sub reveal">The COALESCE block on the join produces one of three labels per election row, evaluated only where <code class="mono" style="background:var(--bg-3);padding:1px 6px;border-radius:4px;">ENRL_SERV_TYP_C = 2</code>.</p>
+
+    <div class="default-key reveal">
+      <div class="key-card">
+        <span class="kc-tag">DEFAULT_STAT_C = 0</span>
+        <div class="kc-val">Not in Default</div>
+        <p class="kc-desc">Participant elected this rate explicitly. Carry it forward as-is.</p>
+      </div>
+      <div class="key-card">
+        <span class="kc-tag">DEFAULT_STAT_C = 1</span>
+        <div class="kc-val">In Default</div>
+        <p class="kc-desc">Auto-deferral default rate is in effect. Verify the receiving plan's default before copying — a different default rate means rebuilding, not copying.</p>
+      </div>
+      <div class="key-card">
+        <span class="kc-tag">No row joined</span>
+        <div class="kc-val">NULL</div>
+        <p class="kc-desc">Participant predates the PPA default tracking, or the join key didn't resolve. Treat as an electing participant.</p>
+      </div>
+    </div>
+
+    <div class="callout warn reveal" style="margin-top:32px;">
+      <strong>Save Express — three-step build</strong>
+      <span>(1) <code class="mono" style="background:var(--bg-3);padding:1px 6px;border-radius:4px;color:var(--ink-2);">CREATE TABLE SAVEXPRESSCOPY</code> with the layout shown.
+      (2) Upload <em>NEW</em> account number, SSN, DEF_ADJ_P, DEF_ADJ_A and SRC_I to that table.
+      (3) Run the four UPDATE statements to populate <code class="mono" style="background:var(--bg-3);padding:1px 6px;border-radius:4px;color:var(--ink-2);">EE_DIV_NO</code>, <code class="mono" style="background:var(--bg-3);padding:1px 6px;border-radius:4px;color:var(--ink-2);">ENRL_PROV_GRP_I</code>, <code class="mono" style="background:var(--bg-3);padding:1px 6px;border-radius:4px;color:var(--ink-2);">PART_ENRL_I</code>, <code class="mono" style="background:var(--bg-3);padding:1px 6px;border-radius:4px;color:var(--ink-2);">EFF_D</code>, <code class="mono" style="background:var(--bg-3);padding:1px 6px;border-radius:4px;color:var(--ink-2);">DEF_GRP_I</code>, <code class="mono" style="background:var(--bg-3);padding:1px 6px;border-radius:4px;color:var(--ink-2);">DIV_I</code>. Only then run the INSERT into PART_AUTO_DEF.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============== SQL ============== -->
+<section id="sql" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 04 · SQL</span>
+      <h2>Current elections — single case.</h2>
+    </div>
+    <p class="section-sub reveal">Replace <code class="mono" style="background:var(--bg-3);padding:1px 6px;border-radius:4px;">UN62203 00001</code> with the prior account; replace SSN with the participant under research, or comment that line and the script returns the whole plan.</p>
+
+    <pre class="code reveal" data-lang="DB2 SQL"><span class="kw">SELECT</span> account_no, soc_sec_no, a.SRC_I, a.ELEC_TYP_C, a.FD_DESC_C, a.ELEC_P,
+       eff_d, a.SRC_S, a.SRC_C, a.INPUT_SRC_C, a.USER_I,
+       <span class="fn">COALESCE</span>(<span class="kw">CASE</span>
+         <span class="kw">WHEN</span> b.DEFAULT_STAT_C=0 <span class="kw">AND</span> ENRL_SERV_TYP_C=2 <span class="kw">THEN</span> <span class="lit">'Not in Default'</span>
+         <span class="kw">WHEN</span> b.DEFAULT_STAT_C=1 <span class="kw">AND</span> ENRL_SERV_TYP_C=2 <span class="kw">THEN</span> <span class="lit">'In Default'</span>
+         <span class="kw">ELSE</span> <span class="lit">'NULL'</span>
+       <span class="kw">END</span>, <span class="lit">'NULL'</span>) <span class="kw">AS</span> default_ind,
+       <span class="kw">CASE</span>
+         <span class="kw">WHEN</span> a.src_i=0 <span class="kw">THEN</span> <span class="lit">'ALL SOURCES'</span>
+         <span class="kw">ELSE</span> (<span class="kw">SELECT</span> REPORT_1_NM||REPORT_2_NM <span class="kw">FROM</span> pension.plan_src_detail c
+                <span class="kw">WHERE</span> c.src_i=a.src_i)
+       <span class="kw">END</span> <span class="kw">AS</span> src_txt
+<span class="kw">FROM</span> pension.part_elect_detail a
+<span class="kw">LEFT JOIN</span> pension.part_ppa_default <span class="kw">AS</span> b
+  <span class="kw">ON</span> a.enrl_prov_grp_i = b.enrl_prov_grp_i
+ <span class="kw">AND</span> a.part_enrl_i      = b.part_enrl_i
+ <span class="kw">AND</span> ENRL_SERV_TYP_C    = 2
+<span class="kw">WHERE</span> account_no = <span class="lit">'UN62203   00001'</span>
+  <span class="kw">AND</span> EFF_D <span class="kw">IN</span> (<span class="kw">SELECT</span> <span class="fn">MAX</span>(eff_d) <span class="kw">FROM</span> pension.part_elect_detail c
+                 <span class="kw">WHERE</span> c.ENRL_PROV_GRP_I = a.ENRL_PROV_GRP_I
+                   <span class="kw">AND</span> c.PART_ENRL_I    = a.PART_ENRL_I)
+  <span class="kw">AND</span> SOC_SEC_NO = <span class="lit">'283-66-4214'</span>
+  <span class="kw">AND</span> ELEC_TYP_C = <span class="lit">'0'</span>;</pre>
+
+    <div class="ornament reveal" style="margin-top:48px;">save express copy — three steps</div>
+
+    <pre class="code reveal" data-lang="Save Express · build holding table" style="margin-top:24px;"><span class="com">-- (1) Drop + create</span>
+<span class="kw">DROP TABLE</span> SAVEXPRESSCOPY;
+<span class="kw">CREATE TABLE</span> SAVEXPRESSCOPY (
+  PART_ENRL_I      <span class="kw">DEC</span>(17),  ENRL_PROV_GRP_I <span class="kw">DEC</span>(17),
+  ACCOUNT_NO       <span class="kw">CHAR</span>(20),  SOC_SEC_NO       <span class="kw">CHAR</span>(11),
+  EFF_D            <span class="kw">DATE</span>,     DEF_ADJ_P        <span class="kw">DEC</span>(6,3),
+  DEF_ADJ_A        <span class="kw">DEC</span>(15,2), SRC_C            <span class="kw">CHAR</span>(1),
+  DEF_GRP_I        <span class="kw">DEC</span>(17),   DIV_I            <span class="kw">DEC</span>(17),
+  ee_div_no        <span class="kw">CHAR</span>(4),   src_i            <span class="kw">DEC</span>(17)
+);
+
+<span class="com">-- (2) Upload from Excel: NEW account_no, soc_sec_no, def_adj_p, def_adj_a, src_i</span>
+
+<span class="com">-- (3) Rehydrate keys</span>
+<span class="kw">UPDATE</span> savexpresscopy a
+<span class="kw">SET</span> ee_div_no = (<span class="kw">SELECT</span> ee_div_no <span class="kw">FROM</span> corp.vemployee b
+                  <span class="kw">WHERE</span> case_no = account_no <span class="kw">AND</span> a.soc_sec_no = b.soc_sec_no);
+
+<span class="kw">UPDATE</span> savexpresscopy a
+<span class="kw">SET</span> enrl_prov_grp_i = (<span class="kw">SELECT DISTINCT</span> enrl_prov_grp_i <span class="kw">FROM</span> pension.plan_prov_grp b
+                        <span class="kw">WHERE</span> a.account_no = b.account_no
+                          <span class="kw">AND</span> RELATED_GRP_TYP_C = 361),
+    part_enrl_i = (<span class="kw">SELECT</span> part_enrl_i <span class="kw">FROM</span> pension.part_enrl b,
+                          pension.person_search c, pension.plan_prov_grp d
+                    <span class="kw">WHERE</span> d.account_no = a.account_no
+                      <span class="kw">AND</span> part_i = person_i
+                      <span class="kw">AND</span> d.enrl_prov_grp_i = b.enrl_prov_grp_i
+                      <span class="kw">AND</span> a.soc_sec_no = c.soc_sec_no
+                      <span class="kw">AND</span> RELATED_GRP_TYP_C = 361),
+    eff_d = <span class="lit">'2009-01-01'</span>,           <span class="com">-- contract effective date</span>
+    def_grp_i = (<span class="kw">SELECT</span> def_grp_i <span class="kw">FROM</span> pension.plan_deferral_grp b,
+                       pension.plan_prov_grp c
+                  <span class="kw">WHERE</span> b.enrl_prov_grp_i = c.enrl_prov_grp_i
+                    <span class="kw">AND</span> b.src_i = a.src_i),
+    div_i = (<span class="kw">SELECT</span> org_i <span class="kw">FROM</span> pension.p2_div_xref b
+              <span class="kw">WHERE</span> b.case_no = a.account_no
+                <span class="kw">AND</span> a.ee_div_no = b.div_no);
+
+<span class="com">-- (4) Insert into live PART_AUTO_DEF</span>
+<span class="kw">INSERT INTO</span> pension.part_auto_def
+  (PART_ENRL_I, ENRL_PROV_GRP_I, ACCOUNT_NO, SOC_SEC_NO, EFF_D,
+   DEF_ADJ_P, DEF_ADJ_A, STAT_C, SRC_C, DEF_GRP_I, UPD_REASON_C,
+   USER_I, MOD_TS, DIV_I)
+<span class="kw">SELECT</span> PART_ENRL_I, ENRL_PROV_GRP_I, ACCOUNT_NO, SOC_SEC_NO, EFF_D,
+       DEF_ADJ_P, DEF_ADJ_A, 0, SRC_C, DEF_GRP_I, <span class="lit">'B'</span>,
+       <span class="lit">'UYN024'</span>, <span class="kw">CURRENT TIMESTAMP</span>, DIV_I
+<span class="kw">FROM</span> savexpresscopy;</pre>
+  </div>
+</section>
+
+<footer class="shell foot">
+  <span>Elections · Procedure 02 of 07</span>
+  <span><a href="index.html">↩ all procedures</a></span>
+</footer>
+
+<script>
+  (function(){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) e.target.classList.add('in'); });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+  })();
+</script>
+</body>
+</html>

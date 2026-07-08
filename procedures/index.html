@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Procedures · Conversion Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/parchment.css">
+<style>
+  .landing-hero {
+    padding: 84px 0 36px;
+    position: relative;
+  }
+  .landing-hero .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-bottom: 22px;
+  }
+  .landing-hero .eyebrow .dot {
+    width: 6px; height: 6px; border-radius: 999px;
+    background: var(--clay);
+    box-shadow: 0 0 0 4px rgba(217,119,87,.18);
+    animation: pulse-soft 3s ease-in-out infinite;
+  }
+  .landing-hero h1 {
+    font-family: var(--serif);
+    font-weight: 380;
+    font-size: clamp(46px, 6.6vw, 88px);
+    line-height: .98;
+    letter-spacing: -.026em;
+    margin: 0 0 20px;
+    max-width: 18ch;
+  }
+  .landing-hero h1 em { font-style: italic; color: var(--clay); }
+  .landing-hero .lead {
+    font-family: var(--serif);
+    font-size: clamp(18px, 1.6vw, 22px);
+    line-height: 1.5;
+    color: var(--ink-2);
+    max-width: 60ch;
+    margin: 0 0 28px;
+  }
+
+  /* Map illustration in hero */
+  .landing-map {
+    margin-top: 40px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 32px 28px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .landing-map::before {
+    content: "PROCEDURE · MAP";
+    position: absolute;
+    top: 16px; right: 20px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .22em;
+    color: var(--ink-faint);
+  }
+  .landing-map svg { width: 100%; height: auto; display: block; }
+
+  /* Three pillars (overview) */
+  .pillars {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 36px;
+  }
+  @media (max-width: 800px) { .pillars { grid-template-columns: 1fr; } }
+  .pillar {
+    padding: 22px 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    border-top: 3px solid var(--accent);
+    position: relative;
+  }
+  .pillar.cash { --accent: var(--c-cash); }
+  .pillar.map  { --accent: var(--c-map); }
+  .pillar.tik  { --accent: var(--c-tik); }
+  .pillar .nm {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .pillar h4 {
+    font-family: var(--serif);
+    font-size: 19px;
+    font-weight: 460;
+    margin: 0 0 6px;
+    letter-spacing: -.012em;
+  }
+  .pillar p { font-size: 13px; color: var(--ink-dim); margin: 0 0 12px; line-height: 1.55; }
+  .pillar .reqs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pillar .req {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: .14em;
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--ink-dim);
+  }
+  .pillar .req.on { color: var(--accent); border-color: var(--accent); }
+  .pillar .req.off { color: var(--ink-mute); text-decoration: line-through; text-decoration-color: var(--ink-faint); }
+
+  /* Section cards by category */
+  .cat-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin: 0 0 18px;
+  }
+  .cat-head .num {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .22em;
+    color: var(--ink-mute);
+  }
+  .cat-head h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(24px, 2.4vw, 32px);
+    margin: 0;
+    letter-spacing: -.018em;
+  }
+  .cat-head h2 em { font-style: italic; color: var(--clay); }
+  .cat-sub {
+    color: var(--ink-dim);
+    font-size: 14px;
+    max-width: 70ch;
+    margin: 0 0 22px;
+    line-height: 1.55;
+  }
+
+  /* Custom card overrides for landing */
+  .index-card[data-accent="census"] { --accent: var(--c-census); }
+  .index-card[data-accent="elect"]  { --accent: var(--c-elect); }
+  .index-card[data-accent="cash"]   { --accent: var(--c-cash); }
+  .index-card[data-accent="map"]    { --accent: var(--c-map); }
+  .index-card[data-accent="tik"]    { --accent: var(--c-tik); }
+  .index-card[data-accent="source"] { --accent: var(--c-source); }
+  .index-card[data-accent="fund"]   { --accent: var(--c-fund); }
+
+  .index-card .num-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .22em;
+    color: var(--accent);
+  }
+  .index-card .stage {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    border: 1px solid var(--line);
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+  .index-card .meta {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 10px;
+    border-top: 1px solid var(--line-soft);
+  }
+  .index-card .meta .pair {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .14em;
+    color: var(--ink-dim);
+  }
+
+  /* Decorative accent line under each card */
+  .index-card::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 3px;
+    background: var(--accent, var(--clay));
+    opacity: 0;
+    transform: scaleX(.2);
+    transform-origin: left;
+    transition: opacity .5s var(--ease), transform .6s var(--ease);
+  }
+  .index-card:hover::after { opacity: .8; transform: scaleX(1); }
+
+  /* Timeline strip — when each procedure happens */
+  .timeline-band {
+    margin-top: 32px;
+    padding: 28px 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    position: relative;
+  }
+  .timeline-band::before {
+    content: "WHEN · TIMELINE";
+    position: absolute;
+    top: 14px; right: 18px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .22em;
+    color: var(--ink-faint);
+  }
+  .timeline-band svg { width: 100%; height: auto; display: block; margin-top: 8px; }
+
+  /* Section spacing */
+  .section { padding: 64px 0; }
+  .section + .section { padding-top: 16px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="shell topbar-inner">
+    <div class="crumb">
+      <span class="crumb-dot" style="--accent: var(--clay);"></span>
+      <span class="here">Procedures</span>
+    </div>
+    <nav>
+      <a href="#methods">Methods</a>
+      <a href="#prework">Pre-work</a>
+      <a href="#mapping">Mapping</a>
+      <a href="#timeline">Timeline</a>
+    </nav>
+  </div>
+</header>
+
+<section class="landing-hero">
+  <div class="shell">
+    <div class="reveal">
+      <span class="eyebrow"><span class="dot"></span>Conversion Planner · 7 Procedures</span>
+      <h1>Move a plan from one record-keeper to <em>another</em>.</h1>
+      <p class="lead">Seven procedures, three balance-import methods, one ledger. Each page is a self-contained reference — flow diagrams, decision trees, SQL, and the gates that have to clear before you advance. Built from the way the work actually runs, not how it's diagrammed.</p>
+    </div>
+
+    <div class="landing-map reveal">
+      <svg viewBox="0 0 1100 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Procedure map">
+        <defs>
+          <marker id="lm-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0 0 L10 5 L0 10 z" fill="#9A9385"/>
+          </marker>
+        </defs>
+
+        <!-- Stage rails -->
+        <text x="20" y="32" font-family="JetBrains Mono" font-size="9" fill="#9A9385" letter-spacing="2">PRE-WORK</text>
+        <text x="280" y="32" font-family="JetBrains Mono" font-size="9" fill="#9A9385" letter-spacing="2">MAPPING</text>
+        <text x="640" y="32" font-family="JetBrains Mono" font-size="9" fill="#9A9385" letter-spacing="2">METHOD</text>
+        <line x1="20" y1="40" x2="260" y2="40" stroke="#BBB3A1" stroke-width=".5"/>
+        <line x1="280" y1="40" x2="620" y2="40" stroke="#BBB3A1" stroke-width=".5"/>
+        <line x1="640" y1="40" x2="1080" y2="40" stroke="#BBB3A1" stroke-width=".5"/>
+
+        <!-- Pre-work: Census + Elections -->
+        <g>
+          <rect x="20" y="60" width="240" height="64" rx="8" fill="#FBF8F2" stroke="#3D4A6E" stroke-width="1.4"/>
+          <text x="32" y="82" font-family="JetBrains Mono" font-size="9" fill="#3D4A6E" letter-spacing="2">01</text>
+          <text x="32" y="104" font-family="Fraunces" font-size="18" fill="#1F1B16">Census</text>
+          <text x="32" y="120" font-family="Inter" font-size="11" fill="#6B6457">demographics &middot; classes &middot; divs</text>
+
+          <rect x="20" y="140" width="240" height="64" rx="8" fill="#FBF8F2" stroke="#B07A1F" stroke-width="1.4"/>
+          <text x="32" y="162" font-family="JetBrains Mono" font-size="9" fill="#B07A1F" letter-spacing="2">02</text>
+          <text x="32" y="184" font-family="Fraunces" font-size="18" fill="#1F1B16">Elections</text>
+          <text x="32" y="200" font-family="Inter" font-size="11" fill="#6B6457">deferral &middot; default &middot; e-stmt</text>
+        </g>
+
+        <!-- Mapping: Source + Fund -->
+        <g>
+          <rect x="280" y="60" width="340" height="64" rx="8" fill="#FBF8F2" stroke="#4A6B45" stroke-width="1.4"/>
+          <text x="296" y="82" font-family="JetBrains Mono" font-size="9" fill="#4A6B45" letter-spacing="2">06 · ALL METHODS</text>
+          <text x="296" y="104" font-family="Fraunces" font-size="18" fill="#1F1B16">Source Mapping</text>
+          <text x="296" y="120" font-family="Inter" font-size="11" fill="#6B6457">test files &middot; vesting &middot; w/d &middot; SCR I</text>
+
+          <rect x="280" y="140" width="340" height="64" rx="8" fill="#FBF8F2" stroke="#6E3A6B" stroke-width="1.4"/>
+          <text x="296" y="162" font-family="JetBrains Mono" font-size="9" fill="#6E3A6B" letter-spacing="2">07 · MAP + TIK ONLY</text>
+          <text x="296" y="184" font-family="Fraunces" font-size="18" fill="#1F1B16">Fund Mapping</text>
+          <text x="296" y="200" font-family="Inter" font-size="11" fill="#6B6457">signed TOA &middot; tickers &middot; CUSIPs &middot; re-reg</text>
+        </g>
+
+        <!-- Methods: Cash / Mapping / TIK -->
+        <g>
+          <rect x="640" y="60" width="440" height="44" rx="8" fill="#FBF8F2" stroke="#5C8A78" stroke-width="1.4"/>
+          <text x="656" y="78" font-family="JetBrains Mono" font-size="9" fill="#5C8A78" letter-spacing="2">03 · METHOD A</text>
+          <text x="656" y="96" font-family="Fraunces" font-size="16" fill="#1F1B16">Cash Conversion</text>
+          <text x="800" y="96" font-family="Inter" font-style="italic" font-size="11" fill="#6B6457">— wire arrives, plan re-buys</text>
+
+          <rect x="640" y="120" width="440" height="44" rx="8" fill="#FBF8F2" stroke="#D97757" stroke-width="1.4"/>
+          <text x="656" y="138" font-family="JetBrains Mono" font-size="9" fill="#D97757" letter-spacing="2">04 · METHOD B</text>
+          <text x="656" y="156" font-family="Fraunces" font-size="16" fill="#1F1B16">Mapping</text>
+          <text x="730" y="156" font-family="Inter" font-style="italic" font-size="11" fill="#6B6457">— twin-apply with QA gate</text>
+
+          <rect x="640" y="180" width="440" height="44" rx="8" fill="#FBF8F2" stroke="#8B3A3A" stroke-width="1.4"/>
+          <text x="656" y="198" font-family="JetBrains Mono" font-size="9" fill="#8B3A3A" letter-spacing="2">05 · METHOD C</text>
+          <text x="656" y="216" font-family="Fraunces" font-size="16" fill="#1F1B16">Transfer In-Kind</text>
+          <text x="780" y="216" font-family="Inter" font-style="italic" font-size="11" fill="#6B6457">— re-reg, 22-day external window</text>
+        </g>
+
+        <!-- Connectors pre-work → mapping -->
+        <g stroke="#9A9385" stroke-width="1" fill="none" marker-end="url(#lm-arrow)">
+          <path class="flow-dash" d="M 260 92 C 270 92, 270 92, 280 92"/>
+          <path class="flow-dash" d="M 260 172 C 270 172, 270 172, 280 172"/>
+        </g>
+
+        <!-- Connectors mapping → methods -->
+        <g stroke="#9A9385" stroke-width="1" fill="none" marker-end="url(#lm-arrow)">
+          <path class="flow-dash" d="M 620 92  C 630 82,  632 82,  640 82"/>
+          <path class="flow-dash" d="M 620 92  C 630 142, 632 142, 640 142"/>
+          <path class="flow-dash" d="M 620 92  C 630 202, 632 202, 640 202"/>
+          <path class="flow-dash" d="M 620 172 C 630 142, 632 142, 640 142" stroke="#6E3A6B"/>
+          <path class="flow-dash" d="M 620 172 C 630 202, 632 202, 640 202" stroke="#6E3A6B"/>
+        </g>
+
+        <!-- Footer note -->
+        <g transform="translate(20,260)">
+          <line x1="0" y1="0" x2="1060" y2="0" stroke="#BBB3A1" stroke-width=".5"/>
+          <text x="0" y="22" font-family="JetBrains Mono" font-size="9" fill="#9A9385" letter-spacing="2">SOURCE MAPPING</text>
+          <text x="160" y="22" font-family="Inter" font-style="italic" font-size="11" fill="#6B6457">required for all three methods</text>
+
+          <text x="540" y="22" font-family="JetBrains Mono" font-size="9" fill="#6E3A6B" letter-spacing="2">FUND MAPPING</text>
+          <text x="666" y="22" font-family="Inter" font-style="italic" font-size="11" fill="#6B6457">required for Mapping &amp; TIK only — never for Cash</text>
+
+          <text x="0" y="50" font-family="Caveat" font-size="16" fill="#D97757">Each block is a procedure page. Click through to read.</text>
+        </g>
+      </svg>
+    </div>
+
+    <!-- Three method pillars -->
+    <div id="methods" class="pillars reveal">
+      <div class="pillar cash">
+        <div class="nm">METHOD 01</div>
+        <h4>Cash Conversion</h4>
+        <p>Liquidate at the prior RK, wire arrives, receiving plan re-buys per participant election. Simplest of the three.</p>
+        <div class="reqs">
+          <span class="req on">Source map</span>
+          <span class="req off">Fund map</span>
+          <span class="req off">Re-reg</span>
+        </div>
+      </div>
+      <div class="pillar map">
+        <div class="nm">METHOD 02</div>
+        <h4>Mapping</h4>
+        <p>Twin-apply with a QA gate between rounds. Full pre-work surface: source + fund mapping, both signed off.</p>
+        <div class="reqs">
+          <span class="req on">Source map</span>
+          <span class="req on">Fund map</span>
+          <span class="req off">Re-reg</span>
+        </div>
+      </div>
+      <div class="pillar tik">
+        <div class="nm">METHOD 03</div>
+        <h4>Transfer In-Kind</h4>
+        <p>Title-only re-registration with a 22-day external window. The hardest gate sequence — mistakes here are slow to fix.</p>
+        <div class="reqs">
+          <span class="req on">Source map</span>
+          <span class="req on">Fund map</span>
+          <span class="req on">Re-reg</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== PRE-WORK ============== -->
+<section id="prework" class="section">
+  <div class="shell">
+    <div class="cat-head reveal">
+      <span class="num">§ 01–02</span>
+      <h2>Pre-work · <em>before</em> any balance moves.</h2>
+    </div>
+    <p class="cat-sub reveal">Census reconciliation and elections audit happen before any of the balance-import methods can run. They define <em>who</em> is in the plan and <em>what</em> they've chosen — and any miss here surfaces as a posting issue downstream.</p>
+
+    <div class="index-grid reveal">
+      <a href="Census.html" class="index-card" data-accent="census">
+        <div class="top">
+          <span class="num-tag">01 · CENSUS</span>
+          <span class="stage">Pre-work</span>
+        </div>
+        <h3>Census <em>reconciliation</em></h3>
+        <p>Demographics, employment status, classes, divisions, term reasons. Six audit surfaces, three branch outcomes (clean / flagged / latest-row).</p>
+        <div class="meta">
+          <span class="pair">SIX SURFACES</span>
+          <span class="arrow">→</span>
+        </div>
+      </a>
+
+      <a href="Elections.html" class="index-card" data-accent="elect">
+        <div class="top">
+          <span class="num-tag">02 · ELECTIONS</span>
+          <span class="stage">Pre-work</span>
+        </div>
+        <h3>Elections <em>audit</em></h3>
+        <p>Deferral percent, default status, multi-case nuance, e-statement opt-in. Default-code branches drive the in-default vs. not-in-default path.</p>
+        <div class="meta">
+          <span class="pair">DEFAULT CODE · 0 / 1 / NULL</span>
+          <span class="arrow">→</span>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============== MAPPING (foundational) ============== -->
+<section id="mapping" class="section">
+  <div class="shell">
+    <div class="cat-head reveal">
+      <span class="num">§ 06–07</span>
+      <h2>Mapping · the <em>crosswalks</em>.</h2>
+    </div>
+    <p class="cat-sub reveal">Source mapping is built from prior-RK <em>test files</em> and required for every method. Fund mapping is built from the signed <em>TOA</em> and required only when assets actually move (Mapping + TIK). Both go to QA / TC / TM before the run.</p>
+
+    <div class="index-grid reveal">
+      <a href="Source-Mapping.html" class="index-card" data-accent="source">
+        <div class="top">
+          <span class="num-tag">06 · SOURCE</span>
+          <span class="stage">All methods</span>
+        </div>
+        <h3>Source <em>mapping</em></h3>
+        <p>Source names, codes, vesting, withdrawal, SCR I, contribution types — five surfaces validated against the approved source grid.</p>
+        <div class="meta">
+          <span class="pair">TEST FILES → QA</span>
+          <span class="arrow">→</span>
+        </div>
+      </a>
+
+      <a href="Fund-Mapping.html" class="index-card" data-accent="fund">
+        <div class="top">
+          <span class="num-tag">07 · FUND</span>
+          <span class="stage">Map + TIK only</span>
+        </div>
+        <h3>Fund <em>mapping</em></h3>
+        <p>Fund codes, names, tickers, CUSIPs, descriptor codes, re-reg flags. Validated in Informatica developer mode before sign-off.</p>
+        <div class="meta">
+          <span class="pair">SIGNED TOA → DEV-MODE</span>
+          <span class="arrow">→</span>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============== METHODS ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="cat-head reveal">
+      <span class="num">§ 03–05</span>
+      <h2>The three <em>balance-import</em> methods.</h2>
+    </div>
+    <p class="cat-sub reveal">Pick the method by what the prior RK delivers — a wire (Cash), a one-shot file pair with a QA gate (Mapping), or registered shares with a custodian setup (TIK). Each has its own gates, its own audit surfaces, and its own way of failing.</p>
+
+    <div class="index-grid reveal">
+      <a href="Cash-Conversion.html" class="index-card" data-accent="cash">
+        <div class="top">
+          <span class="num-tag">03 · CASH</span>
+          <span class="stage">Method A</span>
+        </div>
+        <h3>Cash <em>conversion</em></h3>
+        <p>Wire arrives at Advance Employer holding, waits for the final file, then distributes to participants per election. No fund mapping.</p>
+        <div class="meta">
+          <span class="pair">WIRE → HOLD → APPLY</span>
+          <span class="arrow">→</span>
+        </div>
+      </a>
+
+      <a href="Mapping.html" class="index-card" data-accent="map">
+        <div class="top">
+          <span class="num-tag">04 · MAPPING</span>
+          <span class="stage">Method B</span>
+        </div>
+        <h3>Mapping <em>conversion</em></h3>
+        <p>First apply, reversal, QA approval gate, then the second apply. Twin-pass — both runs reconcile, neither is the final word alone.</p>
+        <div class="meta">
+          <span class="pair">APPLY · REVERSE · APPLY</span>
+          <span class="arrow">→</span>
+        </div>
+      </a>
+
+      <a href="Transfer-In-Kind.html" class="index-card" data-accent="tik">
+        <div class="top">
+          <span class="num-tag">05 · TIK</span>
+          <span class="stage">Method C</span>
+        </div>
+        <h3>Transfer <em>in-kind</em></h3>
+        <p>Re-registration package, M. O'Connell external setup, hard gate, then book and reconcile. 22-day external window.</p>
+        <div class="meta">
+          <span class="pair">REG · GATE · BOOK</span>
+          <span class="arrow">→</span>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============== TIMELINE ============== -->
+<section id="timeline" class="section">
+  <div class="shell">
+    <div class="cat-head reveal">
+      <span class="num">§ When</span>
+      <h2>The <em>order</em> these run in.</h2>
+    </div>
+    <p class="cat-sub reveal">A simplified ledger of when each procedure happens relative to the conversion event. Pre-work and mapping land before the run; the chosen method is the run; reconciliation closes it.</p>
+
+    <div class="timeline-band reveal">
+      <svg viewBox="0 0 1100 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Procedure timeline">
+        <defs>
+          <marker id="tl-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0 0 L10 5 L0 10 z" fill="#9A9385"/>
+          </marker>
+        </defs>
+
+        <!-- Spine -->
+        <line x1="40" y1="120" x2="1060" y2="120" stroke="#BBB3A1" stroke-width="1" stroke-dasharray="3 5"/>
+        <line class="flow-dash" x1="40" y1="120" x2="1060" y2="120" stroke="#9A9385" stroke-width="1" marker-end="url(#tl-arrow)"/>
+
+        <!-- Day labels -->
+        <g font-family="JetBrains Mono" font-size="9" fill="#9A9385" letter-spacing="2">
+          <text x="40" y="208" text-anchor="middle">−30d</text>
+          <text x="240" y="208" text-anchor="middle">−14d</text>
+          <text x="440" y="208" text-anchor="middle">−7d</text>
+          <text x="640" y="208" text-anchor="middle">DAY 0</text>
+          <text x="840" y="208" text-anchor="middle">+7d</text>
+          <text x="1040" y="208" text-anchor="middle">CLOSE</text>
+        </g>
+
+        <!-- Day ticks -->
+        <g stroke="#BBB3A1" stroke-width="1">
+          <line x1="40"   y1="116" x2="40"   y2="124"/>
+          <line x1="240"  y1="116" x2="240"  y2="124"/>
+          <line x1="440"  y1="116" x2="440"  y2="124"/>
+          <line x1="640"  y1="110" x2="640"  y2="130" stroke="#D97757" stroke-width="1.5"/>
+          <line x1="840"  y1="116" x2="840"  y2="124"/>
+          <line x1="1040" y1="116" x2="1040" y2="124"/>
+        </g>
+
+        <!-- Procedure pills (above spine) -->
+        <g font-family="Fraunces" font-size="12" fill="#1F1B16">
+          <rect x="20"  y="50" width="120" height="34" rx="6" fill="#FBF8F2" stroke="#3D4A6E" stroke-width="1.2"/>
+          <text x="80"  y="72" text-anchor="middle">Census</text>
+          <line x1="80"  y1="84" x2="80"  y2="116" stroke="#3D4A6E" stroke-width=".6" stroke-dasharray="2 2"/>
+
+          <rect x="160" y="50" width="120" height="34" rx="6" fill="#FBF8F2" stroke="#B07A1F" stroke-width="1.2"/>
+          <text x="220" y="72" text-anchor="middle">Elections</text>
+          <line x1="220" y1="84" x2="220" y2="116" stroke="#B07A1F" stroke-width=".6" stroke-dasharray="2 2"/>
+
+          <rect x="300" y="50" width="160" height="34" rx="6" fill="#FBF8F2" stroke="#4A6B45" stroke-width="1.2"/>
+          <text x="380" y="72" text-anchor="middle">Source mapping</text>
+          <line x1="380" y1="84" x2="380" y2="116" stroke="#4A6B45" stroke-width=".6" stroke-dasharray="2 2"/>
+
+          <rect x="480" y="50" width="140" height="34" rx="6" fill="#FBF8F2" stroke="#6E3A6B" stroke-width="1.2"/>
+          <text x="550" y="72" text-anchor="middle">Fund mapping</text>
+          <line x1="550" y1="84" x2="550" y2="116" stroke="#6E3A6B" stroke-width=".6" stroke-dasharray="2 2"/>
+        </g>
+
+        <!-- Methods (below spine) -->
+        <g font-family="Fraunces" font-size="12" fill="#1F1B16">
+          <rect x="600"  y="148" width="100" height="32" rx="6" fill="#FBF8F2" stroke="#5C8A78" stroke-width="1.2"/>
+          <text x="650"  y="168" text-anchor="middle">Cash</text>
+          <line x1="650" y1="148" x2="650" y2="124" stroke="#5C8A78" stroke-width=".6" stroke-dasharray="2 2"/>
+
+          <rect x="720"  y="148" width="120" height="32" rx="6" fill="#FBF8F2" stroke="#D97757" stroke-width="1.2"/>
+          <text x="780"  y="168" text-anchor="middle">Mapping</text>
+          <line x1="780" y1="148" x2="780" y2="124" stroke="#D97757" stroke-width=".6" stroke-dasharray="2 2"/>
+
+          <rect x="860"  y="148" width="140" height="32" rx="6" fill="#FBF8F2" stroke="#8B3A3A" stroke-width="1.2"/>
+          <text x="930"  y="168" text-anchor="middle">Transfer In-Kind</text>
+          <line x1="930" y1="148" x2="930" y2="124" stroke="#8B3A3A" stroke-width=".6" stroke-dasharray="2 2"/>
+        </g>
+
+        <!-- DAY 0 marker -->
+        <g>
+          <text x="640" y="38" font-family="JetBrains Mono" font-size="10" fill="#D97757" letter-spacing="2" text-anchor="middle">CONVERSION DAY</text>
+          <circle cx="640" cy="120" r="5" fill="#D97757"/>
+          <circle cx="640" cy="120" r="9" fill="none" stroke="#D97757" stroke-width=".8" class="pulse-dot"/>
+        </g>
+
+        <!-- Eyebrow above pre-work -->
+        <text x="40" y="32" font-family="JetBrains Mono" font-size="9" fill="#9A9385" letter-spacing="2">PRE-WORK &amp; MAPPING</text>
+        <text x="640" y="200" font-family="Caveat" font-size="14" fill="#5C8A78" text-anchor="middle">— pick one method —</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============== RULES ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="callout ok reveal">
+      <strong>Read the matching procedure page first</strong>
+      Each page has the SQL, decision branches, and gate sequence specific to that procedure. The index is a map; the pages are the territory.
+    </div>
+    <div class="callout warn reveal" style="margin-top:14px;">
+      <strong>Source mapping isn't optional anywhere</strong>
+      Even Cash Conversion needs source mapping — what it doesn't need is fund mapping. If you've been asked to skip source mapping for a cash run, push back.
+    </div>
+    <div class="callout stop reveal" style="margin-top:14px;">
+      <strong>Don't pick the method yourself</strong>
+      The method is determined by what the prior RK delivers and what the receiving plan accepts — not by what's convenient. Confirm conversion type with the project owner before any pre-work begins.
+    </div>
+  </div>
+</section>
+
+<footer class="shell foot">
+  <span>Procedures · Conversion Planner</span>
+  <span>Census · Elections · Cash · Mapping · TIK · Source · Fund</span>
+</footer>
+
+<script>
+  (function(){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) e.target.classList.add('in'); });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+  })();
+</script>
+</body>
+</html>

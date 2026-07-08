@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Source Mapping · Procedure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/parchment.css">
+<style>
+  :root { --accent: var(--c-source); }
+
+  .hero-art {
+    margin-top: 36px;
+    display: grid;
+    grid-template-columns: 1fr .9fr;
+    gap: 48px;
+    align-items: center;
+  }
+  @media (max-width: 900px) { .hero-art { grid-template-columns: 1fr; } }
+
+  .vessel {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px 24px;
+    position: relative;
+  }
+  .vessel::before {
+    content: "SOURCE · CROSSWALK";
+    position: absolute;
+    top: 14px; right: 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    color: var(--ink-faint);
+  }
+  .vessel-svg { width: 100%; height: auto; display: block; margin-top: 8px; }
+
+  /* Review-items grid */
+  .review-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-top: 24px;
+  }
+  @media (max-width: 700px) { .review-grid { grid-template-columns: 1fr; } }
+  .review-card {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 22px 24px;
+    border-left: 3px solid var(--c-source);
+    transition: transform .35s var(--ease), border-color .35s var(--ease);
+  }
+  .review-card:hover { transform: translateY(-1px); border-left-color: var(--clay); }
+  .review-card .rc-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    color: var(--c-source);
+    margin-bottom: 4px;
+  }
+  .review-card h4 {
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 460;
+    margin: 0 0 6px;
+    letter-spacing: -.012em;
+  }
+  .review-card p { font-size: 13px; color: var(--ink-2); margin: 0 0 8px; line-height: 1.55; }
+  .review-card .col-ref {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--c-source);
+    letter-spacing: .04em;
+  }
+
+  /* Inputs / outputs strip */
+  .io-strip {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 12px;
+    align-items: center;
+    margin-top: 28px;
+    padding: 26px 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  @media (max-width: 800px) { .io-strip { grid-template-columns: 1fr; } .io-strip .arrow { display: none; } }
+  .io-cell {
+    text-align: center;
+    padding: 14px;
+  }
+  .io-cell .tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .18em;
+    color: var(--ink-mute);
+    margin-bottom: 6px;
+  }
+  .io-cell h4 {
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 460;
+    margin: 0 0 4px;
+  }
+  .io-cell p { font-size: 12px; color: var(--ink-dim); margin: 0; line-height: 1.5; }
+  .io-strip .arrow {
+    color: var(--c-source);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 22px;
+    text-align: center;
+    opacity: .8;
+  }
+
+  /* Phases (re-used pattern) */
+  .phases {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-top: 28px;
+  }
+  @media (max-width: 900px) { .phases { grid-template-columns: 1fr; } }
+  .phase {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 24px;
+    transition: border-color .4s var(--ease);
+  }
+  .phase:hover { border-color: var(--c-source); }
+  .phase .ph-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--c-source);
+    margin-bottom: 6px;
+  }
+  .phase h3 {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 460;
+    margin: 0 0 14px;
+    letter-spacing: -.014em;
+  }
+  .phase ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+  .phase li {
+    font-size: 13.5px;
+    color: var(--ink-2);
+    line-height: 1.55;
+    padding-left: 22px;
+    position: relative;
+  }
+  .phase li::before {
+    content: "—";
+    position: absolute; left: 0;
+    color: var(--c-source);
+    font-weight: 500;
+  }
+  .phase li b { color: var(--ink); font-weight: 500; }
+
+  /* Reqs row */
+  .reqs { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; }
+  .req {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .req .icon { width: 14px; height: 14px; flex: none; }
+  .req.yes { border-color: var(--c-source); color: var(--c-source); }
+  .req.no { color: var(--ink-mute); text-decoration: line-through; text-decoration-color: var(--ink-faint); }
+
+  /* "All three" methods banner */
+  .all-three {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 28px;
+  }
+  @media (max-width: 700px) { .all-three { grid-template-columns: 1fr; } }
+  .all-method {
+    padding: 18px 22px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    border-top: 3px solid var(--c-source);
+  }
+  .all-method .nm {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    color: var(--c-source);
+    margin-bottom: 4px;
+  }
+  .all-method h4 {
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 460;
+    margin: 0 0 4px;
+  }
+  .all-method p { font-size: 12.5px; color: var(--ink-dim); margin: 0; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="shell topbar-inner">
+    <div class="crumb">
+      <span class="crumb-dot" style="--accent: var(--c-source);"></span>
+      <a href="index.html">Procedures</a>
+      <span class="sep">/</span>
+      <span class="here">Source Mapping</span>
+    </div>
+    <nav>
+      <a href="#review">Review items</a>
+      <a href="#flow">Flow</a>
+      <a href="#phases">Phases</a>
+      <a href="#sql">SQL</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="shell">
+    <div class="hero-art">
+      <div class="hero-side reveal">
+        <span class="hero-eyebrow"><span class="dot"></span>Procedure 06 · Foundational mapping</span>
+        <h1>Source<br><em>mapping</em>.<br>The crosswalk under everything.</h1>
+        <p class="lead">Built from <em>prior-RK test files</em>, not the TOA. The cross-walk that lets Informatica route source data correctly into the receiving plan — required for all three balance methods, sent to QA / TC / TM the moment it's done.</p>
+        <div class="hero-meta">
+          <div class="meta-item"><span class="label">Built from</span><span class="value">Test files</span></div>
+          <div class="meta-item"><span class="label">Required for</span><span class="value">Cash · Mapping · TIK</span></div>
+          <div class="meta-item"><span class="label">Review surface</span><span class="value">Source · vesting · w/d · SCR I · contrib</span></div>
+        </div>
+      </div>
+
+      <div class="vessel reveal">
+        <svg class="vessel-svg" viewBox="0 0 380 420" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="src-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0 0 L10 5 L0 10 z" fill="#4A6B45"/>
+            </marker>
+            <linearGradient id="src-grad" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stop-color="#4A6B45" stop-opacity=".18"/>
+              <stop offset="1" stop-color="#4A6B45" stop-opacity=".42"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Stamp -->
+          <g transform="translate(310,28)" class="stamp-spin">
+            <circle r="22" fill="none" stroke="#4A6B45" stroke-width=".6" stroke-dasharray="2 2"/>
+            <circle r="16" fill="none" stroke="#4A6B45" stroke-width=".6"/>
+            <text y="2" font-family="JetBrains Mono" font-size="6.5" fill="#4A6B45" letter-spacing="1.5" text-anchor="middle">CROSS</text>
+            <text y="11" font-family="Fraunces" font-style="italic" font-size="10" fill="#4A6B45" text-anchor="middle">walk</text>
+          </g>
+
+          <!-- Prior sources column -->
+          <g transform="translate(20,40)">
+            <text x="0" y="0" font-family="JetBrains Mono" font-size="9" fill="#4A6B45" letter-spacing="2">PRIOR · SOURCES</text>
+            <line x1="0" y1="8" x2="120" y2="8" stroke="#4A6B45" stroke-width=".4"/>
+          </g>
+          <g font-family="Fraunces" font-size="13" fill="#1F1B16">
+            <rect x="14" y="58"  width="120" height="28" rx="4" fill="#FBF8F2" stroke="#4A6B45" stroke-width="1"/>
+            <text x="24" y="76">EE_PT</text>
+            <text x="124" y="76" font-family="JetBrains Mono" font-size="9" fill="#9A9385" text-anchor="end">100</text>
+
+            <rect x="14" y="92"  width="120" height="28" rx="4" fill="#FBF8F2" stroke="#4A6B45" stroke-width="1"/>
+            <text x="24" y="110">ER_MATCH</text>
+            <text x="124" y="110" font-family="JetBrains Mono" font-size="9" fill="#9A9385" text-anchor="end">200</text>
+
+            <rect x="14" y="126" width="120" height="28" rx="4" fill="#FBF8F2" stroke="#4A6B45" stroke-width="1"/>
+            <text x="24" y="144">ROLL_PRE</text>
+            <text x="124" y="144" font-family="JetBrains Mono" font-size="9" fill="#9A9385" text-anchor="end">300</text>
+
+            <rect x="14" y="160" width="120" height="28" rx="4" fill="#FBF8F2" stroke="#4A6B45" stroke-width="1"/>
+            <text x="24" y="178">PSP</text>
+            <text x="124" y="178" font-family="JetBrains Mono" font-size="9" fill="#9A9385" text-anchor="end">400</text>
+
+            <rect x="14" y="194" width="120" height="28" rx="4" fill="#FBF8F2" stroke="#4A6B45" stroke-width="1"/>
+            <text x="24" y="212">SH_PSP</text>
+            <text x="124" y="212" font-family="JetBrains Mono" font-size="9" fill="#9A9385" text-anchor="end">410</text>
+
+            <rect x="14" y="228" width="120" height="28" rx="4" fill="#FBF8F2" stroke="#4A6B45" stroke-width="1"/>
+            <text x="24" y="246">QNEC</text>
+            <text x="124" y="246" font-family="JetBrains Mono" font-size="9" fill="#9A9385" text-anchor="end">500</text>
+          </g>
+
+          <!-- Crosswalk arrows -->
+          <g stroke="#4A6B45" stroke-width="1.2" fill="none" marker-end="url(#src-arrow)">
+            <path class="flow-dash" d="M 144 72  C 180 72, 200 76, 235 76"/>
+            <path class="flow-dash" d="M 144 106 C 180 106, 200 110, 235 110"/>
+            <path class="flow-dash" d="M 144 140 C 180 140, 200 144, 235 144"/>
+            <path class="flow-dash" d="M 144 174 C 180 174, 200 178, 235 178"/>
+            <path class="flow-dash" d="M 144 208 C 180 208, 200 212, 235 212"/>
+            <path class="flow-dash" d="M 144 242 C 180 242, 200 246, 235 246"/>
+          </g>
+
+          <!-- Receiving sources column -->
+          <g transform="translate(244,40)">
+            <text x="0" y="0" font-family="JetBrains Mono" font-size="9" fill="#4A6B45" letter-spacing="2">NEW · SOURCES</text>
+            <line x1="0" y1="8" x2="120" y2="8" stroke="#4A6B45" stroke-width=".4"/>
+          </g>
+          <g font-family="Fraunces" font-size="13" fill="#1F1B16">
+            <rect x="244" y="58"  width="120" height="28" rx="4" fill="url(#src-grad)" stroke="#4A6B45" stroke-width="1.2"/>
+            <text x="254" y="76">PRE-TAX</text>
+            <text x="354" y="76" font-family="JetBrains Mono" font-size="9" fill="#1F1B16" text-anchor="end">A100</text>
+
+            <rect x="244" y="92"  width="120" height="28" rx="4" fill="url(#src-grad)" stroke="#4A6B45" stroke-width="1.2"/>
+            <text x="254" y="110">MATCH</text>
+            <text x="354" y="110" font-family="JetBrains Mono" font-size="9" fill="#1F1B16" text-anchor="end">A200</text>
+
+            <rect x="244" y="126" width="120" height="28" rx="4" fill="url(#src-grad)" stroke="#4A6B45" stroke-width="1.2"/>
+            <text x="254" y="144">ROLL</text>
+            <text x="354" y="144" font-family="JetBrains Mono" font-size="9" fill="#1F1B16" text-anchor="end">A300</text>
+
+            <rect x="244" y="160" width="120" height="28" rx="4" fill="url(#src-grad)" stroke="#4A6B45" stroke-width="1.2"/>
+            <text x="254" y="178">PROFIT-SHARE</text>
+            <text x="354" y="178" font-family="JetBrains Mono" font-size="9" fill="#1F1B16" text-anchor="end">A400</text>
+
+            <rect x="244" y="194" width="120" height="28" rx="4" fill="url(#src-grad)" stroke="#4A6B45" stroke-width="1.2"/>
+            <text x="254" y="212">SH-PSP</text>
+            <text x="354" y="212" font-family="JetBrains Mono" font-size="9" fill="#1F1B16" text-anchor="end">A410</text>
+
+            <rect x="244" y="228" width="120" height="28" rx="4" fill="url(#src-grad)" stroke="#4A6B45" stroke-width="1.2"/>
+            <text x="254" y="246">QNEC</text>
+            <text x="354" y="246" font-family="JetBrains Mono" font-size="9" fill="#1F1B16" text-anchor="end">A500</text>
+          </g>
+
+          <!-- Detail strip -->
+          <g transform="translate(20,290)">
+            <rect width="340" height="58" rx="6" fill="#FBF8F2" stroke="#4A6B45" stroke-width="1" stroke-dasharray="3 3"/>
+            <text x="170" y="20" font-family="JetBrains Mono" font-size="9" fill="#4A6B45" letter-spacing="2" text-anchor="middle">EACH ROW CARRIES</text>
+            <g font-family="Inter" font-size="10.5" fill="#6B6457">
+              <text x="20" y="42">⌖ vesting</text>
+              <text x="100" y="42">⌖ withdrawal</text>
+              <text x="200" y="42">⌖ SCR I</text>
+              <text x="280" y="42">⌖ contrib</text>
+            </g>
+          </g>
+
+          <!-- Footer signature -->
+          <text x="190" y="380" font-family="Fraunces" font-style="italic" font-size="13" fill="#4A6B45" text-anchor="middle">Test files &middot; cross-walk &middot; QA</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== ALL THREE METHODS ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 01 · Universal</span>
+      <h2>Required for <em>every</em> balance method.</h2>
+    </div>
+    <p class="section-sub reveal">Source mapping isn't optional anywhere. Cash needs it just as much as Mapping or TIK. The difference is what comes <em>with</em> it — fund mapping is added for the asset-moving methods.</p>
+
+    <div class="all-three reveal">
+      <div class="all-method">
+        <div class="nm">METHOD 01</div>
+        <h4>Cash Conversion</h4>
+        <p>Source mapping only. No fund mapping — building it for cash is a flag the conversion type wasn't confirmed early.</p>
+      </div>
+      <div class="all-method">
+        <div class="nm">METHOD 02</div>
+        <h4>Mapping</h4>
+        <p>Source mapping + Fund mapping. Both built, both reviewed, both approved before the run.</p>
+      </div>
+      <div class="all-method">
+        <div class="nm">METHOD 03</div>
+        <h4>Transfer In-Kind</h4>
+        <p>Source mapping + Fund mapping + Re-registration. The fullest pre-work surface of the three.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== INPUT / OUTPUT ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 02 · I/O</span>
+      <h2>Test files <em>in</em>, approved cross-walk <em>out</em>.</h2>
+    </div>
+    <p class="section-sub reveal">The mapping starts with prior-RK test files (vendor keys included) and ends with a QA-approved cross-walk that Informatica can route on. The middle is review.</p>
+
+    <div class="io-strip reveal">
+      <div class="io-cell">
+        <div class="tag">INPUT</div>
+        <h4>Prior-RK test files</h4>
+        <p>Vendor keys, source rows, vesting &amp; w/d provisions</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="io-cell">
+        <div class="tag">PROCESS</div>
+        <h4>Review &amp; cross-walk</h4>
+        <p>Names, codes, vesting, withdrawal, SCR I, contrib types</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="io-cell">
+        <div class="tag">OUTPUT</div>
+        <h4>QA / TC / TM sign-off</h4>
+        <p>Approved cross-walk handed to Informatica</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== REVIEW ITEMS ============== -->
+<section id="review" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 03 · Review items</span>
+      <h2>Five surfaces to <em>validate</em>.</h2>
+    </div>
+    <p class="section-sub reveal">Validating against the approved source grid means each of these has to line up — names that map, codes that translate, vesting and withdrawal rules that survive the move, and the contribution surface intact.</p>
+
+    <div class="review-grid reveal">
+      <div class="review-card">
+        <div class="rc-num">01</div>
+        <h4>Source names</h4>
+        <p>Each prior-RK source name has a corresponding receiving-plan name. Synonyms aren't acceptable — the cross-walk has to be explicit.</p>
+        <span class="col-ref">SRC_NM · REPORT_1_NM · REPORT_2_NM</span>
+      </div>
+      <div class="review-card">
+        <div class="rc-num">02</div>
+        <h4>Source codes</h4>
+        <p>SRC_I and SRC_TYP_C carry semantics — pre-tax, match, rollover, profit-share, etc. The mapping has to honor each code's behavior.</p>
+        <span class="col-ref">SRC_I · SRC_TYP_C · SRC_S</span>
+      </div>
+      <div class="review-card">
+        <div class="rc-num">03</div>
+        <h4>Vesting provisions</h4>
+        <p>Vesting schedules carry through the move. A source going from cliff to graded would change distribution math — that's a review failure.</p>
+        <span class="col-ref">vesting schedule per source</span>
+      </div>
+      <div class="review-card">
+        <div class="rc-num">04</div>
+        <h4>Withdrawal provisions</h4>
+        <p>Hardship rules, in-service rules, age 59½ rules. Each of these is a per-source flag and has to map to the receiving plan's equivalent.</p>
+        <span class="col-ref">withdrawal flags per source</span>
+      </div>
+      <div class="review-card">
+        <div class="rc-num">05</div>
+        <h4>SCR I</h4>
+        <p>Source-Cost-Reporting indicator — drives compliance reporting downstream. Must be set on every mapped source.</p>
+        <span class="col-ref">SCR_I</span>
+      </div>
+      <div class="review-card">
+        <div class="rc-num">06</div>
+        <h4>Contribution types</h4>
+        <p>Pre-tax · Roth · after-tax · employer match · profit-share · QNEC · QMAC · rollover. Every code has to land in the right bucket.</p>
+        <span class="col-ref">CONTRIBUTION_TYP_C</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== USER FLOW ============== -->
+<section id="flow" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 04 · Flow</span>
+      <h2>Test file to <em>approved cross-walk</em>.</h2>
+    </div>
+    <p class="section-sub reveal">Linear path with one decision at the end — does QA / TC / TM approve, or does it bounce back for revision?</p>
+
+    <div class="flow-diagram reveal">
+      <svg viewBox="0 0 1100 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Source mapping flow">
+        <defs>
+          <marker id="arrow-sf" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#4A6B45"/>
+          </marker>
+        </defs>
+
+        <g transform="translate(20,108)">
+          <circle cx="32" cy="32" r="28" fill="#FBF8F2" stroke="#4A6B45" stroke-width="1.6"/>
+          <text x="32" y="28" font-family="JetBrains Mono" font-size="8" fill="#4A6B45" letter-spacing="2" text-anchor="middle">START</text>
+          <text x="32" y="44" font-family="Fraunces" font-style="italic" font-size="11" fill="#1F1B16" text-anchor="middle">test file</text>
+        </g>
+        <line class="flow-dash" x1="80" y1="140" x2="118" y2="140" stroke="#4A6B45" stroke-width="1.5" marker-end="url(#arrow-sf)"/>
+
+        <g transform="translate(120,112)">
+          <rect width="170" height="56" rx="28" fill="#FBF8F2" stroke="#4A6B45" stroke-width="1.5"/>
+          <text x="85" y="22" font-family="JetBrains Mono" font-size="9" fill="#4A6B45" letter-spacing="2" text-anchor="middle">ACTION</text>
+          <text x="85" y="42" font-family="Fraunces" font-size="14" fill="#1F1B16" text-anchor="middle">Build cross-walk</text>
+        </g>
+        <line class="flow-dash" x1="292" y1="140" x2="330" y2="140" stroke="#4A6B45" stroke-width="1.5" marker-end="url(#arrow-sf)"/>
+
+        <g transform="translate(332,112)">
+          <rect width="190" height="56" rx="6" fill="#FBF8F2" stroke="#4A6B45" stroke-width="1.5"/>
+          <text x="95" y="22" font-family="JetBrains Mono" font-size="9" fill="#4A6B45" letter-spacing="2" text-anchor="middle">VALIDATE</text>
+          <text x="95" y="42" font-family="Fraunces" font-size="14" fill="#1F1B16" text-anchor="middle">5 review surfaces</text>
+        </g>
+        <line class="flow-dash" x1="524" y1="140" x2="562" y2="140" stroke="#4A6B45" stroke-width="1.5" marker-end="url(#arrow-sf)"/>
+
+        <g transform="translate(565,86)">
+          <path d="M 80 0 L 160 55 L 80 110 L 0 55 Z" fill="#FBF8F2" stroke="#4A6B45" stroke-width="1.6"/>
+          <text x="80" y="48" font-family="JetBrains Mono" font-size="9" fill="#4A6B45" letter-spacing="2" text-anchor="middle">DECISION</text>
+          <text x="80" y="68" font-family="Fraunces" font-size="13" fill="#1F1B16" text-anchor="middle">QA approves?</text>
+        </g>
+
+        <line class="flow-dash" x1="645" y1="196" x2="645" y2="240" stroke="#B23A2E" stroke-width="1.4" marker-end="url(#arrow-sf)"/>
+        <text x="654" y="220" font-family="Caveat" font-size="14" fill="#B23A2E">no — revise</text>
+        <g transform="translate(560,242)">
+          <rect width="170" height="32" rx="6" fill="#FBF8F2" stroke="#B23A2E" stroke-width="1.2" stroke-dasharray="3 3"/>
+          <text x="85" y="20" font-family="Fraunces" font-style="italic" font-size="13" fill="#B23A2E" text-anchor="middle">back to build</text>
+        </g>
+
+        <line class="flow-dash" x1="725" y1="140" x2="763" y2="140" stroke="#4A6B45" stroke-width="1.5" marker-end="url(#arrow-sf)"/>
+        <text x="730" y="131" font-family="Caveat" font-size="14" fill="#5C8A78">yes</text>
+
+        <g transform="translate(765,112)">
+          <rect width="200" height="56" rx="6" fill="#4A6B45" stroke="#4A6B45" stroke-width="1.5"/>
+          <line x1="6" y1="0" x2="6" y2="56" stroke="#FBF8F2" stroke-width="1.4" opacity=".5"/>
+          <line x1="194" y1="0" x2="194" y2="56" stroke="#FBF8F2" stroke-width="1.4" opacity=".5"/>
+          <text x="100" y="22" font-family="JetBrains Mono" font-size="9" fill="#F2C7B3" letter-spacing="2" text-anchor="middle">SYSTEM</text>
+          <text x="100" y="42" font-family="Fraunces" font-size="14" fill="#FBF8F2" text-anchor="middle">Hand to Informatica</text>
+        </g>
+        <line class="flow-dash" x1="967" y1="140" x2="1005" y2="140" stroke="#4A6B45" stroke-width="1.5" marker-end="url(#arrow-sf)"/>
+
+        <g transform="translate(1006,108)">
+          <circle cx="32" cy="32" r="28" fill="#FBF8F2" stroke="#4A6B45" stroke-width="3"/>
+          <circle cx="32" cy="32" r="22" fill="none" stroke="#4A6B45" stroke-width=".6"/>
+          <text x="32" y="36" font-family="Fraunces" font-size="12" fill="#4A6B45" text-anchor="middle">CLOSE</text>
+        </g>
+      </svg>
+      <div class="flow-legend">
+        <span><span class="lg-shape entry"></span>Entry</span>
+        <span><span class="lg-shape action"></span>Action</span>
+        <span><span class="lg-shape screen"></span>Validate</span>
+        <span><span class="lg-shape decision"></span>Decision</span>
+        <span><span class="lg-shape system"></span>Hand-off</span>
+        <span><span class="lg-shape end"></span>Close</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== PHASES ============== -->
+<section id="phases" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 05 · Phases</span>
+      <h2>Three steps. <em>Not three days.</em></h2>
+    </div>
+    <p class="section-sub reveal">Source mapping is fast — but its <em>arrival</em> matters more than its build time. The earlier the cross-walk lands with QA, the more cushion every downstream method has.</p>
+    <div class="phases reveal">
+      <div class="phase">
+        <div class="ph-tag">Phase · Build</div>
+        <h3>From test files</h3>
+        <ul>
+          <li>Receive <b>prior-RK test files</b> ASAP from the vendor</li>
+          <li>Pull <b>vendor keys</b> from the test data</li>
+          <li>Cross-walk <b>each source</b> to a receiving-plan source</li>
+          <li>Carry forward <b>vesting / withdrawal / SCR I / contrib type</b></li>
+        </ul>
+      </div>
+      <div class="phase">
+        <div class="ph-tag">Phase · Review</div>
+        <h3>Five-surface validation</h3>
+        <ul>
+          <li>Walk every source row against the <b>approved source grid</b></li>
+          <li>Flag any source <b>without a receiving-plan equivalent</b></li>
+          <li>Verify <b>vesting + withdrawal</b> survive the move</li>
+          <li>Check <b>SCR I</b> populated on every row</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <div class="ph-tag">Phase · Hand-off</div>
+        <h3>Send to QA / TC / TM</h3>
+        <ul>
+          <li>Send to <b>QA / TC / TM</b> immediately on completion</li>
+          <li>Don't sit on the cross-walk — every day of delay is a downstream day</li>
+          <li>If revision needed, return to <b>build</b> with the QA notes</li>
+          <li>Once approved, <b>hand to Informatica</b> for routing</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== ICON GRID ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 06 · Touch points</span>
+      <h2>The five things <em>QA looks at</em>.</h2>
+    </div>
+    <div class="icon-grid reveal">
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M5 12l4-4M5 12l4 4M19 6v12"/></svg></span>
+        <div><h4>Names + codes</h4><p>Each prior source maps explicitly to a receiving source — no synonyms.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+        <div><h4>Vesting</h4><p>Schedules carry through. Cliff stays cliff, graded stays graded.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="13" rx="2"/><path d="M4 10h16M9 14h6"/></svg></span>
+        <div><h4>Withdrawal</h4><p>Hardship · in-service · age 59½ — flags survive the move.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></span>
+        <div><h4>SCR I</h4><p>Source-cost-reporting indicator on every mapped source row.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></span>
+        <div><h4>Contribution types</h4><p>Pre-tax · Roth · match · profit-share · QNEC · rollover, all bucketed.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg></span>
+        <div><h4>QA approval</h4><p>Send to QA / TC / TM the moment the cross-walk is done.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== SQL ============== -->
+<section id="sql" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 07 · SQL</span>
+      <h2>Loan-source <em>build</em>, verbatim.</h2>
+    </div>
+    <p class="section-sub reveal">Internal-conversion takeover loan source query. Joins LOAN_DETAIL_SRC to PLAN_PROV_GRP on ENRL_PROV_GRP_I and a related-group filter, surfaces the open balance per source.</p>
+
+    <pre class="code reveal" data-lang="DB2 SQL"><span class="kw">WITH</span> LOAN_DATA <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> B.ACCOUNT_NO, A.SOC_SEC_NO, A.LOAN_NO, A.SRC_I, A.SRC_S, SRC_TYP_C,
+         <span class="fn">COALESCE</span>(C.ORIG_LN_A, A.ORIG_LN_A) <span class="kw">AS</span> ORIG_LN_A
+  <span class="kw">FROM</span> PENSION.LOAN_DETAIL_SRC A, PENSION.PLAN_SRC_DETAIL D
+  <span class="kw">JOIN</span> PENSION.PLAN_PROV_GRP B
+    <span class="kw">ON</span> A.ENRL_PROV_GRP_I = B.ENRL_PROV_GRP_I
+    <span class="kw">AND</span> B.ACCOUNT_NO <span class="kw">LIKE</span> <span class="lit">'932339%'</span>
+    <span class="kw">AND</span> B.RELATED_GRP_TYP_C = 361
+  <span class="kw">LEFT JOIN</span> PENSION.LOAN_DETAIL_SRC_HISTORY C
+    <span class="kw">ON</span> C.LOAN_NO = A.LOAN_NO <span class="kw">AND</span> C.SRC_I = A.SRC_I
+    <span class="kw">AND</span> C.SOC_SEC_NO = A.SOC_SEC_NO <span class="kw">AND</span> SEQ_NO = 0
+  <span class="kw">WHERE</span> <span class="kw">EXISTS</span> (
+    <span class="kw">SELECT</span> <span class="lit">''</span> <span class="kw">FROM</span> CORP.LOAN_DETAIL C
+    <span class="kw">WHERE</span> A.LOAN_NO = C.LOAN_NO
+      <span class="kw">AND</span> C.LN_TR_STAT_CD <span class="kw">NOT IN</span> (<span class="lit">'4'</span>, <span class="lit">'E'</span>, <span class="lit">'3'</span>, <span class="lit">'7'</span>, <span class="lit">'5'</span>, <span class="lit">'1'</span>)
+  )
+  <span class="kw">AND</span> A.SRC_I = D.SRC_I
+)
+<span class="kw">SELECT</span> <span class="lit">' '</span> <span class="kw">AS</span> case_no, <span class="lit">' '</span> <span class="kw">AS</span> sub_id,
+       A.SOC_SEC_NO, A.LOAN_NO, A.SRC_TYP_C,
+       A.ORIG_LN_A - <span class="fn">COALESCE</span>(LN_PRNC_A, 0) <span class="kw">AS</span> source_bal,
+       <span class="fn">SUBSTR</span>(A.ACCOUNT_NO, 1, <span class="fn">INSTR</span>(A.ACCOUNT_NO, <span class="lit">' '</span>) - 1) <span class="kw">AS</span> old_cont,
+       <span class="fn">SUBSTR</span>(A.ACCOUNT_NO, 11, 5) <span class="kw">AS</span> old_sub_id
+<span class="kw">FROM</span> LOAN_DATA A
+<span class="kw">LEFT JOIN</span> (
+  <span class="kw">SELECT</span> SOC_SEC_NO, LOAN_NO, SRC_S, SRC_I, <span class="fn">SUM</span>(LN_PRNC_A) LN_PRNC_A
+  <span class="kw">FROM</span> PENSION.LOAN_REPAY_SRC
+  <span class="kw">WHERE</span> LOAN_NO <span class="kw">IN</span> (<span class="kw">SELECT</span> LOAN_NO <span class="kw">FROM</span> LOAN_DATA)
+  <span class="kw">GROUP BY</span> SOC_SEC_NO, LOAN_NO, SRC_S, SRC_I
+) B
+  <span class="kw">ON</span> A.LOAN_NO = B.LOAN_NO <span class="kw">AND</span> A.SRC_I = B.SRC_I <span class="kw">AND</span> A.SOC_SEC_NO = B.SOC_SEC_NO
+<span class="kw">LEFT JOIN</span> PENSION.GET_PLAN_SRC C
+  <span class="kw">ON</span> A.SRC_I = C.SRC_I;</pre>
+  </div>
+</section>
+
+<!-- ============== RULES ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="callout ok reveal">
+      <strong>Get test files early</strong>
+      Source mapping waits on the vendor — request prior-RK test files as early as possible, because every other balance-import workstream waits on this cross-walk.
+    </div>
+    <div class="callout warn reveal" style="margin-top:14px;">
+      <strong>Send to QA the moment it's done</strong>
+      Don't sit on a finished cross-walk. Hand it to QA / TC / TM immediately so any revision rounds happen in parallel with the rest of the pre-work, not in sequence.
+    </div>
+    <div class="callout stop reveal" style="margin-top:14px;">
+      <strong>Don't infer source semantics</strong>
+      If a source's vesting or withdrawal rule isn't explicit in the test files, ask the vendor — don't infer from the source name. Misclassifying a single source is a downstream compliance issue.
+    </div>
+  </div>
+</section>
+
+<footer class="shell foot">
+  <span>Source Mapping · Procedure 06 of 07</span>
+  <span><a href="Fund-Mapping.html">Fund Mapping →</a> &nbsp;·&nbsp; <a href="index.html">↩ all procedures</a></span>
+</footer>
+
+<script>
+  (function(){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) e.target.classList.add('in'); });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+  })();
+</script>
+</body>
+</html>

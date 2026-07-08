@@ -1,0 +1,4203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LMDC Planner</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232a4d6e'/><text x='16' y='22' font-family='Georgia' font-size='17' fill='%23f6f4ef' text-anchor='middle' font-style='italic'>L</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ================================================================
+   LMDC PLANNER — quiet ledger
+   Warm paper, ink type, one marine accent. Fraunces display,
+   IBM Plex Sans body, IBM Plex Mono for data.
+================================================================ */
+:root{
+  --paper:#f5f3ee;
+  --surface:#fdfcfa;
+  --sunken:#efece4;
+  --ink:#211e19;
+  --ink-2:#514c43;
+  --mut:#8b8578;
+  --line:#e4dfd3;
+  --line-2:#d5cfc0;
+  --accent:#2a4d6e;
+  --accent-soft:#e7edf3;
+  --accent-line:#b9c9d8;
+
+  --ok:#4d7c5f;      --ok-soft:#e8efe9;
+  --warn:#a8752c;    --warn-soft:#f5ecdc;
+  --late:#a8433b;    --late-soft:#f6e6e4;
+  --info:#5b6e8c;    --info-soft:#e9edf2;
+  --hold:#8b8578;
+
+  --ph1:#35577d; --ph2:#7d6a45; --ph3:#4d7c5f;
+  --ph4:#71566b; --ph5:#a8433b; --ph6:#5b6e8c;
+
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --serif:'Fraunces',Georgia,serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+
+  --r-sm:5px; --r-md:9px; --r-lg:13px;
+  --shadow-1:0 1px 2px rgba(50,44,32,.06);
+  --shadow-2:0 6px 24px -8px rgba(50,44,32,.16);
+  --shadow-pop:0 12px 40px -8px rgba(50,44,32,.24);
+  --ease:cubic-bezier(.33,1,.5,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font:400 14px/1.55 var(--sans);
+  -webkit-font-smoothing:antialiased;
+  min-height:100dvh;
+}
+::selection{background:var(--accent-soft);color:var(--accent)}
+h1,h2,h3{font-weight:500;text-wrap:balance}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+[hidden]{display:none!important}
+
+/* faint paper grain */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.38 0 0 0 0 0.30 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+#app{position:relative;z-index:1}
+
+/* ── Topbar ──────────────────────────────────────────────── */
+.topbar{
+  position:sticky;top:0;z-index:50;
+  background:color-mix(in srgb,var(--paper) 88%,transparent);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.topbar-in{
+  max-width:1440px;margin:0 auto;padding:0 32px;
+  display:flex;align-items:center;gap:28px;height:58px;
+}
+.wordmark{display:flex;align-items:baseline;gap:9px;cursor:pointer;user-select:none}
+.wordmark b{font:italic 500 21px/1 var(--serif);letter-spacing:-.01em}
+.wordmark span{font:500 10px/1 var(--mono);color:var(--mut);letter-spacing:.14em;text-transform:uppercase;position:relative;top:-1px}
+.main-nav{display:flex;gap:2px;height:100%}
+.nav-link{
+  position:relative;display:flex;align-items:center;padding:0 13px;
+  font-size:13.5px;color:var(--ink-2);transition:color .15s;
+}
+.nav-link:hover{color:var(--ink)}
+.nav-link.on{color:var(--ink)}
+.nav-link.on::after{
+  content:"";position:absolute;left:13px;right:13px;bottom:-1px;height:2px;background:var(--accent);
+}
+.nav-link:disabled{color:var(--line-2);cursor:default}
+.topbar-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:7px 14px;border-radius:var(--r-sm);
+  font-size:13px;font-weight:500;line-height:1.2;
+  border:1px solid var(--line-2);background:var(--surface);color:var(--ink-2);
+  transition:all .16s var(--ease);white-space:nowrap;
+}
+.btn:hover{border-color:var(--mut);color:var(--ink);transform:translateY(-1px);box-shadow:var(--shadow-1)}
+.btn:active{transform:translateY(0) scale(.98)}
+.btn:focus-visible,.nav-link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fdfcfa}
+.btn.primary:hover{background:#33587a;border-color:#33587a}
+.btn.quiet{border-color:transparent;background:transparent}
+.btn.quiet:hover{background:var(--sunken);box-shadow:none;border-color:transparent}
+.btn.danger:hover{border-color:var(--late);color:var(--late)}
+.btn:disabled{opacity:.45;pointer-events:none}
+
+/* ── Screens ─────────────────────────────────────────────── */
+.screen{display:none;max-width:1440px;margin:0 auto;padding:0 32px 90px}
+.screen.active{display:block;animation:screenIn .3s var(--ease)}
+@keyframes screenIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.screen-hd{padding:44px 0 26px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.screen-hd .kicker{font:500 10.5px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--mut);margin-bottom:11px}
+.screen-hd h1{font:500 34px/1.1 var(--serif);letter-spacing:-.015em}
+.screen-hd h1 em{font-style:italic;color:var(--accent)}
+.screen-hd .hd-sub{margin-top:9px;color:var(--ink-2);font-size:13.5px;max-width:56ch}
+.hd-side{display:flex;align-items:center;gap:10px;padding-bottom:4px;flex-wrap:wrap}
+
+/* ── Forms ───────────────────────────────────────────────── */
+.field label,.f-lbl{
+  display:flex;align-items:baseline;gap:6px;
+  font-size:12px;font-weight:500;color:var(--ink-2);margin-bottom:6px;
+}
+.req{color:var(--late);font-weight:600}
+.opt{font:400 10px/1 var(--mono);color:var(--mut);letter-spacing:.08em;text-transform:uppercase}
+.fi{
+  width:100%;padding:9px 12px;border-radius:var(--r-sm);
+  border:1px solid var(--line-2);background:var(--surface);
+  font-size:13.5px;transition:border-color .15s,box-shadow .15s;
+}
+.fi::placeholder{color:var(--mut);opacity:.75}
+.fi:hover{border-color:var(--mut)}
+.fi:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.fi[readonly]{background:var(--sunken);color:var(--ink-2)}
+select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b8578' stroke-width='2.4' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;padding-right:32px}
+input[type="date"].fi{font-family:var(--mono);font-size:12.5px}
+textarea.fi{resize:vertical;min-height:70px}
+
+/* ── Intake ──────────────────────────────────────────────── */
+.intake-grid{display:grid;grid-template-columns:236px minmax(0,720px);gap:56px;align-items:start}
+.intake-rail{position:sticky;top:82px}
+.rail-prog{padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.rail-prog-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+.rail-prog-top span{font:500 10.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+.rail-prog-top b{font:500 15px/1 var(--mono);color:var(--ink)}
+.rail-bar{height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.rail-bar i{display:block;height:100%;background:var(--accent);border-radius:2px;transition:width .4s var(--ease)}
+.rail-group{font:500 10px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mut);margin:20px 0 8px}
+.rail-item{
+  display:flex;align-items:center;gap:9px;width:100%;
+  padding:7px 10px;margin:0 -10px;border-radius:var(--r-sm);
+  font-size:13px;color:var(--ink-2);text-align:left;transition:background .14s,color .14s;
+}
+.rail-item:hover{background:var(--sunken);color:var(--ink)}
+.rail-item.disabled{opacity:.38;pointer-events:none}
+.rail-dot{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--line-2);flex-shrink:0;transition:all .2s}
+.rail-item.done .rail-dot{background:var(--ok);border-color:var(--ok)}
+.rail-item.part .rail-dot{border-color:var(--warn);background:var(--warn-soft)}
+.rail-item .rail-meta{margin-left:auto;font:400 10.5px/1 var(--mono);color:var(--mut)}
+.rail-item.done .rail-meta{color:var(--ok)}
+
+.intake-form{min-width:0}
+.edit-banner{
+  display:none;align-items:center;gap:10px;margin-bottom:26px;
+  padding:11px 15px;border-radius:var(--r-md);
+  background:var(--accent-soft);border:1px solid var(--accent-line);
+  font-size:13px;color:var(--accent);
+}
+.edit-banner.show{display:flex}
+.edit-banner b{font-weight:600}
+.edit-banner button{margin-left:auto;font-size:12px;font-weight:500;text-decoration:underline;text-underline-offset:3px;color:var(--accent)}
+
+.isec{padding:30px 0;border-top:1px solid var(--line)}
+.isec:first-of-type{border-top:none;padding-top:6px}
+.isec-hd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}
+.isec-hd h2{font:500 19px/1.2 var(--serif);letter-spacing:-.01em}
+.isec-hd .isec-meta{font:400 11px/1 var(--mono);color:var(--mut);letter-spacing:.06em}
+.frow{display:grid;gap:16px;margin-bottom:16px}
+.frow.two{grid-template-columns:1fr 1fr}
+.frow:last-child{margin-bottom:0}
+.fhint{font-size:11.5px;color:var(--mut);margin-top:5px;line-height:1.5}
+
+/* choice cards (plan type / merger / strategy) */
+.choice-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.choice-grid.two{grid-template-columns:repeat(2,1fr)}
+.choice{
+  position:relative;padding:15px 16px 13px;border-radius:var(--r-md);
+  border:1px solid var(--line-2);background:var(--surface);
+  cursor:pointer;transition:all .16s var(--ease);text-align:left;
+}
+.choice:hover{border-color:var(--mut);transform:translateY(-1px);box-shadow:var(--shadow-1)}
+.choice .cn{font-weight:600;font-size:13.5px;margin-bottom:2px}
+.choice .cd{font-size:12px;color:var(--mut)}
+.choice::after{
+  content:"";position:absolute;top:13px;right:13px;width:15px;height:15px;border-radius:50%;
+  border:1.5px solid var(--line-2);transition:all .16s;
+  background-position:center;background-repeat:no-repeat;
+}
+.choice.on{border-color:var(--accent);background:var(--accent-soft)}
+.choice.on .cn{color:var(--accent)}
+.choice.on .cd{color:var(--ink-2)}
+.choice.on::after{
+  background-color:var(--accent);border-color:var(--accent);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fdfcfa' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+  background-size:9px;
+}
+.merger-sub{display:none;margin-top:14px;padding:16px;border-radius:var(--r-md);background:var(--sunken)}
+.merger-sub.show{display:block;animation:screenIn .25s var(--ease)}
+.merger-sub .f-lbl{margin-bottom:10px}
+
+/* characteristics */
+.char-list{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.char{
+  display:flex;gap:11px;align-items:flex-start;padding:13px 14px;
+  border:1px solid var(--line-2);border-radius:var(--r-md);background:var(--surface);
+  cursor:pointer;transition:all .16s var(--ease);
+}
+.char:hover{border-color:var(--mut)}
+.char .box{
+  width:16px;height:16px;margin-top:1px;border-radius:4px;flex-shrink:0;
+  border:1.5px solid var(--line-2);transition:all .16s;
+  background-position:center;background-repeat:no-repeat;
+}
+.char.on{border-color:var(--accent);background:var(--accent-soft)}
+.char.on .box{
+  background-color:var(--accent);border-color:var(--accent);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fdfcfa' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+  background-size:10px;
+}
+.char .cn{font-weight:600;font-size:13px}
+.char .cd{font-size:11.5px;color:var(--mut);margin-top:1px}
+
+.add-contact{
+  display:inline-flex;align-items:center;gap:6px;margin-top:4px;
+  font-size:12.5px;font-weight:500;color:var(--accent);
+  padding:5px 0;transition:opacity .15s;
+}
+.add-contact:hover{opacity:.75}
+.extra-contact{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-bottom:12px}
+.extra-contact .rm{color:var(--mut);padding:9px 6px;font-size:15px;line-height:1;border-radius:var(--r-sm)}
+.extra-contact .rm:hover{color:var(--late);background:var(--late-soft)}
+
+.gen-row{margin-top:34px;padding-top:26px;border-top:1px solid var(--line);display:flex;align-items:center;gap:18px}
+.gen-btn{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:13px 26px;border-radius:var(--r-md);
+  background:var(--accent);color:#fdfcfa;font-size:14.5px;font-weight:600;
+  transition:all .18s var(--ease);
+}
+.gen-btn:hover{background:#33587a;transform:translateY(-1px);box-shadow:var(--shadow-2)}
+.gen-btn:active{transform:scale(.98)}
+.gen-btn:disabled{background:var(--line-2);color:var(--mut);pointer-events:none}
+.gen-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+.gen-btn:hover svg{transform:translateX(3px)}
+.gen-status{font:400 11px/1.5 var(--mono);letter-spacing:.05em;color:var(--mut)}
+.gen-status.ok{color:var(--ok)}
+
+/* ── Checklist ───────────────────────────────────────────── */
+.cl-hd{padding:40px 0 0}
+.cl-hd-top{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.cl-ident .kicker{font:500 10.5px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--mut);margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.cl-plan-name{font:500 32px/1.12 var(--serif);letter-spacing:-.015em;max-width:26ch}
+.cl-ident-meta{display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap}
+.case-tag{font:500 12px/1 var(--mono);letter-spacing:.04em;color:var(--ink-2)}
+.meta-dot{width:3px;height:3px;border-radius:50%;background:var(--line-2)}
+.plan-badges{display:flex;gap:6px;flex-wrap:wrap}
+.plan-badge{font:500 10px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);padding:4px 8px;border:1px solid var(--line-2);border-radius:3px;background:var(--surface)}
+
+.status-ctl{position:relative}
+.status-pill{
+  display:inline-flex;align-items:center;gap:7px;padding:5px 11px;
+  border-radius:99px;border:1px solid var(--line-2);background:var(--surface);
+  font-size:12px;font-weight:500;cursor:pointer;transition:border-color .15s;
+}
+.status-pill:hover{border-color:var(--mut)}
+.status-pill .dot,.smenu-item .dot{width:7px;height:7px;border-radius:50%}
+.status-pill svg{width:11px;height:11px;stroke:var(--mut);fill:none;stroke-width:2;stroke-linecap:round}
+.st-active .dot{background:var(--ok)}
+.st-complete .dot{background:var(--accent)}
+.st-hold .dot{background:var(--warn)}
+.smenu{
+  position:absolute;top:calc(100% + 6px);left:0;z-index:40;min-width:150px;
+  background:var(--surface);border:1px solid var(--line-2);border-radius:var(--r-md);
+  box-shadow:var(--shadow-pop);padding:5px;display:none;
+}
+.smenu.open{display:block;animation:popIn .16s var(--ease)}
+@keyframes popIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.smenu-item{display:flex;align-items:center;gap:9px;width:100%;padding:8px 11px;border-radius:var(--r-sm);font-size:12.5px;font-weight:500;text-align:left}
+.smenu-item:hover{background:var(--sunken)}
+
+.cl-counters{display:flex;gap:26px;align-items:flex-start;padding-top:6px}
+.counter{text-align:right}
+.counter .cv{font:500 24px/1 var(--mono);letter-spacing:-.02em}
+.counter .cv.cv-warn{color:var(--warn)}
+.counter .cv.cv-urgent{color:var(--late)}
+.counter .cv.cv-ok{color:var(--ink)}
+.counter .ck{font:500 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin-top:6px}
+
+.cl-progress{margin:26px 0 0;display:flex;align-items:center;gap:14px}
+.cl-progress .track{flex:1;height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.cl-progress .track i{display:block;height:100%;background:var(--accent);border-radius:2px;transition:width .5s var(--ease)}
+.cl-progress .pnum{font:500 12px/1 var(--mono);color:var(--ink-2);min-width:110px;text-align:right}
+
+.cl-toolbar{
+  position:sticky;top:58px;z-index:30;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:13px 0;margin-top:20px;
+  border-bottom:1px solid var(--line);
+  background:color-mix(in srgb,var(--paper) 92%,transparent);
+  backdrop-filter:blur(8px);
+}
+.tool-lbl{font:500 10px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--mut)}
+.chip-row{display:flex;gap:5px;flex-wrap:wrap}
+.fchip{
+  padding:5px 11px;border-radius:99px;font-size:12px;font-weight:500;
+  color:var(--ink-2);border:1px solid transparent;transition:all .14s;
+}
+.fchip:hover{background:var(--sunken)}
+.fchip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.tool-sep{width:1px;height:18px;background:var(--line-2)}
+.collapse-btn{margin-left:auto;font-size:12px;font-weight:500;color:var(--mut);transition:color .15s}
+.collapse-btn:hover{color:var(--ink)}
+
+.cl-layout{display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:48px;align-items:start;padding-top:30px}
+.cl-main{min-width:0}
+
+/* phase */
+.phase{margin-bottom:14px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);overflow:hidden;transition:box-shadow .2s}
+.phase:hover{box-shadow:var(--shadow-1)}
+.phase-hd{display:flex;align-items:center;gap:16px;padding:16px 20px;cursor:pointer;user-select:none;position:relative}
+.phase-num{
+  font:500 11px/1 var(--mono);letter-spacing:.05em;color:var(--phc,var(--accent));
+  border:1px solid color-mix(in srgb,var(--phc,var(--accent)) 35%,transparent);
+  width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  background:color-mix(in srgb,var(--phc,var(--accent)) 7%,transparent);
+}
+.phase-hd-main{min-width:0;flex:1}
+.phase-title{font:500 17px/1.2 var(--serif);letter-spacing:-.005em}
+.phase-sub{font-size:12px;color:var(--mut);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.phase-hd-meta{display:flex;align-items:center;gap:13px;flex-shrink:0}
+.phase-range{font:400 11px/1 var(--mono);color:var(--mut)}
+.phase-late{font:500 11px/1 var(--mono);color:var(--late)}
+.phase-count{font:500 11.5px/1 var(--mono);color:var(--ink-2)}
+.phase-chev{width:15px;height:15px;stroke:var(--mut);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .25s var(--ease)}
+.phase.closed .phase-chev{transform:rotate(-90deg)}
+.phase-bar{position:absolute;left:0;right:0;bottom:0;height:2px;background:transparent}
+.phase-bar i{display:block;height:100%;background:color-mix(in srgb,var(--phc,var(--accent)) 55%,transparent);transition:width .4s var(--ease)}
+.phase-body{border-top:1px solid var(--line)}
+.phase.closed .phase-body{display:none}
+
+/* task rows */
+.task{
+  display:flex;gap:13px;align-items:flex-start;
+  padding:12px 20px;border-bottom:1px solid var(--line);
+  transition:background .14s;
+}
+.task:last-of-type{border-bottom:none}
+.task:hover{background:color-mix(in srgb,var(--sunken) 55%,transparent)}
+.task.subtask{padding-left:44px}
+.task-check{
+  width:19px;height:19px;margin-top:1px;border-radius:5px;flex-shrink:0;
+  border:1.5px solid var(--line-2);background:var(--surface);
+  display:flex;align-items:center;justify-content:center;
+  transition:all .16s var(--ease);cursor:pointer;
+}
+.task-check svg{width:11px;height:11px;stroke:#fdfcfa;fill:none;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;opacity:0;transform:scale(.5);transition:all .18s var(--ease)}
+.task-check:hover{border-color:var(--accent)}
+.task.done .task-check{background:var(--ok);border-color:var(--ok)}
+.task.done .task-check svg{opacity:1;transform:scale(1)}
+.task-main{flex:1;min-width:0}
+.task-row1{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.task-text{font-size:13.5px;font-weight:500;transition:color .18s}
+.task.done .task-text{color:var(--mut);text-decoration:line-through;text-decoration-color:var(--line-2);font-weight:400}
+.task-tags{font:400 10.5px/1 var(--mono);letter-spacing:.06em;color:var(--mut)}
+.task-tags .tg-critical{color:var(--late)}
+.task-side{display:flex;align-items:center;gap:7px;flex-shrink:0;margin-top:-1px}
+
+.due{
+  display:inline-flex;align-items:center;gap:5px;
+  font:500 11px/1 var(--mono);letter-spacing:.02em;
+  padding:4px 9px;border-radius:4px;cursor:pointer;
+  border:1px solid transparent;transition:border-color .15s;
+}
+.due:hover{border-color:currentColor}
+.due.nohover{cursor:default}
+.due.nohover:hover{border-color:transparent}
+.due svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.due.d-overdue{background:var(--late-soft);color:var(--late)}
+.due.d-today{background:var(--warn-soft);color:var(--warn)}
+.due.d-soon{background:var(--warn-soft);color:var(--warn)}
+.due.d-week{background:var(--info-soft);color:var(--info)}
+.due.d-future{background:var(--sunken);color:var(--ink-2)}
+.due.d-pending{background:transparent;color:var(--mut);border-color:var(--line-2);border-style:dashed}
+.due.d-manual::after{content:"·";font-weight:700}
+
+.tbtn{
+  width:26px;height:26px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;
+  color:var(--mut);transition:all .14s;
+}
+.tbtn:hover{background:var(--sunken);color:var(--ink)}
+.tbtn svg{width:13.5px;height:13.5px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.tbtn.on{color:var(--accent);background:var(--accent-soft)}
+.tbtn.del:hover{color:var(--late);background:var(--late-soft)}
+
+.working-flag{
+  font:500 10px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+  padding:4px 8px;border-radius:3px;color:var(--mut);border:1px solid var(--line-2);
+  transition:all .15s;
+}
+.working-flag:hover{border-color:var(--warn);color:var(--warn)}
+.working-flag.on{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+
+.task-event{
+  display:flex;align-items:center;gap:8px;margin-top:8px;
+  font-size:11.5px;color:var(--ink-2);
+}
+.task-event input{
+  font:400 11.5px var(--mono);padding:4px 8px;border-radius:4px;
+  border:1px solid var(--line-2);background:var(--surface);
+}
+.task-event input:focus{outline:none;border-color:var(--accent)}
+.task-event .te-lbl{font-weight:500}
+
+.due-editor{display:none;margin-top:8px;align-items:center;gap:7px}
+.due-editor.open{display:flex;animation:popIn .18s var(--ease)}
+.due-editor .de-lbl{font:500 10px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+.due-editor input{font:400 11.5px var(--mono);padding:4px 8px;border-radius:4px;border:1px solid var(--line-2);background:var(--surface)}
+.due-editor button{font-size:11.5px;font-weight:500;padding:4px 10px;border-radius:4px;border:1px solid var(--line-2);transition:all .14s}
+.due-editor button:hover{border-color:var(--accent);color:var(--accent)}
+
+.task-note{margin-top:8px}
+.task-note .note-view{
+  font-size:12.5px;color:var(--ink-2);background:var(--sunken);
+  padding:9px 12px;border-radius:var(--r-sm);border-left:2px solid var(--line-2);
+  white-space:pre-wrap;
+}
+.task-note textarea{
+  width:100%;min-height:58px;padding:9px 12px;border-radius:var(--r-sm);
+  border:1px solid var(--line-2);background:var(--surface);font-size:12.5px;resize:vertical;
+}
+.task-note textarea:focus{outline:none;border-color:var(--accent)}
+.note-actions{display:flex;gap:8px;margin-top:6px;align-items:center}
+.note-actions button{font-size:11.5px;font-weight:500;color:var(--accent)}
+.note-actions button:hover{opacity:.75}
+.note-actions .cancel{color:var(--mut)}
+
+.phase-foot{display:flex;gap:9px;padding:12px 20px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--sunken) 40%,transparent)}
+.phase-foot input{
+  flex:1;padding:7px 11px;border-radius:var(--r-sm);font-size:12.5px;
+  border:1px solid var(--line-2);background:var(--surface);
+}
+.phase-foot input:focus{outline:none;border-color:var(--accent)}
+.phase-foot button{font-size:12px;font-weight:500;color:var(--accent);padding:0 6px}
+.phase-foot button:hover{opacity:.75}
+
+.tasks-empty{padding:16px 20px;font-size:12.5px;color:var(--mut);font-style:italic}
+
+/* sidebar */
+.cl-side{position:sticky;top:128px;display:flex;flex-direction:column;gap:14px}
+.side-card{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);padding:18px 20px}
+.side-card>h3{font:500 15px/1.2 var(--serif);margin-bottom:14px;display:flex;align-items:baseline;justify-content:space-between}
+.side-card>h3 .edit-link{font:500 11.5px var(--sans);color:var(--accent)}
+.side-card>h3 .edit-link:hover{opacity:.75}
+.pd-row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:12.5px;border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+.pd-row:last-child{border-bottom:none}
+.pd-row .l{color:var(--mut);flex-shrink:0}
+.pd-row .v{text-align:right;font-weight:500;min-width:0;overflow-wrap:break-word}
+.pd-row .v.mono{font:500 11.5px var(--mono)}
+.pd-row .v a{text-decoration:none;font-weight:500}
+.pd-row .v a:hover{text-decoration:underline;text-underline-offset:2px}
+.pd-group{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.pd-group:first-child{margin-top:0;padding-top:0;border-top:none}
+.pd-group .pd-g-lbl{font:500 10px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--mut);margin-bottom:5px}
+
+/* pins */
+.pin-card{
+  border:1px solid var(--line);border-radius:var(--r-md);padding:11px 13px;margin-bottom:9px;
+  background:var(--paper);position:relative;transition:border-color .15s;
+}
+.pin-card:hover{border-color:var(--line-2)}
+.pin-card.important{border-left:3px solid var(--warn)}
+.pin-card .pin-note{font-size:12.5px;white-space:pre-wrap;overflow-wrap:break-word}
+.pin-card .pin-meta{display:flex;gap:8px;align-items:center;margin-top:8px;font:400 10.5px var(--mono);color:var(--mut)}
+.pin-card .pin-acts{position:absolute;top:7px;right:7px;display:flex;gap:2px;opacity:0;transition:opacity .15s}
+.pin-card:hover .pin-acts{opacity:1}
+.pin-acts button{width:22px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--mut)}
+.pin-acts button:hover{background:var(--sunken);color:var(--ink)}
+.pin-acts button.star.on{color:var(--warn)}
+.pin-acts svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.pin-acts button.star.on svg{fill:var(--warn)}
+.pin-form{margin-bottom:10px}
+.pin-form textarea{width:100%;min-height:56px;padding:9px 11px;border-radius:var(--r-sm);border:1px solid var(--line-2);background:var(--surface);font-size:12.5px;resize:vertical}
+.pin-form textarea:focus{outline:none;border-color:var(--accent)}
+.pins-empty{font-size:12px;color:var(--mut);font-style:italic}
+
+.notes-ta{width:100%;min-height:120px;padding:11px 13px;border-radius:var(--r-sm);border:1px solid var(--line-2);background:var(--paper);font-size:12.5px;resize:vertical;line-height:1.6}
+.notes-ta:focus{outline:none;border-color:var(--accent)}
+.side-foot{display:flex;justify-content:flex-end;margin-top:10px}
+
+/* ── Dashboard ───────────────────────────────────────────── */
+.dash-empty{
+  padding:70px 0;text-align:center;border:1px dashed var(--line-2);border-radius:var(--r-lg);
+}
+.dash-empty h3{font:500 21px/1.3 var(--serif);margin-bottom:8px}
+.dash-empty p{color:var(--mut);font-size:13px;margin-bottom:20px}
+.dash-section{margin-top:38px}
+.dash-section>.ds-hd{
+  display:flex;align-items:baseline;gap:12px;margin-bottom:16px;
+  padding-bottom:10px;border-bottom:1px solid var(--line);
+}
+.dash-section>.ds-hd h2{font:500 20px/1.2 var(--serif)}
+.dash-section>.ds-hd .ds-count{font:500 11px/1 var(--mono);color:var(--mut)}
+.dash-section>.ds-hd .ds-act{margin-left:auto;font-size:12px;font-weight:500;color:var(--mut)}
+.dash-section>.ds-hd .ds-act:hover{color:var(--late)}
+
+.week-board{display:flex;flex-direction:column;gap:12px}
+.wk-plan{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);overflow:hidden}
+.wk-plan-hd{
+  display:flex;align-items:center;gap:14px;padding:13px 18px;cursor:pointer;
+  border-bottom:1px solid var(--line);transition:background .14s;
+}
+.wk-plan-hd:hover{background:var(--sunken)}
+.wk-plan-hd .wp-name{font:500 15.5px/1.2 var(--serif)}
+.wk-plan-hd .wp-case{font:400 11px/1 var(--mono);color:var(--mut)}
+.wk-plan-hd .wp-open{margin-left:auto;font-size:12px;font-weight:500;color:var(--accent);opacity:0;transition:opacity .15s}
+.wk-plan-hd:hover .wp-open{opacity:1}
+.wk-rows{padding:6px 0}
+.wk-row{display:flex;align-items:baseline;gap:12px;padding:6px 18px;font-size:12.5px}
+.wk-row .wr-date{font:500 11px/1.4 var(--mono);width:86px;flex-shrink:0}
+.wk-row.late .wr-date{color:var(--late)}
+.wk-row.today .wr-date{color:var(--warn)}
+.wk-row .wr-text{color:var(--ink-2)}
+.wk-row .wr-phase{font:400 10.5px/1.4 var(--mono);color:var(--mut);margin-left:auto;flex-shrink:0}
+.wk-clear{padding:12px 18px;font-size:12.5px;color:var(--ok);display:flex;align-items:center;gap:7px}
+.wk-clear svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+.plan-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.plan-card{
+  border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);
+  padding:18px 20px 16px;cursor:pointer;position:relative;
+  transition:all .18s var(--ease);
+}
+.plan-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-2);border-color:var(--line-2)}
+.plan-card .pc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:4px}
+.plan-card .pc-name{font:500 17px/1.25 var(--serif);letter-spacing:-.005em}
+.plan-card .pc-case{font:400 11px/1 var(--mono);color:var(--mut);margin-top:5px}
+.plan-card .pc-meta{display:flex;gap:7px;align-items:center;margin-top:13px;flex-wrap:wrap}
+.pc-chip{font:500 10px/1 var(--mono);letter-spacing:.09em;text-transform:uppercase;padding:4px 8px;border-radius:3px;background:var(--sunken);color:var(--ink-2)}
+.pc-chip.late{background:var(--late-soft);color:var(--late)}
+.pc-chip.warn{background:var(--warn-soft);color:var(--warn)}
+.pc-chip.ok{background:var(--ok-soft);color:var(--ok)}
+.plan-card .pc-prog{display:flex;align-items:center;gap:11px;margin-top:15px}
+.plan-card .pc-prog .track{flex:1;height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.plan-card .pc-prog .track i{display:block;height:100%;background:var(--accent);border-radius:2px}
+.plan-card .pc-prog span{font:500 11px/1 var(--mono);color:var(--ink-2)}
+.plan-card .pc-acts{
+  position:absolute;top:13px;right:13px;display:flex;gap:3px;
+  opacity:0;transition:opacity .15s;background:var(--surface);border-radius:var(--r-sm);
+}
+.plan-card:hover .pc-acts{opacity:1}
+.pc-acts button{width:25px;height:25px;border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--mut)}
+.pc-acts button:hover{background:var(--sunken);color:var(--ink)}
+.pc-acts button.del:hover{background:var(--late-soft);color:var(--late)}
+.pc-acts svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.plan-card.held{opacity:.75}
+.plan-card.trashed{opacity:.65;border-style:dashed}
+
+/* ── Calendar ────────────────────────────────────────────── */
+.cal-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:40px;align-items:start;margin-top:8px}
+.cal-nav{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.cal-nav h2{font:500 23px/1 var(--serif);min-width:200px}
+.cal-nav .cal-nav-btns{display:flex;gap:4px}
+.cal-nav button{
+  width:30px;height:30px;border-radius:var(--r-sm);border:1px solid var(--line-2);
+  display:flex;align-items:center;justify-content:center;color:var(--ink-2);
+  transition:all .14s;background:var(--surface);
+}
+.cal-nav button:hover{border-color:var(--mut);color:var(--ink)}
+.cal-nav button svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cal-nav .today-btn{width:auto;padding:0 12px;font-size:12px;font-weight:500}
+.cal-grid{
+  display:grid;grid-template-columns:repeat(7,1fr);
+  border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;background:var(--line);
+  gap:1px;
+}
+.cal-dow{
+  background:var(--sunken);padding:8px 10px;
+  font:500 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mut);
+  text-align:right;
+}
+.cal-cell{
+  background:var(--surface);min-height:104px;padding:8px 9px;cursor:pointer;
+  transition:background .14s;position:relative;
+}
+.cal-cell:hover{background:var(--accent-soft)}
+.cal-cell.dim{background:color-mix(in srgb,var(--sunken) 60%,var(--surface));color:var(--mut)}
+.cal-cell.sel{outline:2px solid var(--accent);outline-offset:-2px;border-radius:2px}
+.cal-cell .cd-num{font:500 11.5px/1 var(--mono);color:var(--ink-2);text-align:right;display:block}
+.cal-cell.dim .cd-num{color:var(--line-2)}
+.cal-cell.today .cd-num{
+  background:var(--accent);color:#fdfcfa;border-radius:99px;
+  padding:3px 7px;display:inline-block;float:right;margin:-3px -3px 0 0;
+}
+.cal-items{margin-top:7px;display:flex;flex-direction:column;gap:3px}
+.cal-item{
+  font-size:10.5px;line-height:1.3;padding:2.5px 6px;border-radius:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background:var(--sunken);color:var(--ink-2);border-left:2px solid var(--line-2);
+}
+.cal-item.late{background:var(--late-soft);color:var(--late);border-left-color:var(--late)}
+.cal-item.today{background:var(--warn-soft);color:var(--warn);border-left-color:var(--warn)}
+.cal-item.done{color:var(--mut);text-decoration:line-through;border-left-color:var(--ok)}
+.cal-item.custom{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent)}
+.cal-more{font:500 10px/1 var(--mono);color:var(--mut);padding:2px 6px}
+
+.cal-panel{position:sticky;top:82px}
+.cal-panel .side-card{margin-bottom:14px}
+.day-list{display:flex;flex-direction:column;gap:8px}
+.day-task{padding:9px 11px;border-radius:var(--r-sm);background:var(--paper);border:1px solid var(--line);font-size:12.5px}
+.day-task .dt-plan{font:400 10.5px var(--mono);color:var(--mut);margin-top:3px}
+.day-task.late{border-left:2px solid var(--late)}
+.day-task.custom{border-left:2px solid var(--accent)}
+.day-task .dt-del{float:right;color:var(--mut);font-size:14px;line-height:1;padding:0 3px}
+.day-task .dt-del:hover{color:var(--late)}
+.day-empty{font-size:12px;color:var(--mut);font-style:italic}
+.cal-add{display:flex;flex-direction:column;gap:8px}
+.cal-add input[type=text]{padding:8px 11px;border-radius:var(--r-sm);border:1px solid var(--line-2);background:var(--surface);font-size:12.5px}
+.cal-add input[type=date]{padding:7px 11px;border-radius:var(--r-sm);border:1px solid var(--line-2);background:var(--surface);font:400 11.5px var(--mono)}
+.cal-add input:focus{outline:none;border-color:var(--accent)}
+
+/* ── SQL Repo ────────────────────────────────────────────── */
+.sql-layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:36px;align-items:start;margin-top:8px}
+.sql-fills{position:sticky;top:82px;display:flex;flex-direction:column;gap:14px}
+.sql-fills .f-lbl{margin-bottom:5px}
+[data-sql-field]{transition:opacity .2s}
+[data-sql-field].is-optional{opacity:.5}
+[data-sql-field].is-needed{opacity:1}
+[data-sql-field].is-needed .f-lbl::after{content:"needed";font:400 9px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-left:auto}
+.sql-help{font-size:11.5px;color:var(--mut);line-height:1.6;padding-top:4px;border-top:1px solid var(--line);margin-top:4px}
+
+.sql-work{display:grid;grid-template-columns:280px minmax(0,1fr);gap:22px;align-items:start}
+.sql-picker{display:flex;flex-direction:column;gap:12px;min-width:0}
+.sql-search{position:relative}
+.sql-search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:13px;height:13px;stroke:var(--mut);fill:none;stroke-width:2;stroke-linecap:round}
+.sql-search input{width:100%;padding:8px 30px 8px 32px;border-radius:var(--r-sm);border:1px solid var(--line-2);background:var(--surface);font-size:12.5px}
+.sql-search input:focus{outline:none;border-color:var(--accent)}
+.sql-search-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:20px;height:20px;color:var(--mut);font-size:14px;border-radius:4px}
+.sql-search-clear:hover{background:var(--sunken)}
+.sql-cat-nav{display:flex;flex-wrap:wrap;gap:4px}
+.sql-cat-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 9px;border-radius:99px;font-size:11px;font-weight:500;
+  color:var(--ink-2);border:1px solid transparent;transition:all .13s;
+}
+.sql-cat-chip:hover{background:var(--sunken)}
+.sql-cat-chip.is-active{background:var(--ink);color:var(--paper)}
+.sql-cat-dot{width:6px;height:6px;border-radius:50%;background:var(--cat,var(--mut))}
+.sql-cat-chip.is-active .sql-cat-dot{background:var(--paper)}
+.sql-query-list{display:flex;flex-direction:column;gap:3px;max-height:calc(100dvh - 300px);overflow:auto;padding-right:4px}
+.sql-query-group{margin-bottom:8px}
+.sql-group-head{font:500 10px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--cat,var(--mut));padding:8px 10px 5px}
+.sql-query-btn{
+  width:100%;text-align:left;padding:8px 11px;border-radius:var(--r-sm);
+  border:1px solid transparent;transition:all .13s;
+}
+.sql-query-btn:hover{background:var(--sunken)}
+.sql-query-btn.is-active{background:var(--surface);border-color:var(--line-2);box-shadow:var(--shadow-1)}
+.sql-query-name{font-size:12.5px;font-weight:500}
+.sql-query-btn.is-active .sql-query-name{color:var(--accent)}
+.sql-query-meta{font:400 10px/1.4 var(--mono);color:var(--mut);margin-top:2px}
+.sql-query-empty{font-size:12px;color:var(--mut);font-style:italic;padding:10px}
+
+.sql-out{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);overflow:hidden;min-width:0}
+.sql-out-hd{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 18px;border-bottom:1px solid var(--line)}
+.sql-out-hd h3{font:500 16px/1.2 var(--serif)}
+.sql-out-hd .sql-sub{font-size:11.5px;color:var(--mut);margin-top:3px}
+.sql-code{
+  font:400 12px/1.7 var(--mono);padding:18px 20px;overflow:auto;
+  white-space:pre;color:#3d3a33;max-height:calc(100dvh - 280px);
+  background:#faf8f4;
+}
+.sql-keyword{color:var(--accent);font-weight:500}
+.sql-comment{color:var(--mut);font-style:italic}
+.sql-token{background:var(--warn-soft);color:var(--warn);border-radius:3px;padding:1px 4px;font-weight:500}
+.sql-token-ref{background:var(--info-soft);color:var(--info)}
+.sql-token-date{background:var(--ok-soft);color:var(--ok)}
+.sql-token-ssn{background:var(--late-soft);color:var(--late)}
+.sql-token-region{background:var(--accent-soft);color:var(--accent)}
+
+/* ── Modals / overlays ───────────────────────────────────── */
+.overlay{
+  position:fixed;inset:0;z-index:100;display:none;
+  align-items:center;justify-content:center;padding:24px;
+  background:rgba(38,33,25,.4);backdrop-filter:blur(3px);
+}
+.overlay.open{display:flex;animation:fadeIn .18s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{
+  width:100%;max-width:470px;background:var(--surface);
+  border-radius:var(--r-lg);border:1px solid var(--line-2);
+  box-shadow:var(--shadow-pop);padding:26px 28px;
+  animation:modalIn .24s var(--ease);
+  max-height:88dvh;overflow:auto;
+}
+@keyframes modalIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+.modal.wide{max-width:640px}
+.modal h3{font:500 20px/1.2 var(--serif);margin-bottom:6px}
+.modal .m-sub{font-size:13px;color:var(--mut);margin-bottom:18px}
+.modal .m-rows{border-top:1px solid var(--line);margin-bottom:20px}
+.modal .m-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.modal .m-row .l{color:var(--mut)}
+.modal .m-row .v{font-weight:500}
+.modal .m-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:4px}
+
+.sched-groups{display:flex;flex-direction:column;gap:4px;margin:14px 0 20px}
+.sched-row{display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent);font-size:12.5px}
+.sched-row .sr-lbl{flex:1;color:var(--ink-2)}
+.sched-row .sr-base{font:400 10.5px var(--mono);color:var(--mut);width:52px;text-align:right}
+.sched-row input{
+  width:64px;padding:5px 8px;border-radius:4px;border:1px solid var(--line-2);
+  background:var(--surface);font:400 12px var(--mono);text-align:right;
+}
+.sched-row input:focus{outline:none;border-color:var(--accent)}
+.sched-row input.overridden{border-color:var(--warn);background:var(--warn-soft)}
+.sched-grp-lbl{font:500 10px/1 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--mut);padding:16px 0 6px}
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--line)}
+.settings-row .s-l b{display:block;font-size:13.5px;font-weight:600}
+.settings-row .s-l span{font-size:12px;color:var(--mut)}
+.switch{position:relative;width:38px;height:22px;flex-shrink:0;cursor:pointer}
+.switch input{opacity:0;width:0;height:0}
+.switch .sl{position:absolute;inset:0;border-radius:99px;background:var(--line-2);transition:background .18s}
+.switch .sl::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .18s var(--ease);box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.switch input:checked+.sl{background:var(--accent)}
+.switch input:checked+.sl::after{transform:translateX(16px)}
+
+/* toast */
+#toast{
+  position:fixed;bottom:26px;left:50%;transform:translate(-50%,16px);z-index:200;
+  background:var(--ink);color:var(--paper);font-size:13px;font-weight:500;
+  padding:11px 20px;border-radius:99px;box-shadow:var(--shadow-pop);
+  opacity:0;pointer-events:none;transition:all .28s var(--ease);
+}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* stagger reveal for generated phases */
+.phase{animation:phaseIn .4s var(--ease) both}
+.phase:nth-child(1){animation-delay:.02s}.phase:nth-child(2){animation-delay:.06s}
+.phase:nth-child(3){animation-delay:.10s}.phase:nth-child(4){animation-delay:.14s}
+.phase:nth-child(5){animation-delay:.18s}.phase:nth-child(6){animation-delay:.22s}
+@keyframes phaseIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width:1180px){
+  .cl-layout{grid-template-columns:1fr}
+  .cl-side{position:static;flex-direction:row;flex-wrap:wrap}
+  .cl-side .side-card{flex:1 1 280px}
+  .cal-layout{grid-template-columns:1fr}
+  .cal-panel{position:static}
+  .sql-layout{grid-template-columns:1fr}
+  .sql-fills{position:static;flex-direction:row;flex-wrap:wrap}
+  .sql-fills>div{flex:1 1 180px}
+}
+@media (max-width:900px){
+  .intake-grid{grid-template-columns:1fr}
+  .intake-rail{display:none}
+  .sql-work{grid-template-columns:1fr}
+  .screen{padding:0 18px 70px}
+  .topbar-in{padding:0 18px;gap:14px;overflow-x:auto}
+  .choice-grid,.char-list{grid-template-columns:1fr}
+  .frow.two{grid-template-columns:1fr}
+}
+@media print{
+  .topbar,.cl-toolbar,.task-side,.phase-foot,.gen-row,#toast{display:none!important}
+  body{background:#fff}
+  .phase{break-inside:avoid;box-shadow:none}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<input type="file" id="jsonFileInput" accept=".json" onchange="handleJsonLoad(event)" hidden>
+
+<!-- ═══════════ TOPBAR ═══════════ -->
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="wordmark" onclick="goHome()"><b>LMDC</b><span>Planner</span></div>
+    <nav class="main-nav">
+      <button class="nav-link" id="nav-intake" onclick="openIntake()">New Plan</button>
+      <button class="nav-link" id="nav-checklist" onclick="openChecklist()">Checklist</button>
+      <button class="nav-link" id="nav-dashboard" onclick="openDashboard()">Dashboard</button>
+      <button class="nav-link" id="nav-calendar" onclick="openCalendar()">Calendar</button>
+      <button class="nav-link" id="nav-sql" onclick="openSqlRepo()">SQL</button>
+    </nav>
+    <div class="topbar-actions">
+      <button class="btn quiet" onclick="document.getElementById('jsonFileInput').click()">Import</button>
+      <button class="btn quiet" id="btnSaveJson" onclick="saveToJson()">Export .json</button>
+      <button class="btn" id="btnQuickSave" onclick="saveChecklist()">
+        <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
+        Save
+      </button>
+      <button class="btn quiet" onclick="openSettingsModal()" aria-label="Settings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.35a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.63 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.65 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.63a1.7 1.7 0 0 0 1-1.56V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.65a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.35 9c.2.58.73.98 1.35 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════ INTAKE ═══════════ -->
+<div id="intakeScreen" class="screen">
+  <div class="screen-hd">
+    <div>
+      <div class="kicker">Plan Implementation</div>
+      <h1>New <em>plan intake</em></h1>
+      <div class="hd-sub">Describe the plan and generate its implementation checklist. Three fields are required; everything else can be filled in later.</div>
+    </div>
+    <div class="hd-side">
+      <button class="btn quiet danger" onclick="clearAllIntake()">Clear form</button>
+    </div>
+  </div>
+
+  <div class="intake-grid">
+    <aside class="intake-rail">
+      <div class="rail-prog">
+        <div class="rail-prog-top"><span>Intake</span><b><span id="railPct">0</span>%</b></div>
+        <div class="rail-bar"><i id="railFill" style="width:0%"></i></div>
+      </div>
+      <div id="railList"></div>
+    </aside>
+
+    <div class="intake-form">
+      <div class="edit-banner" id="editBanner">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        <span>Editing <b id="editBannerName">plan</b> — progress, notes and dates are kept.</span>
+        <button onclick="cancelEditMode()">Cancel</button>
+      </div>
+
+      <!-- Plan information -->
+      <section class="isec" id="secPlan">
+        <div class="isec-hd"><h2>Plan information</h2><span class="isec-meta">3 required</span></div>
+        <div class="frow">
+          <div class="field">
+            <label class="f-lbl">Plan / client name <span class="req">*</span></label>
+            <input class="fi" id="planName" type="text" placeholder="e.g. Meridian Fabrication 401(k)">
+          </div>
+        </div>
+        <div class="frow two">
+          <div class="field">
+            <label class="f-lbl">Case number <span class="req">*</span></label>
+            <input class="fi" id="caseNumber" type="text" placeholder="e.g. QK63283 00052">
+          </div>
+          <div class="field">
+            <label class="f-lbl">Effective date <span class="req">*</span></label>
+            <input class="fi" id="effectiveDate" type="date">
+          </div>
+        </div>
+        <div class="frow two">
+          <div class="field">
+            <label class="f-lbl">Day 1 — case start <span class="opt">opt</span></label>
+            <input class="fi" id="day1" type="date">
+            <div class="fhint">Defaults to today. Set manually when backdating — all task due dates count from here.</div>
+          </div>
+          <div class="field" id="wireDateField" style="display:none">
+            <label class="f-lbl">Expected wire date <span class="opt">opt · asset transfer</span></label>
+            <input class="fi" id="wireDate" type="date">
+          </div>
+        </div>
+      </section>
+
+      <!-- Plan type -->
+      <section class="isec" id="secType">
+        <div class="isec-hd"><h2>Plan type</h2><span class="isec-meta">1 required</span></div>
+        <div class="choice-grid">
+          <button type="button" class="choice" id="btn-startup" onclick="selType('startup')">
+            <div class="cn">Startup</div><div class="cd">New plan, no prior record keeper</div>
+          </button>
+          <button type="button" class="choice" id="btn-conversion" onclick="selType('conversion')">
+            <div class="cn">Conversion</div><div class="cd">Existing plan, new record keeper</div>
+          </button>
+          <button type="button" class="choice" id="btn-merger" onclick="selType('merger')">
+            <div class="cn">Merger</div><div class="cd">Two plans into one</div>
+          </button>
+        </div>
+        <div class="merger-sub" id="mergerSub">
+          <div class="f-lbl">Merger type</div>
+          <div class="choice-grid two">
+            <button type="button" class="choice" id="mb-internal" onclick="selMerger('internal')">
+              <div class="cn">Internal</div><div class="cd">Same parent company</div>
+            </button>
+            <button type="button" class="choice" id="mb-external" onclick="selMerger('external')">
+              <div class="cn">External</div><div class="cd">Acquired / third party</div>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Conversion strategy -->
+      <section class="isec" id="secStrat" style="display:none">
+        <div class="isec-hd"><h2>Conversion strategy</h2><span class="isec-meta">Pick at least one</span></div>
+        <div class="choice-grid">
+          <button type="button" class="choice" id="strat-cash" onclick="togStrat('cash')">
+            <div class="cn">Cash</div><div class="cd">Liquidate first</div>
+          </button>
+          <button type="button" class="choice" id="strat-mapping" onclick="togStrat('mapping')">
+            <div class="cn">Mapping</div><div class="cd">Map funds across</div>
+          </button>
+          <button type="button" class="choice" id="strat-tik" onclick="togStrat('tik')">
+            <div class="cn">Transfer in kind</div><div class="cd">Move assets intact</div>
+          </button>
+        </div>
+      </section>
+
+      <!-- Coordinator -->
+      <section class="isec" id="secDC">
+        <div class="isec-hd"><h2>DC file coordinator</h2><span class="isec-meta">Optional</span></div>
+        <div class="frow">
+          <div class="field">
+            <select class="fi" id="dcFileCoordinator">
+              <option value="">Select coordinator</option>
+              <option>Selena Cherry</option><option>Amy Jiang</option>
+              <option>Beth Flores</option><option>Kayla Hartmann</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Client contact -->
+      <section class="isec" id="secClient">
+        <div class="isec-hd"><h2>Client contact</h2><span class="isec-meta">Optional</span></div>
+        <div class="frow two">
+          <div class="field"><label class="f-lbl">Name</label><input class="fi" id="clientName" type="text" placeholder="Contact name"></div>
+          <div class="field"><label class="f-lbl">Email</label><input class="fi" id="clientEmail" type="email" placeholder="email@company.com"></div>
+        </div>
+        <div id="clientExtras"></div>
+        <button type="button" class="add-contact" onclick="addContact('client')">+ Add contact</button>
+      </section>
+
+      <!-- Team -->
+      <section class="isec" id="secTeam">
+        <div class="isec-hd"><h2>Your team</h2><span class="isec-meta">Optional</span></div>
+        <div class="frow two">
+          <div class="field"><label class="f-lbl">TM name</label><select class="fi" id="tmName" onchange="selectTeamMember('tm')"></select></div>
+          <div class="field"><label class="f-lbl">TM email</label><input class="fi" id="tmEmail" type="email" readonly placeholder="—"></div>
+        </div>
+        <div class="frow two">
+          <div class="field"><label class="f-lbl">TC name</label><select class="fi" id="tcName" onchange="selectTeamMember('tc')"></select></div>
+          <div class="field"><label class="f-lbl">TC email</label><input class="fi" id="tcEmail" type="email" readonly placeholder="—"></div>
+        </div>
+      </section>
+
+      <!-- Payroll -->
+      <section class="isec" id="secPayroll">
+        <div class="isec-hd"><h2>Payroll</h2><span class="isec-meta">Optional</span></div>
+        <div class="frow">
+          <div class="field">
+            <label class="f-lbl">Payroll vendor</label>
+            <select class="fi" id="payrollVendorSelect" onchange="selectVendor('payroll')"></select>
+            <input class="fi" id="payrollVendor" type="text" placeholder="Vendor name" style="margin-top:9px;display:none">
+          </div>
+        </div>
+        <div class="frow two">
+          <div class="field"><label class="f-lbl">Contact name</label><input class="fi" id="payrollName" type="text" placeholder="Contact name"></div>
+          <div class="field"><label class="f-lbl">Contact email</label><input class="fi" id="payrollEmail" type="email" placeholder="email@payroll.com"></div>
+        </div>
+        <div id="payrollExtras"></div>
+        <button type="button" class="add-contact" onclick="addContact('payroll')">+ Add contact</button>
+      </section>
+
+      <!-- Prior RK -->
+      <section class="isec" id="secPrior">
+        <div class="isec-hd"><h2>Prior record keeper</h2><span class="isec-meta">Optional</span></div>
+        <div class="frow">
+          <div class="field">
+            <label class="f-lbl">Prior record keeper</label>
+            <select class="fi" id="priorVendorSelect" onchange="selectVendor('prior')"></select>
+            <input class="fi" id="priorVendorName" type="text" placeholder="Vendor name" style="margin-top:9px;display:none">
+          </div>
+        </div>
+        <div class="frow two">
+          <div class="field"><label class="f-lbl">Contact name</label><input class="fi" id="priorContactName" type="text" placeholder="Contact name"></div>
+          <div class="field"><label class="f-lbl">Contact email</label><input class="fi" id="priorContactEmail" type="email" placeholder="email@vendor.com"></div>
+        </div>
+        <div id="priorExtras"></div>
+        <button type="button" class="add-contact" onclick="addContact('prior')">+ Add contact</button>
+      </section>
+
+      <!-- Folder -->
+      <section class="isec" id="secFolder">
+        <div class="isec-hd"><h2>Client folder</h2><span class="isec-meta">Optional</span></div>
+        <div class="frow">
+          <div class="field">
+            <label class="f-lbl">Folder URL <span class="opt">paste link to plan folder</span></label>
+            <input class="fi" id="spUrl" type="url" placeholder="https://yourcompany.sharepoint.com/...">
+          </div>
+        </div>
+      </section>
+
+      <!-- Characteristics -->
+      <section class="isec" id="secChars">
+        <div class="isec-hd"><h2>Plan characteristics</h2><span class="isec-meta">Optional</span></div>
+        <div class="char-list">
+          <button type="button" class="char" id="char-nonqual" onclick="togChar('nonqual')">
+            <span class="box"></span>
+            <span><span class="cn">Non-qual plan</span><br><span class="cd">Skips testing — straight to templates</span></span>
+          </button>
+          <button type="button" class="char" id="char-loans" onclick="togChar('loans')">
+            <span class="box"></span>
+            <span><span class="cn">Has loans</span><br><span class="cd">Loan balances transfer from prior RK</span></span>
+          </button>
+          <button type="button" class="char" id="char-roth" onclick="togChar('roth')">
+            <span class="box"></span>
+            <span><span class="cn">Has Roth</span><br><span class="cd">Roth source setup and tracking required</span></span>
+          </button>
+          <button type="button" class="char" id="char-autoenroll" onclick="togChar('autoenroll')">
+            <span class="box"></span>
+            <span><span class="cn">Has auto-enroll</span><br><span class="cd">Default deferral rate and fund config</span></span>
+          </button>
+        </div>
+      </section>
+
+      <div class="gen-row">
+        <button class="gen-btn" id="genBtn" onclick="generate()" disabled>
+          <span id="genBtnLabel">Generate checklist</span>
+          <svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+        </button>
+        <div class="gen-status" id="genStatus">Fill required fields to continue</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ CHECKLIST ═══════════ -->
+<div id="checklistScreen" class="screen">
+  <div class="cl-hd">
+    <div class="cl-hd-top">
+      <div class="cl-ident">
+        <div class="kicker">Implementation checklist</div>
+        <h1 class="cl-plan-name" id="clPlanName">—</h1>
+        <div class="cl-ident-meta">
+          <span class="case-tag" id="clCase"></span>
+          <span class="meta-dot"></span>
+          <div class="status-ctl">
+            <button class="status-pill st-active" id="statusPill" onclick="toggleStatusMenu(event)">
+              <span class="dot"></span><span id="statusLabel">Active</span>
+              <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="smenu" id="statusMenu">
+              <button class="smenu-item st-active" onclick="setStatus('active')"><span class="dot"></span>Active</button>
+              <button class="smenu-item st-complete" onclick="setStatus('complete')"><span class="dot"></span>Complete</button>
+              <button class="smenu-item st-hold" onclick="setStatus('hold')"><span class="dot"></span>On hold</button>
+            </div>
+          </div>
+          <span class="meta-dot"></span>
+          <div class="plan-badges" id="clBadges"></div>
+        </div>
+      </div>
+      <div class="cl-counters" id="clCounters"></div>
+    </div>
+    <div class="cl-progress">
+      <div class="track"><i id="progFill" style="width:0%"></i></div>
+      <span class="pnum" id="progNum">0 of 0 · 0%</span>
+    </div>
+  </div>
+
+  <div class="cl-toolbar">
+    <span class="tool-lbl">Filter</span>
+    <div class="chip-row" id="tagChips">
+      <button class="fchip on" data-tag="all" onclick="setTagFilter('all')">All</button>
+      <button class="fchip" data-tag="critical" onclick="setTagFilter('critical')">Critical</button>
+      <button class="fchip" data-tag="payroll" onclick="setTagFilter('payroll')">Payroll</button>
+      <button class="fchip" data-tag="prk" onclick="setTagFilter('prk')">PRK</button>
+      <button class="fchip" data-tag="asset" onclick="setTagFilter('asset')">Asset</button>
+    </div>
+    <span class="tool-sep"></span>
+    <span class="tool-lbl">Dates</span>
+    <div class="chip-row" id="dateChips">
+      <button class="fchip on" data-date="all" onclick="setDateFilter('all')">All</button>
+      <button class="fchip" data-date="overdue" onclick="setDateFilter('overdue')">Overdue</button>
+      <button class="fchip" data-date="today" onclick="setDateFilter('today')">Due today</button>
+      <button class="fchip" data-date="soon" onclick="setDateFilter('soon')">3 days</button>
+      <button class="fchip" data-date="week" onclick="setDateFilter('week')">7 days</button>
+    </div>
+    <button class="collapse-btn" id="collapseAllBtn" onclick="toggleAllPhases()">Collapse all</button>
+  </div>
+
+  <div class="cl-layout">
+    <div class="cl-main" id="phaseMount"></div>
+    <aside class="cl-side">
+      <div class="side-card">
+        <h3>Plan details <button class="edit-link" onclick="enterEditMode()">Edit</button></h3>
+        <div id="planDetailRows"></div>
+      </div>
+      <div class="side-card">
+        <h3>Pinned notes <button class="edit-link" onclick="togglePinForm()">+ Pin</button></h3>
+        <div class="pin-form" id="pinForm" hidden>
+          <textarea id="pinInput" placeholder="Pin a note to this plan…"></textarea>
+          <div class="note-actions">
+            <button onclick="addFreePin()">Pin note</button>
+            <button class="cancel" onclick="togglePinForm()">Cancel</button>
+          </div>
+        </div>
+        <div id="pinMount"></div>
+      </div>
+      <div class="side-card">
+        <h3>Notes</h3>
+        <textarea class="notes-ta" id="planNotes" placeholder="Notes about this implementation…" oninput="markChanged()"></textarea>
+        <div class="side-foot"><button class="btn" onclick="saveNotesBtn()">Save notes</button></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- ═══════════ DASHBOARD ═══════════ -->
+<div id="dashboardScreen" class="screen">
+  <div class="screen-hd">
+    <div>
+      <div class="kicker">All plans</div>
+      <h1>Implementation <em>dashboard</em></h1>
+      <div class="hd-sub">What needs attention this week, grouped by plan. Click any plan to open its checklist.</div>
+    </div>
+    <div class="hd-side" id="dashSummary"></div>
+  </div>
+  <div id="dashMount"></div>
+</div>
+
+<!-- ═══════════ CALENDAR ═══════════ -->
+<div id="calendarScreen" class="screen">
+  <div class="screen-hd">
+    <div>
+      <div class="kicker">Task scheduling</div>
+      <h1>Implementation <em>calendar</em></h1>
+    </div>
+    <div class="hd-side">
+      <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2)">
+        <span>Current plan only</span>
+        <span class="switch"><input type="checkbox" id="calScopeToggle" onchange="renderCalendar()"><span class="sl"></span></span>
+      </label>
+    </div>
+  </div>
+  <div class="cal-layout">
+    <div>
+      <div class="cal-nav">
+        <h2 id="calMonthLabel">—</h2>
+        <div class="cal-nav-btns">
+          <button onclick="calPrevMonth()" aria-label="Previous month"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+          <button class="today-btn" onclick="calGoToday()">Today</button>
+          <button onclick="calNextMonth()" aria-label="Next month"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+        </div>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+    <aside class="cal-panel">
+      <div class="side-card">
+        <h3 id="calDayTitle">Select a day</h3>
+        <div class="day-list" id="calDayList"><div class="day-empty">Click a date to see its tasks.</div></div>
+      </div>
+      <div class="side-card">
+        <h3>Add calendar item</h3>
+        <div class="cal-add">
+          <input type="text" id="calItemText" placeholder="e.g. Client call — fund lineup">
+          <input type="date" id="calItemDate">
+          <button class="btn primary" onclick="addCalItem()" style="justify-content:center">Add to calendar</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- ═══════════ SQL REPO ═══════════ -->
+<div id="sqlRepoScreen" class="screen">
+  <div class="screen-hd">
+    <div>
+      <div class="kicker">Query library</div>
+      <h1>SQL <em>repo</em></h1>
+      <div class="hd-sub">Pick a query, fill the case values on the left, copy the filled SQL.</div>
+    </div>
+  </div>
+  <div class="sql-layout">
+    <aside class="sql-fills">
+      <div data-sql-field="planSelect" class="field">
+        <label class="f-lbl" for="sqlPlanSelect">Plan case</label>
+        <select class="fi" id="sqlPlanSelect" onchange="selectSqlPlanCase(this.value)"></select>
+      </div>
+      <div data-sql-field="caseNumber" class="field">
+        <label class="f-lbl" for="sqlCaseNumber">Case number</label>
+        <input class="fi" id="sqlCaseNumber" type="text" placeholder="QK63283   00052" oninput="syncSqlRegionForCase(); renderSqlRepo()" style="font-family:var(--mono);font-size:12.5px">
+      </div>
+      <div data-sql-field="refNumbers" class="field">
+        <label class="f-lbl" for="sqlRefNumbers">Ref numbers</label>
+        <textarea class="fi" id="sqlRefNumbers" placeholder="20251029922MLX" oninput="renderSqlRepo()" style="font-family:var(--mono);font-size:12px;min-height:56px"></textarea>
+      </div>
+      <div data-sql-field="effectiveDate" class="field">
+        <label class="f-lbl" for="sqlEffectiveDate">Effective date</label>
+        <input class="fi" id="sqlEffectiveDate" type="text" placeholder="YYYYMMDD" oninput="renderSqlRepo()" style="font-family:var(--mono);font-size:12.5px">
+      </div>
+      <div data-sql-field="ssns" class="field">
+        <label class="f-lbl" for="sqlSsnList">SSNs</label>
+        <textarea class="fi" id="sqlSsnList" placeholder="123456789" oninput="renderSqlRepo()" style="font-family:var(--mono);font-size:12px;min-height:56px"></textarea>
+      </div>
+      <div data-sql-field="region" class="field">
+        <label class="f-lbl" for="sqlRegion">Provision schema</label>
+        <select class="fi" id="sqlRegion" disabled><option value="CORP">CORP</option><option value="TDA">TDA</option></select>
+      </div>
+      <div class="sql-help">Case values feed full-case, first-part and wildcard-gap formats. Refs, dates and SSNs only fill queries that use them.</div>
+    </aside>
+
+    <div class="sql-work">
+      <div class="sql-picker">
+        <div class="sql-search">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input id="sqlQuerySearch" type="text" placeholder="Search queries…" autocomplete="off" oninput="setSqlSearch(this.value)">
+          <button type="button" class="sql-search-clear" id="sqlSearchClear" aria-label="Clear search" onclick="clearSqlSearch()" hidden>&times;</button>
+        </div>
+        <div class="sql-cat-nav" id="sqlCatNav"></div>
+        <div class="sql-query-list" id="sqlQueryList"></div>
+      </div>
+      <div class="sql-out">
+        <div class="sql-out-hd">
+          <div>
+            <h3 id="sqlQueryTitle">Select a query</h3>
+            <div class="sql-sub" id="sqlQuerySub">Choose from the repo, then copy the filled SQL.</div>
+          </div>
+          <button class="btn" onclick="copySqlQuery()">
+            <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy SQL
+          </button>
+        </div>
+        <pre class="sql-code" id="sqlQueryOutput" tabindex="0" aria-label="Generated SQL query"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MODALS ═══════════ -->
+<div class="overlay" id="loadConfirmOverlay">
+  <div class="modal">
+    <h3 id="lcbPlanName">Load plan</h3>
+    <div class="m-sub" id="lcbCase"></div>
+    <div class="m-rows" id="lcbRows"></div>
+    <div class="m-actions">
+      <button class="btn" onclick="cancelJsonLoad()">Cancel</button>
+      <button class="btn primary" onclick="confirmJsonLoad()">Load plan</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="leaveOverlay">
+  <div class="modal">
+    <h3>Unsaved changes</h3>
+    <div class="m-sub">This checklist has changes that aren't saved to the browser yet.</div>
+    <div class="m-actions">
+      <button class="btn quiet" onclick="leaveCancel()">Stay</button>
+      <button class="btn" onclick="leaveWithoutSave()">Leave without saving</button>
+      <button class="btn primary" onclick="leaveSaveAnd()">Save &amp; continue</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="settingsOverlay" onclick="if(event.target===this)closeSettingsModal()">
+  <div class="modal wide">
+    <h3>Settings</h3>
+    <div class="m-sub">Timeline preferences apply to the current plan and are stored in its save file.</div>
+    <div class="settings-row">
+      <div class="s-l"><b>Business-day scheduling</b><span>Skip weekends and federal holidays when counting SLA days</span></div>
+      <label class="switch"><input type="checkbox" id="setBizDays" onchange="setBusinessDays(this.checked)"><span class="sl"></span></label>
+    </div>
+    <div class="settings-row">
+      <div class="s-l"><b>Your signature</b><span>Stamped on pinned notes you add</span></div>
+      <input class="fi" id="setAuthor" style="max-width:180px" placeholder="Initials or name" onchange="setSessionAuthor(this.value)">
+    </div>
+    <div class="sched-grp-lbl" style="padding-top:22px">Timeline overrides · days from anchor</div>
+    <div class="sched-groups" id="schedMount"></div>
+    <div class="m-actions">
+      <button class="btn" onclick="resetSchedOverrides()">Reset all to defaults</button>
+      <button class="btn primary" onclick="closeSettingsModal()">Done</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+</div><!-- /#app -->
+<script>
+/* ════════════════════════════════════════════════════════════
+   LMDC PLANNER v2 — core
+   Engine, state and persistence ported from v1 so browser saves
+   (icg_plan_saves_v1) and .json files remain fully compatible.
+════════════════════════════════════════════════════════════ */
+
+// ── helpers ──────────────────────────────────────────────────
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s){ return esc(s).replace(/'/g,'&#39;'); }
+function clone(obj){ return JSON.parse(JSON.stringify(obj)); }
+function cloneState(obj){ return clone(obj); }
+function nowIso(){ return new Date().toISOString(); }
+function toDateStr(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function todayDateStr(){ return toDateStr(new Date()); }
+function showToast(m){
+  const t = document.getElementById('toast');
+  t.textContent = m; t.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+// ── CONFIG (ported) ──────────────────────────────────────────
+const SCHED_DEFAULTS = {
+  docsToReview:0, prdComplete:2, testingSend:3, testingResults:6, toaObtain:4,
+  templatesComplete:7, templatesSend:9, meetingsScheduled:11, baseDataReturn:23, payrollReturn:23,
+  wireInstructions:0, transferDateConfirm:4, fundMgmtCalendar:7, testFilesRequest:5,
+  testFilesDelivery:8, sourceMappingDue:10, sourceMappingSend:12, fundMappingDue:6,
+  fundMappingSend:8, reRegFundsDue:6, reRegSendDue:8, tikAccountSetup:22, vendorForward:24,
+  balancePrepDue:10, refreshFiles:-14, mergerRocBlock:-5,
+  ftpContactDue:2, ftpSetupDue:12, fileSpecsDue:14, testPayrollRequest:15, testPayrollReceive:29,
+  edsValidation:31, ftpConfirmed:33, onePayrollSubmit:33, onePayrollApproval:35, kickoffMeeting:37,
+  initialLoadsStart:-21, fullLoadsDeadline:-14, rothConfirmDue:-7, finalVerify:-3,
+  postFinalLoadStart:0, postFinalLoadDeadline:2, postFinalRothConfirm:3, postFinalVerify:4,
+  wireAdvanceVendor:-5, wireAdvanceCashier:-3,
+  finalFilesDeadline:7, postWireComplete:14
+};
+let schedOverrides = {};
+function getSched(k){ return k in schedOverrides ? schedOverrides[k] : SCHED_DEFAULTS[k]; }
+
+// Timeline knobs actually wired to task rules (the rest of SCHED_DEFAULTS
+// is legacy from v1 and kept only for save-file compatibility).
+const SCHED_ACTIVE = [
+  { key:'wireAdvanceVendor',  label:'Pre-wire emails', hint:'days relative to wire date' },
+  { key:'finalFilesDeadline', label:'Final files received', hint:'days after wire date' },
+];
+
+const TASK_EVENT_META = {
+  'setup-all-docs': { label:'Documents Received' }
+};
+
+const TASK_DUE = {
+  'setup-all-docs':         {type:'week', from:'task', taskId:'setup-all-docs', week:1},
+  'setup-base-template':    {type:'week', from:'task', taskId:'setup-all-docs', week:1},
+  'setup-payroll-template': {type:'week', from:'task', taskId:'setup-all-docs', week:1},
+  'setup-re-registration':  {type:'week', from:'task', taskId:'setup-all-docs', week:2},
+  'setup-ftp-connection':   {type:'week', from:'task', taskId:'setup-all-docs', week:1},
+  'setup-eds-layouts':      {type:'week', from:'task', taskId:'setup-all-docs', week:1},
+  'setup-vendor-workflow-confirm': {type:'week', from:'task', taskId:'setup-all-docs', week:2},
+  'setup-informatica-prep': {type:'week', from:'task', taskId:'setup-all-docs', week:2},
+  'setup-wire-instructions-prk': {type:'week', from:'task', taskId:'setup-all-docs', week:1},
+  'payroll-ftp-setup':          {type:'week', from:'task', taskId:'setup-all-docs', week:3},
+  'payroll-obf-confirm':        {type:'week', from:'task', taskId:'setup-all-docs', week:2},
+  'payroll-receive-test-file':  {type:'week', from:'task', taskId:'setup-all-docs', week:3},
+  'payroll-validate-test-file': {type:'week', from:'task', taskId:'setup-all-docs', week:3},
+  'payroll-one-payroll':        {type:'week', from:'task', taskId:'setup-all-docs', week:3},
+  'payroll-finalize':           {type:'week', from:'task', taskId:'setup-all-docs', week:4},
+  'prk-wire-instructions':   {type:'week', from:'task', taskId:'setup-all-docs', week:1},
+  'prk-tik-account-details': {type:'week', from:'task', taskId:'setup-all-docs', week:4},
+  'prk-all-details-dates':   {type:'week', from:'task', taskId:'setup-all-docs', week:2},
+  'prk-test-files':          {type:'week', from:'task', taskId:'setup-all-docs', week:2},
+  'prep-tik':             {type:'week', from:'task', taskId:'setup-all-docs', week:4},
+  'prep-source-mapping':  {type:'week', from:'task', taskId:'setup-all-docs', week:2},
+  'prep-fund-mapping':    {type:'week', from:'task', taskId:'setup-all-docs', week:2},
+  'prep-informatica':     {type:'week', from:'task', taskId:'setup-all-docs', week:3},
+  'prep-fmc':             {type:'week', from:'task', taskId:'setup-all-docs', week:3},
+  'prep-pre-wire-emails': {from:'wire', schedKey:'wireAdvanceVendor'},
+  'wire-morning-emails':    {from:'wire', days:0},
+  'wire-receive-wire':      {from:'wire', days:0},
+  'wire-move-process-wire': {from:'wire', days:0},
+  'post-receive-final-files': {from:'wire', schedKey:'finalFilesDeadline'},
+  'post-liquidate-ae':        {from:'task', taskId:'post-receive-final-files', days:0},
+  'post-check-tik-shares':    {from:'task', taskId:'post-receive-final-files', days:0},
+  'post-ppt-balances':        {from:'task', taskId:'post-receive-final-files', days:0},
+  'post-final-check':         {from:'task', taskId:'post-receive-final-files', days:14},
+  'p5-extra-participants': {from:'task', taskId:'post-receive-final-files', days:7},
+  'p5-elections':      {from:'task', taskId:'post-receive-final-files', days:7},
+  'p5-yos':            {from:'task', taskId:'post-receive-final-files', days:7},
+  'p5-ytd-comp':       {from:'task', taskId:'post-receive-final-files', days:7},
+  'p5-ytd-contrib':    {from:'task', taskId:'post-receive-final-files', days:7},
+  'p5-ytd-hours':      {from:'task', taskId:'post-receive-final-files', days:7},
+  'p5-py-comp':        {from:'task', taskId:'post-receive-final-files', days:7},
+  'p5-py-hours':       {from:'task', taskId:'post-receive-final-files', days:7},
+  'p5-py-end-balance': {from:'task', taskId:'post-receive-final-files', days:7},
+  'p5-def':            {from:'task', taskId:'post-receive-final-files', days:7},
+  'p5-elig':           {from:'task', taskId:'post-receive-final-files', days:7},
+  'p5-ben':            {from:'task', taskId:'post-receive-final-files', days:7},
+};
+
+// US federal holidays (observed), 2024–2030
+const FEDERAL_HOLIDAYS = new Set([
+  '2024-01-01','2024-01-15','2024-02-19','2024-05-27','2024-06-19','2024-07-04',
+  '2024-09-02','2024-10-14','2024-11-11','2024-11-28','2024-12-25',
+  '2025-01-01','2025-01-20','2025-02-17','2025-05-26','2025-06-19','2025-07-04',
+  '2025-09-01','2025-10-13','2025-11-11','2025-11-27','2025-12-25',
+  '2026-01-01','2026-01-19','2026-02-16','2026-05-25','2026-06-19','2026-07-03',
+  '2026-09-07','2026-10-12','2026-11-11','2026-11-26','2026-12-25',
+  '2027-01-01','2027-01-18','2027-02-15','2027-05-31','2027-06-18','2027-07-05',
+  '2027-09-06','2027-10-11','2027-11-11','2027-11-25','2027-12-24','2027-12-31',
+  '2028-01-17','2028-02-21','2028-05-29','2028-06-19','2028-07-04',
+  '2028-09-04','2028-10-09','2028-11-10','2028-11-23','2028-12-25',
+  '2029-01-01','2029-01-15','2029-02-19','2029-05-28','2029-06-19','2029-07-04',
+  '2029-09-03','2029-10-08','2029-11-12','2029-11-22','2029-12-25',
+  '2030-01-01','2030-01-21','2030-02-18','2030-05-27','2030-06-19','2030-07-04',
+  '2030-09-02','2030-10-14','2030-11-11','2030-11-28','2030-12-25',
+]);
+
+const TEAM_DIRECTORY = {
+  tm: {
+    '': '',
+    'Alicia Johnson': 'alicia.johnson@transamerica.com',
+    'Damien Hurm': 'damien.hurm@transamerica.com',
+    'Dawn Sander': 'dawn.sander@transamerica.com',
+    'Donna Eliasson': 'donna.eliasson@transamerica.com',
+    'Katy Sweeney': 'katy.sweeney@transamerica.com',
+    'Paul Falatico': 'paul.falatico@transamerica.com',
+    'Sarah Juhl': 'sarah.juhlhalsrud@transamerica.com',
+    'Tawnya Neighbor': 'tawnya.neighbor@transamerica.com',
+    'Tiffany Castro': 'tiffany.castro@transamerica.com',
+    'Courtney Moses': 'courtney.moses@transamerica.com',
+    'Lexi Westenskow': 'lexi.westenskow@transamerica.com'
+  },
+  tc: {
+    '': '',
+    'Theresa Herzner': 'theresa.herzner@transamerica.com',
+    'Beth Turnwall': 'elizabeth.turnwall@transamerica.com',
+    'Gabe Ceballos': 'gabriel.ceballos@transamerica.com',
+    'Dan Clifford': 'dan.clifford@transamerica.com',
+    'Krystal Tournier': 'krystal.tournier@transamerica.com',
+    'Connie Halter': 'connie.halter@transamerica.com'
+  }
+};
+const VENDOR_OPTIONS = {
+  payroll: ['In House','Paylocity','ADP','Paychex','UKG','Dayforce','Paykonnect','Exponent HR'],
+  prior:   ['Empower','Newport','Nationwide','ADP','Principal','Fidelity','Vanguard','Voya']
+};
+
+// ── STATE ────────────────────────────────────────────────────
+function blankPlanState(){
+  return {
+    planType:null, mergerType:null, strategies:[],
+    planName:'', caseNumber:'', effectiveDate:'', wireDate:'', day1:'', spUrl:'',
+    dcFileCoordinator:'',
+    clientName:'', clientEmail:'',
+    tmName:'', tmEmail:'', tcName:'', tcEmail:'',
+    payrollVendor:'', payrollName:'', payrollEmail:'',
+    priorVendorName:'', priorContactName:'', priorContactEmail:'',
+    clientExtras:[], payrollExtras:[], priorExtras:[],
+    useBusinessDays:true
+  };
+}
+let S = blankPlanState();
+let CHARS = { nonqual:false, loans:false, roth:false, autoenroll:false };
+let CS = {};          // completed tasks
+let TE = {};          // trigger event dates
+let CD = {};          // manual due-date overrides
+let WS = {};          // working / in-progress flags
+let CN = {};          // per-task notes
+let CT = {};          // custom tasks per phase
+let CAL_ITEMS = [];   // custom calendar items
+let PINS = [];        // pinned notes
+let PLAN_AUTHOR = localStorage.getItem('planner:lastAuthor') || '';
+let PHASES = [];
+let planStatus = 'active';
+let saveKey = null;
+let hasPendingChanges = false;
+let hasGenerated = false;
+let editingExisting = false;
+let sessionSavedFilename = null;
+let pendingJsonData = null;
+let currentScreen = 'intake';
+let tagFilter = 'all';
+let dateFilter = 'all';
+const PLAN_SAVES_STORE = 'icg_plan_saves_v1';
+const PLAN_META_STORE  = 'icg_plan_meta_v1';
+const PLAN_FILE_VERSION = 2;
+const CASH_MERGER_AE_ACCOUNT_NOTE = 'Check the AE account before assets arrive! Liquidation may need to be cash specific.';
+
+function markChanged(){ if(hasGenerated) hasPendingChanges = true; }
+function markSaved(){ hasPendingChanges = false; }
+function getChars(){ return { ...CHARS }; }
+
+// ── SCHEDULE ENGINE (ported) ─────────────────────────────────
+function isHoliday(d){ return FEDERAL_HOLIDAYS.has(toDateStr(d)); }
+function isBusinessDay(d){
+  const dow = d.getDay();
+  if(dow === 0 || dow === 6) return false;
+  return !isHoliday(d);
+}
+function usingBusinessDays(){ return !(S && S.useBusinessDays === false); }
+function addBusinessDays(dateStr, days){
+  if(!dateStr) return null;
+  const d = new Date(dateStr + 'T00:00:00');
+  if(days === 0) return d;
+  const step = days > 0 ? 1 : -1;
+  let remaining = Math.abs(days);
+  while(remaining > 0){
+    d.setDate(d.getDate() + step);
+    if(isBusinessDay(d)) remaining--;
+  }
+  return d;
+}
+function addDays(dateStr, days){
+  if(!dateStr) return null;
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return d;
+}
+function addSlaDays(dateStr, days){
+  return usingBusinessDays() ? addBusinessDays(dateStr, days) : addDays(dateStr, days);
+}
+function compactDueDateLabel(d){
+  if(!d) return '';
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+function normalizeWeekAnchorStart(anchorDate){
+  if(!anchorDate) return null;
+  const d = new Date(anchorDate + 'T00:00:00');
+  if(Number.isNaN(d.getTime())) return null;
+  const dow = d.getDay();
+  if(dow === 6) d.setDate(d.getDate() + 2);
+  else if(dow === 0) d.setDate(d.getDate() + 1);
+  return d;
+}
+function weekBucketRange(anchorDate, week){
+  const anchor = normalizeWeekAnchorStart(anchorDate);
+  if(!anchor) return { start:null, end:null, label:'' };
+  const firstWeekEnd = new Date(anchor);
+  firstWeekEnd.setDate(firstWeekEnd.getDate() + (5 - firstWeekEnd.getDay()));
+  const start = new Date(week === 1 ? anchor : firstWeekEnd);
+  if(week > 1) start.setDate(firstWeekEnd.getDate() + 3 + ((week - 2) * 7));
+  const end = new Date(start);
+  end.setDate(start.getDate() + (5 - start.getDay()));
+  return { start, end, label:`${compactDueDateLabel(start)} – ${compactDueDateLabel(end)}` };
+}
+function taskWeekRange(rule, anchorDate){
+  if(!rule || rule.type !== 'week') return { start:null, end:null, label:'' };
+  return weekBucketRange(anchorDate, rule.week || 1);
+}
+function isTaskEvent(taskId){ return !!TASK_EVENT_META[taskId]; }
+function isDateInputValue(value){
+  if(typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const d = new Date(value + 'T00:00:00');
+  return !Number.isNaN(d.getTime()) && toDateStr(d) === value;
+}
+function normalizeCustomDueDates(customDates){
+  const normalized = {};
+  Object.entries(customDates || {}).forEach(([taskId, value]) => {
+    if(TASK_DUE[taskId] && isDateInputValue(value)) normalized[taskId] = value;
+  });
+  return normalized;
+}
+function taskManualDueDate(taskId, customDates = CD){
+  const value = (customDates || {})[taskId] || '';
+  return isDateInputValue(value) ? value : '';
+}
+function normalizeTaskEvents(taskEvents, completedState){
+  const events = clone(taskEvents || {});
+  Object.keys(TASK_EVENT_META).forEach(id => {
+    if(events[id] || !completedState || !completedState[id]) return;
+    const doneVal = completedState[id];
+    events[id] = typeof doneVal === 'number' ? toDateStr(new Date(doneVal)) : todayDateStr();
+  });
+  return events;
+}
+function taskEventDate(taskId, taskEvents){ return (taskEvents || TE || {})[taskId] || ''; }
+function taskAnchorDate(taskId, planS = S, taskEvents = TE, customDates = CD, stack = []){
+  const actual = taskEventDate(taskId, taskEvents);
+  if(actual) return { date:actual, taskId, source:'actual' };
+  const manual = taskManualDueDate(taskId, customDates);
+  if(manual) return { date:manual, taskId, source:'manual' };
+  if(stack.includes(taskId)) return { date:'', taskId, source:'' };
+  const generated = calcTaskDueResolution(taskId, planS, taskEvents, customDates, stack);
+  if(generated.due && (generated.source === 'manual' || generated.source === 'cascade')){
+    return { date:toDateStr(generated.due), taskId, source:'cascade' };
+  }
+  return { date:'', taskId, source:'' };
+}
+function firstResolvedTaskAnchor(rule, planS, taskEvents, customDates, stack){
+  const ids = rule.taskIds || (rule.taskId ? [rule.taskId] : []);
+  for(const id of ids){
+    const anchor = taskAnchorDate(id, planS, taskEvents, customDates, stack);
+    if(anchor.date) return anchor;
+  }
+  return { date:'', taskId:ids[0] || '', source:'' };
+}
+function calcTaskDueResolution(taskId, planS = S, taskEvents = TE, customDates = CD, stack = []){
+  const rule = TASK_DUE[taskId];
+  if(!rule) return { due:null, pending:false, missingAnchor:'', source:'' };
+  if(stack.includes(taskId)) return { due:null, pending:true, missingAnchor:taskId, source:'' };
+  if(rule.type === 'week'){
+    const resolved = firstResolvedTaskAnchor(rule, planS, taskEvents, customDates, [...stack, taskId]);
+    if(!resolved.date) return { due:null, pending:true, missingAnchor:resolved.taskId || rule.taskId, source:'week', week:rule.week, range:{start:null,end:null,label:''} };
+    const range = taskWeekRange(rule, resolved.date);
+    if(!range.end) return { due:null, pending:true, missingAnchor:resolved.taskId || rule.taskId, source:'week', week:rule.week, range };
+    return { due:range.end, pending:false, missingAnchor:'', source:'week', week:rule.week, range };
+  }
+  const manualDue = taskManualDueDate(taskId, customDates);
+  if(manualDue) return { due:new Date(manualDue + 'T00:00:00'), pending:false, missingAnchor:'', source:'manual' };
+  const wire = planS.wireDate || planS.effectiveDate;
+  let anchor = '';
+  let missingAnchor = '';
+  let source = 'generated';
+  if(rule.from === 'eff') anchor = planS.effectiveDate;
+  else if(rule.from === 'wire') anchor = wire;
+  else if(rule.from === 'task'){
+    const resolved = firstResolvedTaskAnchor(rule, planS, taskEvents, customDates, [...stack, taskId]);
+    anchor = resolved.date;
+    missingAnchor = resolved.taskId;
+    source = resolved.source === 'actual' ? 'generated' : 'cascade';
+  } else {
+    anchor = planS.day1;
+  }
+  if(!anchor && rule.from === 'task') return { due:null, pending:true, missingAnchor, source:'' };
+  if(!anchor) return { due:null, pending:false, missingAnchor:'', source:'' };
+  const days = rule.schedKey !== undefined ? getSched(rule.schedKey) + (rule.offset || 0) : rule.days;
+  const useBusiness = !(planS && planS.useBusinessDays === false);
+  const due = useBusiness ? addBusinessDays(anchor, days) : addDays(anchor, days);
+  return { due, pending:false, missingAnchor:'', source };
+}
+function calcTaskDue(taskId){ return calcTaskDueResolution(taskId).due; }
+
+function dueClass(taskId){
+  if(CS[taskId]) return 'done';
+  const res = calcTaskDueResolution(taskId);
+  if(res.pending) return 'pending';
+  const due = res.due;
+  if(!due) return '';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((due - today) / 86400000);
+  if(res.source === 'week') return diff < 0 ? 'overdue' : 'week-bucket';
+  if(diff < 0)  return 'overdue';
+  if(diff === 0) return 'today';
+  if(diff <= 3)  return 'soon';
+  if(diff <= 7)  return 'week';
+  return 'future';
+}
+function dueFilterKey(taskId){
+  const dc = dueClass(taskId);
+  return dc === 'week-bucket' ? 'week' : (dc || 'none');
+}
+
+// cross-plan helpers
+function calcTaskDueFor(taskId, planS, planTE, planCD){
+  return calcTaskDueResolution(taskId, planS || {}, planTE || {}, planCD || {}).due;
+}
+function getOverdueCountFor(planS, planCS, planTE, planCD){
+  if(!planS || (!planS.day1 && !planS.effectiveDate)) return 0;
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Object.keys(TASK_DUE).filter(id => {
+    if(planCS && planCS[id]) return false;
+    const due = calcTaskDueFor(id, planS, planTE, planCD);
+    return due && due < today;
+  }).length;
+}
+function effDaysLeft(dateStr){
+  if(!dateStr) return null;
+  const eff = new Date(dateStr + 'T00:00:00');
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.round((eff - today) / 86400000);
+}
+
+// ── PROGRESS ─────────────────────────────────────────────────
+function getAllTasksForPhase(phase, customTasks = CT){
+  if(!phase) return [];
+  return [...(phase.tasks || []), ...((customTasks && customTasks[phase.id]) || [])];
+}
+function calculatePhaseProgress(phase, completedState = CS, customTasks = CT){
+  const tasks = getAllTasksForPhase(phase, customTasks);
+  const done = tasks.filter(t => completedState && completedState[t.id]).length;
+  return { done, total:tasks.length, pct:tasks.length ? Math.round(done / tasks.length * 100) : 0 };
+}
+function calculateProgress(phases = PHASES, completedState = CS, customTasks = CT){
+  const p = (phases || []).reduce((acc, phase) => {
+    const pp = calculatePhaseProgress(phase, completedState, customTasks);
+    acc.done += pp.done; acc.total += pp.total;
+    return acc;
+  }, { done:0, total:0, pct:0 });
+  p.pct = p.total ? Math.round(p.done / p.total * 100) : 0;
+  return p;
+}
+function getPlanProgressSummary(progress = calculateProgress(), phases = PHASES){
+  return {
+    pct: progress.total ? Math.round(progress.done / progress.total * 100) : 0,
+    doneTasks: progress.done, totalTasks: progress.total,
+    remainingTasks: Math.max(progress.total - progress.done, 0),
+    phaseCount: (phases || []).length
+  };
+}
+function buildPhaseSummaries(phases = PHASES, completedState = CS, customTasks = CT){
+  return (phases || []).map(phase => {
+    const pp = calculatePhaseProgress(phase, completedState, customTasks);
+    return { id:phase.id, title:phase.title, color:phase.color, done:pp.done, total:pp.total };
+  });
+}
+function buildTaskCatalogSnapshot(phases = PHASES){
+  return (phases || []).flatMap(phase => (phase.tasks || []).map(task => ({
+    id:task.id, text:task.text, phaseId:phase.id, phaseName:phase.title,
+    phaseColor:phase.color, tags:task.tags || []
+  })));
+}
+
+// ── PHASE BUILDER (ported) ───────────────────────────────────
+function buildPhases(){
+  const isStart = S.planType === 'startup';
+  const nonQual = CHARS.nonqual;
+  const hasLoans = CHARS.loans, hasRoth = CHARS.roth, autoEnr = CHARS.autoenroll;
+  const isCash = S.strategies.includes('cash');
+  const isMap  = S.strategies.includes('mapping');
+  const isTIK  = S.strategies.includes('tik');
+  const isTikOnly = isTIK && !isCash && !isMap;
+
+  const buildDataLoadingTasks = () => {
+    const tasks = [
+      {id:'p5-extra-participants',text:'Census',tags:['critical'],sectionTitle:'Data Load',
+        sectionCopy:isStart ? 'Startup data load is limited to the four core startup loads.'
+          : 'Participant balances and the load checklist flow from the Final Files received date.'},
+      {id:'p5-elections',text:'Elections',tags:['critical']},
+      {id:'p5-elig',text:'Eligibility',tags:['critical']},
+      {id:'p5-def',text:'Deferrals',tags:['critical']},
+      !isStart && {id:'p5-yos',text:'Years of Service',tags:['asset']},
+      !isStart && {id:'p5-ytd-comp',text:'Year-to-Date Compensation',tags:['asset']},
+      !isStart && {id:'p5-ytd-contrib',text:'Year-to-Date Contributions',tags:['asset']},
+      !isStart && {id:'p5-ytd-hours',text:'Year-to-Date Hours',tags:['asset']},
+      !isStart && {id:'p5-ben',text:'Beneficiaries',tags:[]},
+      !isStart && {id:'p5-py-comp',text:'Prior Year Compensation',tags:['asset']},
+      !isStart && {id:'p5-py-hours',text:'Prior Year Hours',tags:['asset']},
+      !isStart && {id:'p5-py-end-balance',text:'Prior Year End Balance',tags:['asset']},
+    ].filter(Boolean);
+    tasks.forEach(t => t.inSubsection = true);
+    return tasks;
+  };
+
+  const ph = [];
+  let n = 1;
+  const dataLoadTasks = buildDataLoadingTasks();
+
+  ph.push({id:'ph1',num:n++,color:'var(--ph1)',title:'Setup',subtitle:'Base template, payroll template, documents, internal setup, vendor workflow, wire instructions',tasks:[
+    {id:'setup-all-docs',text:'Obtain All Documents',tags:['setup']},
+    {id:'setup-base-template',text:'Base Template',tags:['setup']},
+    {id:'setup-payroll-template',text:'Payroll Template',tags:['setup','payroll']},
+    !isStart && isTIK && {id:'setup-re-registration',text:'Re-Registration',tags:['setup'],workingToggle:true},
+    {id:'setup-ftp-connection',text:'FTP Connection',tags:['setup','payroll'],workingToggle:true},
+    {id:'setup-eds-layouts',text:'EDS Layouts',tags:['setup','payroll']},
+    !isStart && {id:'setup-vendor-workflow-confirm',text:'Vendor Workflow Confirm',tags:['setup','payroll']},
+    !isStart && {id:'setup-informatica-prep',text:'Informatica Prep',tags:['setup']},
+    !isStart && {id:'setup-wire-instructions-prk',text:'Wire Instructions to PRK',tags:['setup','prk']},
+  ].filter(Boolean)});
+
+  ph.push({id:'ph2',num:n++,color:'var(--ph2)',title:'Payroll',subtitle:'Confirm FTP and OBF details, receive and validate test file, One Payroll, finalize',tasks:[
+    {id:'payroll-ftp-setup',text:'Confirm FTP Setup',tags:['payroll']},
+    {id:'payroll-obf-confirm',text:'Confirm OBF Details',tags:['payroll']},
+    {id:'payroll-receive-test-file',text:'Receive Test File',tags:['payroll']},
+    {id:'payroll-validate-test-file',text:'Validate Test File',tags:['payroll']},
+    {id:'payroll-one-payroll',text:'One Payroll Validation',tags:['payroll']},
+    {id:'payroll-finalize',text:'Finalize',tags:['payroll']},
+  ]});
+
+  if(!isStart){
+    ph.push({id:'ph3',num:n++,color:'var(--ph3)',title:'PRK',subtitle:'Wire instructions, asset transfer details, conversion file coordination, TIK account details',tasks:[
+      {id:'prk-wire-instructions',text:'Wire Instructions',tags:['prk']},
+      {id:'prk-all-details-dates',text:'Get All Asset Transfer Details',tags:['prk']},
+      {id:'prk-test-files',text:'Coordinate Conversion Files and Asset Transfer Details',tags:['prk']},
+      isTIK && {id:'prk-tik-account-details',text:'TIK Account Details',tags:['prk']},
+    ].filter(Boolean)});
+
+    ph.push({id:'ph4',num:n++,color:'var(--ph4)',title:'Preparation',subtitle:'Source/fund mapping, Informatica workflow testing, FMC entry, TIK follow-up, pre-wire emails',tasks:[
+      {id:'prep-source-mapping',text:'Source Mapping',tags:['prep']},
+      (!isCash || isMap) && {id:'prep-fund-mapping',text:'Fund Mapping',tags:['prep']},
+      {id:'prep-informatica',text:'Informatica Workflow Testing',tags:['prep']},
+      {id:'prep-fmc',text:'Fund Management Calendar Entry',tags:['prep']},
+      isTIK && {id:'prep-tik',text:'TIK Follow-Up with Matt',tags:['prep']},
+      {id:'prep-pre-wire-emails',text:'Pre-Wire Emails',tags:['prep']},
+    ].filter(Boolean)});
+
+    ph.push({id:'ph5',num:n++,color:'var(--ph5)',title:'Wire Day',subtitle:'Morning emails, receive wire, move/process wire',tasks:[
+      {id:'wire-morning-emails',text:'Morning Emails',tags:['wire']},
+      {id:'wire-receive-wire',text:'Receive Wire',tags:['wire']},
+      !isTikOnly && {id:'wire-move-process-wire',text:isCash ? 'Transfer wire to Advanced Employer' : (isMap ? 'Map Funds' : 'Move/Process Wire'),tags:['wire']},
+    ].filter(Boolean)});
+  }
+
+  if(isStart){
+    ph.push({id:'ph3',num:n++,color:'var(--ph6)',title:'Data Load',subtitle:'Startup census, elections, deferrals and eligibility loads',tasks:[...dataLoadTasks]});
+  } else {
+    ph.push({id:'ph6',num:n++,color:'var(--ph6)',title:'Post Wire',subtitle:'Receive final files, participant balances, data load, final check',tasks:[
+      {id:'post-receive-final-files',text:'Receive Final Files',tags:['post-wire']},
+      isCash && {id:'post-liquidate-ae',text:'Liquidate Advanced Employer',tags:['post-wire','asset']},
+      isTikOnly && {id:'post-check-tik-shares',text:'Check TIK Spreadsheet for incoming shares',tags:['post-wire','asset'],workingToggle:true},
+      {id:'post-ppt-balances',text:'Participant Balances',tags:['post-wire']},
+      ...dataLoadTasks,
+      {id:'post-final-check',text:'Final Check',tags:['post-wire']},
+    ].filter(Boolean)});
+  }
+  return ph;
+}
+
+function isCashMergerPlan(){
+  return S.planType === 'merger' && S.strategies.includes('cash');
+}
+function ensureDefaultPinnedNotes(){
+  if(!isCashMergerPlan()) return;
+  const exists = PINS.some(p => p.note === CASH_MERGER_AE_ACCOUNT_NOTE);
+  if(exists) return;
+  PINS.unshift({ id:'pin_'+Date.now(), title:'', note:CASH_MERGER_AE_ACCOUNT_NOTE,
+    ts:Date.now(), column:'keep', type:'default', author:null, important:true });
+}
+
+// ── PERSISTENCE (format-compatible with v1) ──────────────────
+function getPlanSaves(){
+  try { return JSON.parse(localStorage.getItem(PLAN_SAVES_STORE) || '{}') || {}; }
+  catch(e){ return {}; }
+}
+function putPlanSaves(saves){ localStorage.setItem(PLAN_SAVES_STORE, JSON.stringify(saves || {})); }
+function getPlanMeta(){
+  try { return JSON.parse(localStorage.getItem(PLAN_META_STORE) || '{}') || {}; }
+  catch(e){ return {}; }
+}
+function putPlanMeta(meta){ localStorage.setItem(PLAN_META_STORE, JSON.stringify(meta || {})); }
+function getSaves(){ return clone(getPlanSaves()); }
+function putSaves(o){ putPlanSaves(o); }
+
+function getPlannerCoreState(){
+  return {
+    S: cloneState(S), CS: cloneState(CS), TE: cloneState(TE), CD: cloneState(CD),
+    WS: cloneState(WS), CN: cloneState(CN), CT: cloneState(CT),
+    CAL_ITEMS: cloneState(CAL_ITEMS), PINS: cloneState(PINS),
+    chars: getChars(),
+    notes: (document.getElementById('planNotes') || {}).value || '',
+    schedOverrides: cloneState(schedOverrides),
+    author: PLAN_AUTHOR || ''
+  };
+}
+function normalizeLoadedPlannerData(data){
+  const loaded = data || {};
+  const loadedS = cloneState(loaded.S || {});
+  if(typeof loadedS.dcFileCoordinator !== 'string') loadedS.dcFileCoordinator = '';
+  if(!Array.isArray(loadedS.clientExtras))  loadedS.clientExtras = [];
+  if(!Array.isArray(loadedS.payrollExtras)) loadedS.payrollExtras = [];
+  if(!Array.isArray(loadedS.priorExtras))   loadedS.priorExtras = [];
+  if(!Array.isArray(loadedS.strategies))    loadedS.strategies = [];
+  if(typeof loadedS.useBusinessDays !== 'boolean') loadedS.useBusinessDays = true;
+  const completedState = cloneState(loaded.CS || {});
+  const taskEvents = normalizeTaskEvents(cloneState(loaded.TE || {}), completedState);
+  const customDates = normalizeCustomDueDates(cloneState(loaded.CD || {}));
+  const pins = cloneState(loaded.PINS || []);
+  pins.forEach(p => {
+    if(!p.column) p.column = 'keep';
+    if(!p.type) p.type = 'default';
+    if(!('author' in p)) p.author = null;
+  });
+  return {
+    source: loaded,
+    S: loadedS, CS: completedState, TE: taskEvents, CD: customDates,
+    WS: cloneState(loaded.WS || {}), CN: cloneState(loaded.CN || {}),
+    CT: cloneState(loaded.CT || {}),
+    CAL_ITEMS: cloneState(loaded.CAL_ITEMS || []),
+    PINS: pins,
+    chars: cloneState(loaded.chars || {}),
+    notes: loaded.notes || '',
+    schedOverrides: cloneState(loaded.schedOverrides || {}),
+    status: loaded.status || 'active',
+    author: (typeof loaded.author === 'string' && loaded.author)
+      ? loaded.author : (localStorage.getItem('planner:lastAuthor') || '')
+  };
+}
+function applyPlannerCoreState(n){
+  S = n.S; CS = n.CS; TE = n.TE; CD = n.CD; WS = n.WS; CN = n.CN; CT = n.CT;
+  CAL_ITEMS = n.CAL_ITEMS; PINS = n.PINS; PLAN_AUTHOR = n.author;
+  schedOverrides = n.schedOverrides;
+  CHARS = {
+    nonqual: !!(n.chars && n.chars.nonqual),
+    loans:   !!(n.chars && n.chars.loans),
+    roth:    !!(n.chars && n.chars.roth),
+    autoenroll: !!(n.chars && n.chars.autoenroll)
+  };
+}
+
+function saveChecklist(){
+  if(!hasGenerated){ showToast('Generate or load a plan first'); return; }
+  const saves = getSaves();
+  const k = saveKey || ('p_' + Date.now()); saveKey = k;
+  const progress = calculateProgress();
+  const summary = getPlanProgressSummary(progress);
+  const coreState = getPlannerCoreState();
+  saves[k] = { planName:S.planName, caseNumber:S.caseNumber, pct:summary.pct,
+    status:planStatus, ...coreState, ts:Date.now(),
+    doneTasks:summary.doneTasks, totalTasks:summary.totalTasks,
+    phaseCount:summary.phaseCount, phases:buildPhaseSummaries(),
+    tasks:buildTaskCatalogSnapshot(), author:coreState.author };
+  putSaves(saves);
+  const meta = getPlanMeta();
+  if(!meta[k]) meta[k] = { fav:false, order:Date.now() };
+  putPlanMeta(meta);
+  markSaved();
+  if(currentScreen === 'dashboard') renderDashboard();
+  if(currentScreen === 'calendar') renderCalendar();
+  showToast('Saved to browser — ' + (S.planName || 'plan'));
+}
+
+function saveToJson(){
+  if(!hasGenerated){ showToast('Generate or load a plan first'); return; }
+  const progress = calculateProgress();
+  const summary = getPlanProgressSummary(progress);
+  const payload = {
+    _version: PLAN_FILE_VERSION, _savedAt: new Date().toISOString(),
+    planName:S.planName, caseNumber:S.caseNumber, effectiveDate:S.effectiveDate,
+    status:planStatus, pct:summary.pct, ...getPlannerCoreState()
+  };
+  const json = JSON.stringify(payload, null, 2);
+  const dateStr = todayDateStr().replace(/-/g,'');
+  const safeName = (S.planName || 'plan').replace(/[^a-z0-9]/gi,'_').replace(/_+/g,'_').slice(0,40);
+  const safeCase = (S.caseNumber || '').replace(/[^a-z0-9]/gi,'_').slice(0,20);
+  const filename = `${safeName}_${safeCase}_${dateStr}.json`;
+  const blob = new Blob([json], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+  sessionSavedFilename = filename;
+  showToast('Exported — ' + filename);
+}
+
+function handleJsonLoad(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(data && data._batchVersion && data.saves){ importBatchSaves(data); return; }
+      if(!data.S || !data.planName) throw new Error('Invalid file');
+      pendingJsonData = data;
+      showLoadConfirm(data);
+    } catch(err){
+      showToast('Could not read file — is this a valid checklist JSON?');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+function importBatchSaves(data){
+  const incoming = data.saves || {};
+  const keys = Object.keys(incoming);
+  if(!keys.length){ showToast('Batch file did not contain any plans.'); return; }
+  const saves = getSaves();
+  const meta = getPlanMeta();
+  keys.forEach(k => {
+    saves[k] = incoming[k];
+    if(!meta[k]) meta[k] = { fav:false, order: incoming[k].ts || Date.now() };
+  });
+  putSaves(saves); putPlanMeta(meta);
+  renderDashboard();
+  showToast('Loaded ' + keys.length + ' plan' + (keys.length === 1 ? '' : 's') + ' into saved plans');
+}
+function showLoadConfirm(data){
+  document.getElementById('lcbPlanName').textContent = data.planName || '—';
+  document.getElementById('lcbCase').textContent = data.caseNumber ? 'Case No. ' + data.caseNumber : '';
+  const fd = ds => ds ? new Date(ds+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+  const statusLabels = { active:'Active', complete:'Complete', hold:'On hold' };
+  const rows = [
+    ['Effective date', fd(data.effectiveDate)],
+    ['Status', statusLabels[data.status || 'active'] || 'Active'],
+    ['Progress', (data.pct || 0) + '% complete'],
+    ['Saved', data._savedAt ? new Date(data._savedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}) : '—'],
+  ];
+  document.getElementById('lcbRows').innerHTML = rows.map(([l,v]) =>
+    `<div class="m-row"><span class="l">${l}</span><span class="v">${esc(String(v))}</span></div>`).join('');
+  document.getElementById('loadConfirmOverlay').classList.add('open');
+}
+function cancelJsonLoad(){
+  pendingJsonData = null;
+  document.getElementById('loadConfirmOverlay').classList.remove('open');
+}
+function confirmJsonLoad(){
+  if(!pendingJsonData){ cancelJsonLoad(); return; }
+  document.getElementById('loadConfirmOverlay').classList.remove('open');
+  applyLoadedData(pendingJsonData);
+  pendingJsonData = null;
+}
+function applyLoadedData(data){
+  saveKey = null;
+  sessionSavedFilename = null;
+  const normalized = normalizeLoadedPlannerData(data);
+  applyPlannerCoreState(normalized);
+  planStatus = normalized.status || 'active';
+  syncIntakeFromState();
+  PHASES = buildPhases();
+  hasGenerated = true;
+  editingExisting = false;
+  const notesEl = document.getElementById('planNotes');
+  if(notesEl) notesEl.value = normalized.notes || '';
+  markSaved();
+  openChecklistDirect();
+  showToast('Loaded — ' + (normalized.source.planName || S.planName || 'plan'));
+}
+function loadSave(k){
+  const saves = getSaves(), sv = saves[k];
+  if(!sv) return;
+  applyLoadedData({ ...sv, _savedAt: new Date(sv.ts || Date.now()).toISOString() });
+  saveKey = k;
+}
+
+// trash / archive
+function trashPlan(ev, key){
+  if(ev) ev.stopPropagation();
+  const saves = getSaves(), sv = saves[key];
+  if(!sv) return;
+  if(!confirm(`Move "${sv.planName || 'this plan'}" to trash?\n\nIt can be restored from the Trash section.`)) return;
+  sv.deletedAt = Date.now();
+  saves[key] = sv; putSaves(saves);
+  if(saveKey === key) saveKey = null;
+  renderDashboard();
+  showToast('Moved to trash — ' + (sv.planName || 'plan'));
+}
+function restoreTrashedPlan(ev, key){
+  if(ev) ev.stopPropagation();
+  const saves = getSaves(), sv = saves[key];
+  if(!sv) return;
+  delete sv.deletedAt;
+  saves[key] = sv; putSaves(saves);
+  renderDashboard();
+  showToast('Restored — ' + (sv.planName || 'plan'));
+}
+function permanentlyDeletePlan(ev, key){
+  if(ev) ev.stopPropagation();
+  const saves = getSaves(), sv = saves[key];
+  if(!sv) return;
+  if(!confirm(`Permanently delete "${sv.planName || 'this plan'}"?\n\nThis cannot be undone.`)) return;
+  delete saves[key]; putSaves(saves);
+  const meta = getPlanMeta(); delete meta[key]; putPlanMeta(meta);
+  renderDashboard();
+  showToast('Deleted forever');
+}
+function emptyTrash(){
+  const saves = getSaves();
+  const trashed = Object.entries(saves).filter(([,sv]) => sv.deletedAt);
+  if(!trashed.length) return;
+  if(!confirm(`Permanently delete all ${trashed.length} plan${trashed.length===1?'':'s'} in trash?\n\nThis cannot be undone.`)) return;
+  const meta = getPlanMeta();
+  trashed.forEach(([k]) => { delete saves[k]; delete meta[k]; });
+  putSaves(saves); putPlanMeta(meta);
+  renderDashboard();
+  showToast('Trash emptied');
+}
+function setPlanStatusByKey(ev, key, status){
+  if(ev) ev.stopPropagation();
+  const saves = getSaves(), sv = saves[key];
+  if(!sv) return;
+  sv.status = status;
+  saves[key] = sv; putSaves(saves);
+  renderDashboard();
+}
+
+// ── NAVIGATION ───────────────────────────────────────────────
+let pendingLeaveAction = null;
+function setActiveScreen(name){
+  currentScreen = name;
+  document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById((name === 'sql' ? 'sqlRepo' : name) + 'Screen');
+  if(el) el.classList.add('active');
+  document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('on'));
+  const nav = document.getElementById('nav-' + name);
+  if(nav) nav.classList.add('on');
+  const canSave = hasGenerated;
+  document.getElementById('btnQuickSave').disabled = !canSave;
+  document.getElementById('btnSaveJson').disabled = !canSave;
+  window.scrollTo({top:0});
+}
+function maybeLeave(fn){
+  if(hasPendingChanges && hasGenerated){
+    pendingLeaveAction = fn;
+    document.getElementById('leaveOverlay').classList.add('open');
+    return;
+  }
+  fn();
+}
+function leaveCancel(){
+  pendingLeaveAction = null;
+  document.getElementById('leaveOverlay').classList.remove('open');
+}
+function leaveWithoutSave(){
+  document.getElementById('leaveOverlay').classList.remove('open');
+  markSaved();
+  const fn = pendingLeaveAction; pendingLeaveAction = null;
+  if(fn) fn();
+}
+function leaveSaveAnd(){
+  document.getElementById('leaveOverlay').classList.remove('open');
+  saveChecklist();
+  const fn = pendingLeaveAction; pendingLeaveAction = null;
+  if(fn) fn();
+}
+function goHome(){
+  const hasSaves = Object.values(getSaves()).some(sv => !sv.deletedAt);
+  if(hasSaves) openDashboard(); else openIntake();
+}
+function openIntake(){
+  maybeLeave(() => {
+    if(!editingExisting && hasGenerated){
+      // fresh intake: keep current checklist in memory but clear the form
+      resetIntakeState({ confirmFirst:false, toast:false, keepChecklist:true });
+    }
+    renderIntake();
+    setActiveScreen('intake');
+  });
+}
+function openChecklist(){
+  if(!hasGenerated){ showToast('Generate or load a plan first'); return; }
+  openChecklistDirect();
+}
+function openChecklistDirect(){
+  renderChecklist();
+  setActiveScreen('checklist');
+}
+function openDashboard(){
+  maybeLeave(() => { renderDashboard(); setActiveScreen('dashboard'); });
+}
+function openCalendar(){
+  maybeLeave(() => { renderCalendar(); setActiveScreen('calendar'); });
+}
+</script>
+<script>
+// SQL QUERY REPO (ported verbatim from v1)
+const SQL_QUERY_REPO = [
+  {
+    id:'default-elections-export',
+    name:'Default Elections Export',
+    category:'Elections',
+    fields:[],
+    template:`SELECT
+ACCOUNT_NO,
+PART_ENRL_I,
+SOC_SEC_NO,
+STAT_C,
+START_D,
+END_D,
+OPT_OUT_C,
+CONFIRM_C,
+DEFAULT_STAT_C,
+USER_I,
+MOD_TS,
+INIT_DFLT_APP_C,
+ENRL_SERV_TYP_C
+FROM pension.part_ppa_default
+WHERE ACCOUNT_NO = '{{CASE_FULL}}'
+  AND ENRL_SERV_TYP_C = 2;`
+  },
+  {
+    id:'source-i',
+    name:'Source I',
+    category:'Plan Setup',
+    fields:[],
+    template:`SELECT DISTINCT
+C.ACCOUNT_NO,
+A.SRC_I,
+A.SRC_S,
+A.REPORT_1_NM,
+A.REPORT_2_NM,
+DOC_NM,
+ACTIVE_SRC_C,
+TRANSLATION_C
+FROM PENSION.PLAN_SRC_DETAIL A,
+PENSION.PLAN_PROVISION B,
+PENSION.PLAN_PROV_GRP C
+WHERE A.SRC_I = B.RELATED_I
+  AND B.PROV_TYP_C = 1019
+  AND B.ENRL_PROV_GRP_I = C.ENRL_PROV_GRP_I
+  AND ACCOUNT_NO LIKE '{{CASE_FULL}}%';`
+  },
+  {
+    id:'class-details',
+    name:'Class Details',
+    category:'Plan Setup',
+    fields:['region'],
+    template:`SELECT
+CLASS_PROV_I,
+CLASS_I,
+CLASS_TYP_C,
+CLASS_NM,
+CLASS_C,
+EXCLUSION_C,
+EFF_D
+FROM PENSION.PLAN_CLASS
+WHERE CLASS_PROV_I IN (
+  SELECT PROVISION_I
+  FROM {{REGION}}.PLAN_PROV_GRP Y,
+       {{REGION}}.PLAN_PROVISION X
+  WHERE X.ENRL_PROV_GRP_I = Y.ENRL_PROV_GRP_I
+    AND Y.ACCOUNT_NO = '{{CASE_FULL}}'
+);`
+  },
+  {
+    id:'auto-enroll-details',
+    name:'Auto Enroll Details',
+    category:'Elections',
+    fields:[],
+    template:`SELECT
+ACCOUNT_NO,
+SOC_SEC_NO,
+ENRL_SERV_TYP_C,
+STAT_C,
+START_D,
+END_D,
+OPT_OUT_C,
+CONFIRM_C,
+DEFAULT_STAT_C,
+DATA_CH_ORIG_C,
+USER_I,
+AUTO_ENRL_D
+FROM PENSION.PART_PPA_DEFAULT
+WHERE ACCOUNT_NO LIKE '{{CASE_WILDCARD_GAP}}%'
+  AND ENRL_SERV_TYP_C = '1';`
+  },
+  {
+    id:'election-percentage-details',
+    name:'Election Percentage Details',
+    category:'Elections',
+    fields:[],
+    template:`SELECT
+ACCOUNT_NO,
+B.SOC_SEC_NO,
+A.FD_DESC_C,
+A.ELEC_P,
+A.EFF_D
+FROM PENSION.PART_ELECT_DETAIL A,
+PENSION.PART_ENRL_XREF B
+WHERE A.PART_ENRL_I IN (
+  SELECT PART_ENRL_I
+  FROM PENSION.PART_ENRL_XREF
+  WHERE ACCOUNT_NO LIKE '{{CASE_WILDCARD_GAP}}%'
+)
+AND A.ENRL_PROV_GRP_I = B.ENRL_PROV_GRP_I
+AND A.PART_ENRL_I = B.PART_ENRL_I
+AND A.EFF_D = (
+  SELECT MAX(EFF_D) AS EFF_D
+  FROM PENSION.PART_ELECT_DETAIL E
+  WHERE E.PART_ENRL_I = A.PART_ENRL_I
+    AND ACCOUNT_NO LIKE '{{CASE_WILDCARD_GAP}}%'
+);`
+  },
+  {
+    id:'eligibility-check',
+    name:'Eligibility Check',
+    category:'Eligibility',
+    fields:[],
+    template:`SELECT
+PA.ELIG_D,
+PA.PLAN_ENTRY_D,
+PE.EE_TERM_DT,
+PA.REHIRE_C,
+PS.SOC_SEC_NO,
+PE.CLASS_I,
+PE.EE_HIRE_DT,
+PE.EE_BRTH_DT,
+PA.STAT_C,
+PA.EFF_D,
+PA.SRC_I,
+SRC_S,
+PA.KIT_MAIL_D,
+PA.CLIENT_KIT_MAIL_D,
+PART_HIST_C,
+PE.EE_LAST_NM,
+PE.EE_FST_MID_NM,
+PE.EE_DIV_NO,
+PA.PART_ENRL_I,
+PB.ENRL_PROV_GRP_I
+FROM PENSION.PART_ELIG_SRC PA,
+PENSION.PART_ENRL PB,
+PENSION.PERSON_SEARCH PS,
+CORP.EMPLOYEE PE,
+PENSION.PLAN_PROV_GRP PP,
+PENSION.PLAN_SRC_DETAIL PD
+WHERE PA.PART_ENRL_I = PB.PART_ENRL_I
+  AND PERSON_I = PART_I
+  AND PB.ENRL_PROV_GRP_I = PP.ENRL_PROV_GRP_I
+  AND PS.SOC_SEC_NO = PE.SOC_SEC_NO
+  AND ACCOUNT_NO = PE.CASE_NO
+  AND PART_HIST_C = 0
+  AND RELATED_GRP_TYP_C = 361
+  AND CASE_NO = '{{CASE_FULL}}'
+  AND PA.SRC_I = PD.SRC_I
+ORDER BY SOC_SEC_NO;`
+  },
+  {
+    id:'deferral-details',
+    name:'Deferral Details',
+    category:'Deferrals',
+    fields:[],
+    template:`SELECT
+PART_ENRL_I,
+ENRL_PROV_GRP_I,
+SOC_SEC_NO,
+DEF_GRP_I,
+DEF_A,
+DEF_P,
+STAT_C,
+SRC_C,
+TRANSMIT_C,
+EFF_D,
+SRC_I,
+START_D
+FROM PENSION.PART_DEF_DATA
+WHERE ENRL_PROV_GRP_I IN (
+  SELECT ENRL_PROV_GRP_I
+  FROM PENSION.PLAN_PROV_GRP
+  WHERE ACCOUNT_NO LIKE '{{CASE_WILDCARD_GAP}}%'
+);`
+  },
+  {
+    id:'ytd-details',
+    name:'YTD Details',
+    category:'Compensation',
+    fields:[],
+    template:`SELECT
+PKG_ID,
+CASE_NO,
+SOC_SEC_NO,
+CAL_YR_DT,
+YTD_EXCS_DEF_AMT,
+YTD_RFND_INT_AMT,
+TYP1_YTD_CTRB_AMT,
+TYP2_YTD_CTRB_AMT,
+TYP3_YTD_CTRB_AMT,
+TYP4_YTD_CTRB_AMT,
+TYP5_YTD_CTRB_AMT,
+TYP6_YTD_CTRB_AMT,
+TYP7_YTD_CTRB_AMT,
+TYP8_YTD_CTRB_AMT,
+REC_DT
+FROM CORP.CONTRIB_CALENDAR
+WHERE CASE_NO = '{{CASE_FULL}}';`
+  },
+  {
+    id:'ytd-comp',
+    name:'YTD Comp',
+    category:'Compensation',
+    fields:[],
+    template:`SELECT
+ACCOUNT_NO,
+SOC_SEC_NO,
+TR_REF_NO,
+COMP_PERIOD_TYP_C,
+COMP_A,
+PAY_PERIOD_END_D,
+PAY_PERIOD_START_D,
+PAYCHECK_D,
+CYC_D,
+MOD_TS
+FROM PENSION.COMPENSATION_DATA
+WHERE ACCOUNT_NO LIKE '{{CASE_WILDCARD_GAP}}%'
+  AND COMP_TYP_C = 41;`
+  },
+  {
+    id:'prior-year-comp',
+    name:'Prior Year Comp',
+    category:'Compensation',
+    fields:[],
+    template:`SELECT
+ACCOUNT_NO,
+SOC_SEC_NO,
+TR_REF_NO,
+COMP_TYP_C,
+PAY_PERIOD_END_D,
+PAY_PERIOD_START_D,
+PAYCHECK_D,
+PAYROLL_SITE_C,
+CYC_D,
+COMP_PERIOD_TYP_C,
+COMP_A,
+MOD_TS
+FROM PENSION.COMPENSATION_DATA
+WHERE ACCOUNT_NO LIKE '{{CASE_WILDCARD_GAP}}%'
+  AND COMP_TYP_C != 41;`
+  },
+  {
+    id:'yos',
+    name:'YOS',
+    category:'Service',
+    fields:[],
+    template:`SELECT *
+FROM CORP.VEE_CREDITED_SRV
+WHERE CASE_NO = '{{CASE_FULL}}';`
+  },
+  {
+    id:'hours',
+    name:'Hours',
+    category:'Service',
+    fields:[],
+    template:`SELECT *
+FROM CORP.EE_HRS_WORKED
+WHERE CASE_NO = '{{CASE_FULL}}';`
+  },
+  {
+    id:'basis',
+    name:'Basis',
+    category:'Balances',
+    fields:[],
+    template:`SELECT
+EE.CASE_NO AS CASE_NUMBER,
+EE.SOC_SEC_NO AS SSN,
+EE.RTH_HRDSHP_CTRB_A AS ROTH_HARDSHIP,
+EE.RTH_TAXFREE_CTRB_A AS ROTH_TAX_FREE,
+EE.RTH_TAXFREE_ROLL_A AS ROTH_ROLLOVER,
+EE.PRE87_TAX_BAS_AMT AS PRE87_AMOUNT,
+EE.POST86_TAX_BAS_AMT AS POST86_AMOUNT,
+EE.POST88TYP3_BAS_AMT AS POST88_AMOUNT,
+EMP.RTH_CTRB_FST_YR AS FIRST_YEAR
+FROM CORP.EE_BASIS EE
+JOIN CORP.EMPLOYEE EMP
+  ON EE.SOC_SEC_NO = EMP.SOC_SEC_NO
+ AND EE.CASE_NO = EMP.CASE_NO
+WHERE EE.CASE_NO = '{{CASE_FULL}}'
+  AND EE.SOC_SEC_NO NOT LIKE '%T';`
+  },
+  {
+    id:'pye-balances',
+    name:'PYE Balances',
+    category:'Balances',
+    fields:['ssns'],
+    template:`SELECT *
+FROM CORP.MIN_DIST_DATA
+WHERE CASE_NO LIKE '{{CASE_WILDCARD_GAP}}%'
+  AND SOC_SEC_NO IN ({{SSN_IN}});`
+  },
+  {
+    id:'cpma',
+    name:'CPMA',
+    category:'Elections',
+    fields:[],
+    template:`DROP TABLE EE;
+DROP TABLE DEFLT;
+DROP TABLE ALLOC;
+DROP TABLE CPMA;
+
+CREATE TEMPORARY TABLE EE AS
+SELECT CASE_NO, SOC_SEC_NO, REPLACE(SOC_SEC_NO,'-','') AS SOC_SEC_NO_NO_DASHES, EE_BRTH_DT, EE_HIRE_DT, EE_TERM_DT, EE_REHIRE_DT, EE_NO, EE_FST_MID_NM, MIDDLE_NM, EE_LAST_NM, SUFFIX_NM, EE_SEX_CD, EMPL_STAT_CD, EE_MARITAL_STAT_CD, HCE_CD, SERV_YRS, EE_PAYROLL_FREQ_CD
+FROM CORP.EMPLOYEE
+WHERE CASE_NO = '{{CASE_FULL}}'
+ORDER BY SOC_SEC_NO;
+
+CREATE TEMPORARY TABLE DEFLT AS
+SELECT *
+FROM PENSION.PART_PPA_DEFAULT
+WHERE ACCOUNT_NO = '{{CASE_FULL}}'
+  AND ENRL_SERV_TYP_C = 2
+ORDER BY SOC_SEC_NO;
+
+CREATE TEMPORARY TABLE ALLOC AS
+SELECT DISTINCT C.SOC_SEC_NO, SUM(A.ELEC_P) AS ELEC_P
+FROM PENSION.PART_ELECT_DETAIL A, PENSION.PLAN_PROV_GRP B, PENSION.PERSON_SEARCH C, PENSION.PART_ENRL D, CORP.EMPLOYEE E
+WHERE A.ENRL_PROV_GRP_I = B.ENRL_PROV_GRP_I
+  AND A.PART_ENRL_I = D.PART_ENRL_I
+  AND PART_I = PERSON_I
+  AND ACCOUNT_NO = '{{CASE_FULL}}'
+  AND ACCOUNT_NO = CASE_NO
+  AND C.SOC_SEC_NO = E.SOC_SEC_NO
+GROUP BY C.SOC_SEC_NO
+ORDER BY C.SOC_SEC_NO;
+
+CREATE TEMPORARY TABLE CPMA AS
+SELECT *
+FROM CORP.PART_SERVICE_DATA
+WHERE ENRL_PROV_GRP_I IN (
+  SELECT ENRL_PROV_GRP_I
+  FROM CORP.PLAN_PROV_GRP
+  WHERE ACCOUNT_NO LIKE '{{CASE_WILDCARD_GAP}}%'
+)
+AND SERV_TYP_C = 6007;
+
+SELECT A.*, B.STAT_C, B.START_D, B.END_D, C.ELEC_P, D.SERV_TYP_C, D.SERV_STAT_C, D.EFF_D
+FROM EE A
+LEFT JOIN DEFLT B ON A.SOC_SEC_NO = B.SOC_SEC_NO
+LEFT JOIN ALLOC C ON A.SOC_SEC_NO = C.SOC_SEC_NO
+LEFT JOIN CPMA D ON A.SOC_SEC_NO = D.SOC_SEC_NO
+ORDER BY A.SOC_SEC_NO;
+
+DROP TABLE EE;
+DROP TABLE DEFLT;
+DROP TABLE ALLOC;
+DROP TABLE CPMA;`
+  },
+  {
+    id:'interest-earnings',
+    name:'To find Interest/Earnings',
+    category:'Balances',
+    fields:['refNumbers'],
+    template:`SELECT
+PKG_ID,
+CASE_NO,
+SOC_SEC_NO,
+TR_REF_NO,
+TR_AMT,
+TR_PRNC_AMT,
+CYC_DT,
+EFF_DT,
+TR_NO
+FROM CORP.TRANSACT_DETAIL
+WHERE CASE_NO = '{{CASE_FULL}}'
+  AND TR_REF_NO IN ({{REF_IN}});`
+  },
+  {
+    id:'ref-numbers-used',
+    name:'To find Ref Numbers Used',
+    category:'Balances',
+    fields:[],
+    template:`SELECT
+PKG_ID,
+CASE_NO,
+SOC_SEC_NO,
+TR_REF_NO,
+TR_AMT,
+TR_PRNC_AMT,
+CYC_DT,
+EFF_DT,
+TR_NO
+FROM CORP.TRANSACT_DETAIL
+WHERE CASE_NO = '{{CASE_FULL}}'
+  AND TR_NO = '4004';`
+  },
+  {
+    id:'advanced-employer-deposit-check',
+    name:'Advanced Employer Deposit Check',
+    category:'Balances',
+    fields:['effectiveDate'],
+    template:`SELECT
+CASE_NO,
+TR_REF_NO,
+B.REPTG_1_FD_NM,
+B.REPTG_2_FD_NM,
+B.FD_DESCR_CODE,
+B.FD_CUSIP_CD,
+SUM(TR_AMT)
+FROM CORP.TRANSACT_DET_REM A,
+CORP.FUNDDESC B
+WHERE CASE_NO LIKE '{{CASE_PREFIX}}%'
+  AND A.FD_DESC_CD = B.FD_DESCR_CODE
+  AND EFF_DT = '{{EFF_DATE}}'
+  AND TR_REVSL_DT = '   '
+  AND TR_NO IN ('1006','1119')
+GROUP BY CASE_NO, TR_REF_NO, B.REPTG_1_FD_NM, B.REPTG_2_FD_NM, B.FD_DESCR_CODE, B.FD_CUSIP_CD;`
+  },
+  {
+    id:'alpha-ssn-transact-detail',
+    name:'Alpha SSN Transact Detail',
+    category:'Balances',
+    fields:['effectiveDate'],
+    template:`SELECT *
+FROM CORP.TRANSACT_DETAIL
+WHERE CASE_NO LIKE '{{CASE_PREFIX}}%'
+  AND SOC_SEC_NO LIKE '%A%'
+  AND EFF_DT = '{{EFF_DATE}}';`
+  },
+  {
+    id:'bill-remit-detail',
+    name:'Bill Remit Detail',
+    category:'Balances',
+    fields:['refNumbers'],
+    template:`SELECT
+CASE_NO,
+SOC_SEC_NO,
+TR_REF_NO,
+BILL_SUBM_AMT,
+BILL_APPLD_AMT,
+BILL_DT,
+CYC_DT,
+BILL_DUE_DT,
+CTRB_TYP_CD,
+DEP_TYP_CD,
+SRC_I
+FROM CORP.BILL_REMIT_DETAIL
+WHERE CASE_NO = '{{CASE_FULL}}'
+  AND TR_REF_NO IN ({{REF_IN}});`
+  },
+  {
+    id:'transact-detail',
+    name:'Transact Detail',
+    category:'Balances',
+    fields:['refNumbers','ssns'],
+    template:`SELECT
+CASE_NO,
+SOC_SEC_NO,
+TR_REF_NO,
+TR_AMT,
+TR_UNITS_AMT,
+CYC_DT,
+EFF_DT,
+FD_DESC_CD,
+MOD_TS,
+SRC_I
+FROM CORP.TRANSACT_DETAIL
+WHERE CASE_NO LIKE '{{CASE_PREFIX}}%'
+  AND SOC_SEC_NO NOT IN ({{SSN_IN}})
+  AND TR_REF_NO IN ({{REF_IN}});`
+  },
+  {
+    id:'case-remit',
+    name:'Case Remit',
+    category:'Balances',
+    fields:['refNumbers'],
+    template:`SELECT
+CASE_NO,
+TR_REF_NO,
+REMIT_AMT,
+PROC_AMT,
+DEP_BOOK_DT,
+CYC_DT,
+PAYROLL_DT,
+DEP_EFF_DT,
+DRCT_ELEC_CD,
+SERVICER_CD,
+TR_NO,
+STAT_CD,
+PLAN_YR_DT,
+F_E_LOAD_PRCSS_CD,
+ACCT_PROC_CD,
+FIN_ACT_I,
+BATCH_PROC_DT
+FROM CORP.CASE_REMIT
+WHERE CASE_NO LIKE '{{CASE_PREFIX}}%'
+  AND TR_REF_NO IN ({{REF_IN}});`
+  },
+  {
+    id:'det-rem',
+    name:'Det Rem',
+    category:'Balances',
+    fields:['effectiveDate'],
+    template:`SELECT
+A.CASE_NO,
+A.TR_REF_NO,
+B.REPTG_1_FD_NM,
+B.REPTG_2_FD_NM,
+B.FD_DESCR_CODE,
+B.FD_CUSIP_CD,
+SUM(A.TR_AMT) AS TOTAL_TRANSACTION_AMOUNT
+FROM CORP.TRANSACT_DET_REM AS A
+INNER JOIN TDA.FUNDDESC AS B ON A.FD_DESC_CD = B.FD_DESCR_CODE
+WHERE A.CASE_NO LIKE '{{CASE_PREFIX}}%'
+  AND A.EFF_DT = '{{EFF_DATE}}'
+  AND (A.TR_REVSL_DT IS NULL OR RTRIM(A.TR_REVSL_DT) = '')
+  AND A.TR_NO IN ('1006','1119')
+GROUP BY A.CASE_NO, A.TR_REF_NO, B.REPTG_1_FD_NM, B.REPTG_2_FD_NM, B.FD_DESCR_CODE, B.FD_CUSIP_CD;`
+  },
+  {
+    id:'fin-act-pend',
+    name:'FIN ACT PEND',
+    category:'Balances',
+    fields:['refNumbers'],
+    template:`SELECT *
+FROM PENSION.FIN_ACT_PEND
+WHERE ENRL_PROV_GRP_I IN (
+  SELECT ENRL_PROV_GRP_I
+  FROM CORP.PLAN_PROV_GRP
+  WHERE ACCOUNT_NO = '{{CASE_FULL}}'
+)
+AND TR_REF_NO IN ({{REF_IN}});`
+  },
+  {
+    id:'fin-act-elec',
+    name:'FIN ACT Elec',
+    category:'Balances',
+    fields:['refNumbers'],
+    template:`SELECT *
+FROM PENSION.FIN_ACT_ELEC
+WHERE ACCOUNT_NO LIKE '{{CASE_PREFIX}}%'
+  AND TR_REF_NO IN ({{REF_IN}});`
+  },
+  {
+    id:'reversal-unit-check',
+    name:'REVERSAL - Unit Check For Non Fixed Funds',
+    category:'Balances',
+    fields:['refNumbers','effectiveDate'],
+    template:`SELECT
+TR_REF_NO,
+FD_DESC_CD,
+TR_REVSL_DT,
+SUM(TR_UNITS_AMT)
+FROM CORP.TRANSACT_DETAIL
+WHERE CASE_NO LIKE '{{CASE_PREFIX}}%'
+  AND TR_REVSL_DT IN ('        ','{{EFF_DATE}}')
+  AND TR_REF_NO IN ({{REF_IN}})
+GROUP BY TR_REF_NO, FD_DESC_CD, TR_REVSL_DT;`
+  },
+  {
+    id:'participant-blocks',
+    name:'To see ppts blocked or unblocked',
+    category:'Participant',
+    fields:['ssns'],
+    template:`SELECT
+CASE_NO,
+SOC_SEC_NO,
+ACCESS_CD,
+PHONE_TRFR_ACC_CD,
+PHONE_ELCHG_ACC_CD
+FROM CORP.EMPLOYEE
+WHERE CASE_NO = '{{CASE_FULL}}'
+  AND SOC_SEC_NO IN ({{SSN_IN}});`
+  },
+  {
+    id:'fund-prices-by-plan',
+    name:'Fund Prices by Plan',
+    category:'Balances',
+    fields:['effectiveDate'],
+    template:`SELECT
+CONT_NO,
+FD_NO,
+A.FD_DESC_CD,
+REPTG_1_FD_NM,
+REPTG_2_FD_NM,
+EFF_DT,
+UVAL_AMT
+FROM CORP.VCONTRACT_FUNDDATA A,
+CORP.UNIT_VALUE B
+WHERE CONT_NO LIKE '{{CASE_PREFIX}}%'
+  AND A.FD_DESC_CD = B.FD_DESC_CD
+  AND EFF_DT = '{{EFF_DATE}}';`
+  }
+];
+
+let sqlRepoReturnScreen = 'checklist';
+let sqlSelectedQueryId = SQL_QUERY_REPO[0].id;
+let sqlSelectedPlanKey = '__current__';
+let sqlCurrentPlainText = '';
+let sqlActiveCategory = 'all';
+let sqlSearchTerm = '';
+const SQL_CATEGORY_META = {
+  'Elections':    { color:'#0071e3' },
+  'Plan Setup':   { color:'#7c3aed' },
+  'Eligibility':  { color:'#0891b2' },
+  'Deferrals':    { color:'#b45309' },
+  'Compensation': { color:'#15803d' },
+  'Service':      { color:'#be123c' },
+  'Balances':     { color:'#c026d3' },
+  'Participant':  { color:'#4f46e5' }
+};
+function sqlCatColor(cat){ return (SQL_CATEGORY_META[cat] || {}).color || '#8a93a0'; }
+function sqlOrderedCategories(){
+  const known = Object.keys(SQL_CATEGORY_META);
+  const extra = [];
+  SQL_QUERY_REPO.forEach(q => { if(!known.includes(q.category) && !extra.includes(q.category)) extra.push(q.category); });
+  return known.concat(extra);
+}
+function setSqlCategory(cat){ sqlActiveCategory = cat; renderSqlRepo(); }
+function setSqlSearch(value){ sqlSearchTerm = value || ''; renderSqlRepo(); }
+function clearSqlSearch(){
+  sqlSearchTerm = '';
+  const input = document.getElementById('sqlQuerySearch');
+  if(input){ input.value = ''; input.focus(); }
+  renderSqlRepo();
+}
+function sqlQueryBtnHtml(item, activeId){
+  const color = sqlCatColor(item.category);
+  const fields = (item.fields || []).map(f => f === 'refNumbers' ? 'refs' : f);
+  const meta = fields.length ? fields.join(' Â· ') : 'case only';
+  return `<button type="button" class="sql-query-btn ${item.id === activeId ? 'is-active' : ''}" style="--cat:${color}" onclick="selectSqlQuery('${esc(item.id)}')"><div class="sql-query-name">${esc(item.name)}</div><div class="sql-query-meta">${esc(meta)}</div></button>`;
+}
+
+function normalizeSqlCaseNumber(value){
+  const raw = String(value || '').trim().toUpperCase();
+  if(!raw) return '';
+  const compact = raw.replace(/[^A-Z0-9]/g, '');
+  const compactMatch = compact.match(/^([A-Z]{2}\d{5})(\d{5})$/);
+  if(compactMatch) return compactMatch[1] + '   ' + compactMatch[2];
+  const spacedMatch = raw.match(/^([A-Z]{2}\d{5})\s+(\d{5})$/);
+  if(spacedMatch) return spacedMatch[1] + '   ' + spacedMatch[2];
+  return raw.replace(/\s+/g, ' ');
+}
+
+function getSqlCasePrefix(caseNumber){
+  const normalized = normalizeSqlCaseNumber(caseNumber);
+  if(!normalized) return '';
+  const spaced = normalized.match(/^([A-Z]{2}\d{5})\s+/);
+  if(spaced) return spaced[1];
+  const compact = normalized.replace(/[^A-Z0-9]/g, '');
+  return compact.slice(0, 7) || normalized;
+}
+
+function getSqlWildcardGapCase(caseNumber){
+  const normalized = normalizeSqlCaseNumber(caseNumber);
+  const match = normalized.match(/^([A-Z]{2}\d{5})\s+(\d{5})$/);
+  if(match) return match[1] + '_  ' + match[2];
+  return normalized;
+}
+
+function sqlQuote(value){
+  return String(value || '').trim().replace(/'/g, "''");
+}
+
+function sqlList(value){
+  const parts = String(value || '').split(/[\n,]+/).map(v => v.trim()).filter(Boolean);
+  if(!parts.length) return "''";
+  return parts.map(v => "'" + sqlQuote(v) + "'").join(', ');
+}
+
+function compactSqlDate(value){
+  return String(value || '').trim().replace(/-/g, '');
+}
+
+function getSqlRegionForCase(caseNumber){
+  const compact = String(caseNumber || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return compact.startsWith('T') ? 'TDA' : 'CORP';
+}
+
+function syncSqlRegionForCase(caseNumber){
+  const caseValue = caseNumber != null ? caseNumber : (document.getElementById('sqlCaseNumber')?.value || S.caseNumber || '');
+  const region = getSqlRegionForCase(caseValue);
+  const select = document.getElementById('sqlRegion');
+  if(select) select.value = region;
+  return region;
+}
+
+function updateSqlRequiredFields(query){
+  const needed = new Set(['caseNumber']);
+  (query.fields || []).forEach(field => needed.add(field));
+  document.querySelectorAll('#sqlRepoScreen [data-sql-field]').forEach(field => {
+    const key = field.getAttribute('data-sql-field');
+    field.classList.toggle('is-needed', needed.has(key));
+    field.classList.toggle('is-optional', !needed.has(key) && key !== 'planSelect');
+  });
+}
+
+function getSqlInputs(){
+  const fallbackCase = S.caseNumber || '';
+  const caseFull = normalizeSqlCaseNumber(document.getElementById('sqlCaseNumber')?.value || fallbackCase);
+  return {
+    caseFull,
+    refNumbers: document.getElementById('sqlRefNumbers')?.value || '',
+    effectiveDate: compactSqlDate(document.getElementById('sqlEffectiveDate')?.value || S.wireDate || S.effectiveDate || ''),
+    ssns: document.getElementById('sqlSsnList')?.value || '',
+    region: syncSqlRegionForCase(caseFull)
+  };
+}
+
+function compactSqlColumnList(columns, indent){
+  const clean = columns.map(col => col.replace(/,\s*$/, '').trim()).filter(Boolean);
+  if(!clean.length) return '';
+  const lines = [];
+  let line = indent;
+  clean.forEach((col, index) => {
+    const item = col + (index < clean.length - 1 ? ',' : '');
+    if(line.trim() && (line + ' ' + item).length > 96){
+      lines.push(line);
+      line = indent + item;
+    } else {
+      line += (line.trim() ? ' ' : '') + item;
+    }
+  });
+  if(line.trim()) lines.push(line);
+  return lines.join('\n');
+}
+
+function formatSqlQueryText(sql){
+  const lines = String(sql || '').replace(/\r\n/g, '\n').split('\n').map(line => line.trim()).filter((line, index, arr) => line || (arr[index - 1] && arr[index + 1]));
+  const out = [];
+  for(let i = 0; i < lines.length; i++){
+    const line = lines[i];
+    const upper = line.toUpperCase();
+    const selectMatch = upper.match(/^(SELECT|SELECT DISTINCT)$/);
+    if(selectMatch){
+      const modifier = upper === 'SELECT DISTINCT' ? 'SELECT DISTINCT' : 'SELECT';
+      const columns = [];
+      let j = i + 1;
+      while(j < lines.length && !/^(FROM|WHERE|AND|ORDER BY|GROUP BY|HAVING|UNION|DROP|CREATE|LEFT JOIN|INNER JOIN|JOIN)\b/i.test(lines[j])){
+        const candidate = lines[j];
+        if(!candidate || /^SELECT\b/i.test(candidate)) break;
+        columns.push(candidate);
+        j++;
+      }
+      if(columns.length){
+        const compact = compactSqlColumnList(columns, '  ');
+        out.push(`${modifier} ${compact.trimStart()}`);
+        i = j - 1;
+        continue;
+      }
+    }
+    out.push(line);
+  }
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function sqlTokenClass(key){
+  if(key === 'REF_IN') return 'sql-token-ref';
+  if(key === 'EFF_DATE') return 'sql-token-date';
+  if(key === 'SSN_IN') return 'sql-token-ssn';
+  if(key === 'REGION') return 'sql-token-region';
+  return 'sql-token-case';
+}
+
+function highlightSqlKeywords(html){
+  return html
+    .replace(/\b(SELECT DISTINCT|SELECT|FROM|WHERE|AND|OR|JOIN|LEFT JOIN|INNER JOIN|GROUP BY|ORDER BY|CREATE TEMPORARY TABLE|DROP TABLE|AS|ON|IN|LIKE|NOT|NULL|IS|SUM|MAX)\b/g, '<span class="sql-keyword">$1</span>')
+    .replace(/(--[^\n]*)/g, '<span class="sql-comment">$1</span>');
+}
+
+function buildSqlQueryHtml(query){
+  const input = getSqlInputs();
+  const replacements = {
+    CASE_FULL: input.caseFull,
+    CASE_PREFIX: getSqlCasePrefix(input.caseFull),
+    CASE_WILDCARD_GAP: getSqlWildcardGapCase(input.caseFull),
+    REF_IN: sqlList(input.refNumbers),
+    EFF_DATE: sqlQuote(input.effectiveDate),
+    SSN_IN: sqlList(input.ssns),
+    REGION: sqlQuote(input.region || 'CORP').toUpperCase()
+  };
+  const marked = query.template.replace(/\{\{([A-Z_]+)\}\}/g, (match, key) => {
+    const value = replacements[key] != null ? replacements[key] : match;
+    return `__SQLHL_${key}_${encodeURIComponent(value).replace(/_/g, '%5F')}__`;
+  });
+  const formatted = formatSqlQueryText(marked);
+  sqlCurrentPlainText = formatted.replace(/__SQLHL_([A-Z_]+)_([^_]+?)__/g, (match, key, value) => decodeURIComponent(value));
+  const escaped = esc(formatted);
+  const withTokens = escaped.replace(/__SQLHL_([A-Z_]+)_([^_]+?)__/g, (match, key, value) => {
+    const decoded = decodeURIComponent(value);
+    return `<span class="sql-token ${sqlTokenClass(key)}">${esc(decoded)}</span>`;
+  });
+  return highlightSqlKeywords(withTokens);
+}
+
+function buildSqlQueryText(query){
+  const input = getSqlInputs();
+  const replacements = {
+    CASE_FULL: input.caseFull,
+    CASE_PREFIX: getSqlCasePrefix(input.caseFull),
+    CASE_WILDCARD_GAP: getSqlWildcardGapCase(input.caseFull),
+    REF_IN: sqlList(input.refNumbers),
+    EFF_DATE: sqlQuote(input.effectiveDate),
+    SSN_IN: sqlList(input.ssns),
+    REGION: sqlQuote(input.region || 'CORP').toUpperCase()
+  };
+  return formatSqlQueryText(query.template.replace(/\{\{([A-Z_]+)\}\}/g, (match, key) => replacements[key] != null ? replacements[key] : match));
+}
+
+function getSqlPlanOptions(){
+  const options = [];
+  if(S.planName || S.caseNumber) options.push({ key:'__current__', label:(S.planName || 'Current plan') + (S.caseNumber ? ' / ' + S.caseNumber : ''), caseNumber:S.caseNumber || '' });
+  Object.entries(getSaves()).forEach(([key, plan]) => {
+    if(plan && !plan.deletedAt) options.push({ key, label:(plan.planName || key) + (plan.caseNumber ? ' / ' + plan.caseNumber : ''), caseNumber:plan.caseNumber || '' });
+  });
+  if(!options.length) options.push({ key:'__manual__', label:'Manual case entry', caseNumber:'' });
+  return options;
+}
+
+function hydrateSqlPlanSelect(){
+  const select = document.getElementById('sqlPlanSelect');
+  if(!select) return;
+  const options = getSqlPlanOptions();
+  if(!options.some(option => option.key === sqlSelectedPlanKey)) sqlSelectedPlanKey = options[0].key;
+  select.innerHTML = options.map(option => `<option value="${esc(option.key)}" ${option.key === sqlSelectedPlanKey ? 'selected' : ''}>${esc(option.label)}</option>`).join('');
+  const selected = options.find(option => option.key === sqlSelectedPlanKey);
+  const input = document.getElementById('sqlCaseNumber');
+  if(input && selected && selected.caseNumber && !input.value.trim()) input.value = normalizeSqlCaseNumber(selected.caseNumber);
+}
+
+function selectSqlPlanCase(key){
+  sqlSelectedPlanKey = key;
+  const selected = getSqlPlanOptions().find(option => option.key === key);
+  const input = document.getElementById('sqlCaseNumber');
+  if(input) input.value = normalizeSqlCaseNumber(selected ? selected.caseNumber : '');
+  syncSqlRegionForCase();
+  renderSqlRepo();
+}
+
+function selectSqlQuery(id){
+  sqlSelectedQueryId = id;
+  renderSqlRepo();
+}
+
+function renderSqlRepo(){
+  hydrateSqlPlanSelect();
+  const query = SQL_QUERY_REPO.find(item => item.id === sqlSelectedQueryId) || SQL_QUERY_REPO[0];
+  updateSqlRequiredFields(query);
+
+  // category navigator chips
+  const nav = document.getElementById('sqlCatNav');
+  if(nav){
+    let chips = `<button type="button" class="sql-cat-chip ${sqlActiveCategory === 'all' ? 'is-active' : ''}" style="--cat:#1d1d1f" onclick="setSqlCategory('all')">All</button>`;
+    chips += sqlOrderedCategories().map(cat =>
+      `<button type="button" class="sql-cat-chip ${sqlActiveCategory === cat ? 'is-active' : ''}" style="--cat:${sqlCatColor(cat)}" onclick="setSqlCategory('${esc(cat)}')"><span class="sql-cat-dot"></span>${esc(cat)}</button>`
+    ).join('');
+    nav.innerHTML = chips;
+  }
+  const clearBtn = document.getElementById('sqlSearchClear');
+  if(clearBtn) clearBtn.hidden = !sqlSearchTerm.trim();
+
+  // filtered query list (by category + search), grouped under headers when "All"
+  const term = sqlSearchTerm.trim().toLowerCase();
+  let pool = SQL_QUERY_REPO.filter(item => sqlActiveCategory === 'all' || item.category === sqlActiveCategory);
+  if(term) pool = pool.filter(item => item.name.toLowerCase().includes(term));
+  const list = document.getElementById('sqlQueryList');
+  if(list){
+    if(!pool.length){
+      const note = term ? `No queries match â€œ${esc(sqlSearchTerm.trim())}â€` : 'No queries in this category';
+      list.innerHTML = `<div class="sql-query-empty">${note}</div>`;
+    } else if(sqlActiveCategory === 'all'){
+      list.innerHTML = sqlOrderedCategories().map(cat => {
+        const items = pool.filter(item => item.category === cat);
+        if(!items.length) return '';
+        return `<div class="sql-query-group"><div class="sql-group-head" style="--cat:${sqlCatColor(cat)}">${esc(cat)}</div>${items.map(item => sqlQueryBtnHtml(item, query.id)).join('')}</div>`;
+      }).join('');
+    } else {
+      list.innerHTML = pool.map(item => sqlQueryBtnHtml(item, query.id)).join('');
+    }
+  }
+  const title = document.getElementById('sqlQueryTitle');
+  const sub = document.getElementById('sqlQuerySub');
+  const output = document.getElementById('sqlQueryOutput');
+  if(title) title.textContent = query.name;
+  if(sub) sub.textContent = `${query.category} query filled from ${normalizeSqlCaseNumber(getSqlInputs().caseFull) || 'manual case entry'}`;
+  if(output) output.innerHTML = buildSqlQueryHtml(query);
+}
+
+function openSqlRepo(){
+  maybeLeave(() => {
+    sqlRepoReturnScreen = currentScreen === 'sql' ? sqlRepoReturnScreen : currentScreen;
+    const caseInput = document.getElementById('sqlCaseNumber');
+    if(caseInput && !caseInput.value.trim()) caseInput.value = normalizeSqlCaseNumber(S.caseNumber || '');
+    const dateInput = document.getElementById('sqlEffectiveDate');
+    if(dateInput && !dateInput.value.trim()) dateInput.value = compactSqlDate(S.wireDate || S.effectiveDate || '');
+    renderSqlRepo();
+    setActiveScreen('sql');
+  });
+}
+
+function closeSqlRepo(){
+  setActiveScreen(sqlRepoReturnScreen || 'checklist');
+}
+
+async function copySqlQuery(){
+  const text = sqlCurrentPlainText || buildSqlQueryText(SQL_QUERY_REPO.find(item => item.id === sqlSelectedQueryId) || SQL_QUERY_REPO[0]);
+  if(!text.trim()){ showToast('Pick a SQL query first'); return; }
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('SQL query copied');
+  } catch(e) {
+    const output = document.getElementById('sqlQueryOutput');
+    if(output){
+      output.focus();
+      const range = document.createRange();
+      range.selectNodeContents(output);
+      const sel = window.getSelection();
+      if(sel){ sel.removeAllRanges(); sel.addRange(range); }
+    }
+    window.prompt('Copy this SQL:', text);
+  }
+}
+</script>
+<script>
+/* ════════════════════════════════════════════════════════════
+   LMDC PLANNER v2 — renderers & UI
+════════════════════════════════════════════════════════════ */
+
+// fallback task-name map for saved plans without a task catalog snapshot
+const TASK_NAME_FALLBACK = (function(){
+  const savedS = S, savedC = CHARS;
+  S = { ...blankPlanState(), planType:'conversion', strategies:['cash','mapping','tik'] };
+  CHARS = { nonqual:false, loans:true, roth:true, autoenroll:true };
+  const map = {};
+  buildPhases().forEach(ph => ph.tasks.forEach(t => map[t.id] = { text:t.text, phase:ph.title }));
+  S = savedS; CHARS = savedC;
+  return map;
+})();
+
+const fmtShort = d => d ? d.toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+const fmtMed = ds => ds ? new Date(ds+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+
+// ═══════════ INTAKE ═══════════
+const INTAKE_FIELD_IDS = ['planName','caseNumber','effectiveDate','day1','wireDate','spUrl',
+  'dcFileCoordinator','clientName','clientEmail','tmName','tmEmail','tcName','tcEmail',
+  'payrollName','payrollEmail','priorContactName','priorContactEmail'];
+
+function initIntakeSelects(){
+  const tm = document.getElementById('tmName');
+  tm.innerHTML = '<option value="">Select TM</option>' +
+    Object.keys(TEAM_DIRECTORY.tm).filter(Boolean).map(n => `<option>${esc(n)}</option>`).join('');
+  const tc = document.getElementById('tcName');
+  tc.innerHTML = '<option value="">Select TC</option>' +
+    Object.keys(TEAM_DIRECTORY.tc).filter(Boolean).map(n => `<option>${esc(n)}</option>`).join('');
+  const pv = document.getElementById('payrollVendorSelect');
+  pv.innerHTML = '<option value="">Select payroll vendor</option>' +
+    VENDOR_OPTIONS.payroll.map(v => `<option>${esc(v)}</option>`).join('') +
+    '<option value="__custom__">Other…</option>';
+  const pr = document.getElementById('priorVendorSelect');
+  pr.innerHTML = '<option value="">Select prior record keeper</option>' +
+    VENDOR_OPTIONS.prior.map(v => `<option>${esc(v)}</option>`).join('') +
+    '<option value="__custom__">Other…</option>';
+}
+
+function selectTeamMember(kind){
+  const name = document.getElementById(kind + 'Name').value;
+  document.getElementById(kind + 'Email').value = TEAM_DIRECTORY[kind][name] || '';
+  validate();
+}
+function selectVendor(kind){
+  const selectId = kind === 'payroll' ? 'payrollVendorSelect' : 'priorVendorSelect';
+  const inputId  = kind === 'payroll' ? 'payrollVendor' : 'priorVendorName';
+  const sel = document.getElementById(selectId);
+  const input = document.getElementById(inputId);
+  const custom = sel.value === '__custom__';
+  input.style.display = custom ? 'block' : 'none';
+  if(!custom) input.value = sel.value;
+  if(custom) input.focus();
+  validate();
+}
+function vendorValue(kind){
+  const selectId = kind === 'payroll' ? 'payrollVendorSelect' : 'priorVendorSelect';
+  const inputId  = kind === 'payroll' ? 'payrollVendor' : 'priorVendorName';
+  const sel = document.getElementById(selectId);
+  return sel.value === '__custom__' ? document.getElementById(inputId).value.trim() : sel.value;
+}
+
+function selType(t){
+  S.planType = t;
+  ['startup','conversion','merger'].forEach(x =>
+    document.getElementById('btn-' + x).classList.toggle('on', x === t));
+  const notStart = t !== 'startup';
+  document.getElementById('secStrat').style.display = notStart ? '' : 'none';
+  document.getElementById('wireDateField').style.display = notStart ? '' : 'none';
+  document.getElementById('mergerSub').classList.toggle('show', t === 'merger');
+  if(t !== 'merger') S.mergerType = null;
+  if(t === 'startup') S.strategies = [];
+  syncChoiceStates();
+  validate();
+}
+function selMerger(t){
+  S.mergerType = t;
+  ['internal','external'].forEach(m =>
+    document.getElementById('mb-' + m).classList.toggle('on', m === t));
+  validate();
+}
+function togStrat(s){
+  if(S.strategies.includes(s)) S.strategies = S.strategies.filter(x => x !== s);
+  else S.strategies.push(s);
+  document.getElementById('strat-' + s).classList.toggle('on', S.strategies.includes(s));
+  validate();
+}
+function togChar(id){
+  CHARS[id] = !CHARS[id];
+  document.getElementById('char-' + id).classList.toggle('on', CHARS[id]);
+  validate();
+}
+function syncChoiceStates(){
+  ['startup','conversion','merger'].forEach(x =>
+    document.getElementById('btn-' + x).classList.toggle('on', S.planType === x));
+  ['internal','external'].forEach(m =>
+    document.getElementById('mb-' + m).classList.toggle('on', S.mergerType === m));
+  ['cash','mapping','tik'].forEach(s =>
+    document.getElementById('strat-' + s).classList.toggle('on', S.strategies.includes(s)));
+  ['nonqual','loans','roth','autoenroll'].forEach(c =>
+    document.getElementById('char-' + c).classList.toggle('on', !!CHARS[c]));
+  const notStart = S.planType && S.planType !== 'startup';
+  document.getElementById('secStrat').style.display = notStart ? '' : 'none';
+  document.getElementById('wireDateField').style.display = notStart ? '' : 'none';
+  document.getElementById('mergerSub').classList.toggle('show', S.planType === 'merger');
+}
+
+// extra contacts
+function addContact(group){
+  const key = group + 'Extras';
+  if(!Array.isArray(S[key])) S[key] = [];
+  S[key].push({ name:'', email:'' });
+  renderContactExtras(group);
+}
+function removeContact(group, idx){
+  S[group + 'Extras'].splice(idx, 1);
+  renderContactExtras(group);
+}
+function updateContactField(group, idx, field, value){
+  const arr = S[group + 'Extras'];
+  if(arr && arr[idx]) arr[idx][field] = value;
+}
+function renderContactExtras(group){
+  const mount = document.getElementById(group + 'Extras');
+  if(!mount) return;
+  const arr = S[group + 'Extras'] || [];
+  mount.innerHTML = arr.map((c, i) => `
+    <div class="extra-contact">
+      <div class="field"><label class="f-lbl">Name</label>
+        <input class="fi" type="text" value="${escAttr(c.name)}" placeholder="Contact name"
+          oninput="updateContactField('${group}',${i},'name',this.value)"></div>
+      <div class="field"><label class="f-lbl">Email</label>
+        <input class="fi" type="email" value="${escAttr(c.email)}" placeholder="email@company.com"
+          oninput="updateContactField('${group}',${i},'email',this.value)"></div>
+      <button type="button" class="rm" onclick="removeContact('${group}',${i})" aria-label="Remove contact">&times;</button>
+    </div>`).join('');
+}
+
+// rail
+const RAIL_SECTIONS = [
+  { id:'secPlan',   label:'Plan information', required:true },
+  { id:'secType',   label:'Plan type',        required:true },
+  { id:'secStrat',  label:'Conversion strategy', required:true, conditional:true },
+  { id:'secDC',     label:'DC file coordinator' },
+  { id:'secClient', label:'Client contact' },
+  { id:'secTeam',   label:'Your team' },
+  { id:'secPayroll',label:'Payroll' },
+  { id:'secPrior',  label:'Prior record keeper' },
+  { id:'secFolder', label:'Client folder' },
+  { id:'secChars',  label:'Plan characteristics' },
+];
+function sectionState(id){
+  const val = fid => (document.getElementById(fid) || {}).value || '';
+  switch(id){
+    case 'secPlan': {
+      const filled = ['planName','caseNumber','effectiveDate'].filter(f => val(f).trim()).length;
+      return filled === 3 ? 'done' : filled ? 'part' : '';
+    }
+    case 'secType': {
+      if(!S.planType) return '';
+      if(S.planType === 'merger' && !S.mergerType) return 'part';
+      return 'done';
+    }
+    case 'secStrat': return S.strategies.length ? 'done' : '';
+    case 'secDC': return val('dcFileCoordinator') ? 'done' : '';
+    case 'secClient': return (val('clientName').trim() || val('clientEmail').trim()) ? 'done' : '';
+    case 'secTeam': return (val('tmName') || val('tcName')) ? 'done' : '';
+    case 'secPayroll': return (vendorValue('payroll') || val('payrollName').trim()) ? 'done' : '';
+    case 'secPrior': return (vendorValue('prior') || val('priorContactName').trim()) ? 'done' : '';
+    case 'secFolder': return val('spUrl').trim() ? 'done' : '';
+    case 'secChars': return Object.values(CHARS).some(Boolean) ? 'done' : '';
+  }
+  return '';
+}
+function renderRail(){
+  const strategyNeeded = S.planType && S.planType !== 'startup';
+  const html = ['<div class="rail-group">Required</div>'];
+  const optional = [];
+  RAIL_SECTIONS.forEach(sec => {
+    const state = sectionState(sec.id);
+    const disabled = sec.conditional && !strategyNeeded;
+    const item = `<button type="button" class="rail-item ${state} ${disabled ? 'disabled' : ''}"
+      onclick="document.getElementById('${sec.id}').scrollIntoView({behavior:'smooth',block:'center'})">
+      <span class="rail-dot"></span>${esc(sec.label)}
+      <span class="rail-meta">${state === 'done' ? 'Done' : state === 'part' ? '…' : ''}</span></button>`;
+    if(sec.required) html.push(item); else optional.push(item);
+  });
+  html.push('<div class="rail-group">Optional</div>', ...optional);
+  document.getElementById('railList').innerHTML = html.join('');
+  // percent: weight required sections
+  const need = ['secPlan','secType'].concat(S.planType && S.planType !== 'startup' ? ['secStrat'] : []);
+  const done = need.filter(id => sectionState(id) === 'done').length;
+  const pct = Math.round(done / need.length * 100);
+  document.getElementById('railPct').textContent = pct;
+  document.getElementById('railFill').style.width = pct + '%';
+}
+
+function validate(){
+  const val = id => (document.getElementById(id) || {}).value || '';
+  const ok = val('planName').trim() && val('caseNumber').trim() && val('effectiveDate')
+    && S.planType
+    && (S.planType !== 'merger' || S.mergerType)
+    && (S.planType === 'startup' || S.strategies.length);
+  const btn = document.getElementById('genBtn');
+  btn.disabled = !ok;
+  const status = document.getElementById('genStatus');
+  if(ok){
+    status.textContent = editingExisting ? 'Ready — changes apply to the existing checklist' : 'Ready to generate';
+    status.classList.add('ok');
+  } else {
+    const missing = [];
+    if(!val('planName').trim()) missing.push('plan name');
+    if(!val('caseNumber').trim()) missing.push('case number');
+    if(!val('effectiveDate')) missing.push('effective date');
+    if(!S.planType) missing.push('plan type');
+    else if(S.planType === 'merger' && !S.mergerType) missing.push('merger type');
+    else if(S.planType !== 'startup' && !S.strategies.length) missing.push('strategy');
+    status.textContent = 'Missing: ' + missing.join(', ');
+    status.classList.remove('ok');
+  }
+  renderRail();
+}
+
+function readIntakeIntoState(){
+  INTAKE_FIELD_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) S[id] = el.value.trim();
+  });
+  S.payrollVendor = vendorValue('payroll');
+  S.priorVendorName = vendorValue('prior');
+  if(!S.day1) S.day1 = todayDateStr();
+  S.clientExtras  = (S.clientExtras  || []).filter(c => (c.name||'').trim() || (c.email||'').trim());
+  S.payrollExtras = (S.payrollExtras || []).filter(c => (c.name||'').trim() || (c.email||'').trim());
+  S.priorExtras   = (S.priorExtras   || []).filter(c => (c.name||'').trim() || (c.email||'').trim());
+}
+
+function syncIntakeFromState(){
+  INTAKE_FIELD_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = S[id] || '';
+  });
+  // vendor selects
+  ['payroll','prior'].forEach(kind => {
+    const value = kind === 'payroll' ? S.payrollVendor : S.priorVendorName;
+    const sel = document.getElementById(kind === 'payroll' ? 'payrollVendorSelect' : 'priorVendorSelect');
+    const input = document.getElementById(kind === 'payroll' ? 'payrollVendor' : 'priorVendorName');
+    const opts = VENDOR_OPTIONS[kind === 'payroll' ? 'payroll' : 'prior'];
+    if(value && !opts.includes(value)){
+      sel.value = '__custom__'; input.style.display = 'block'; input.value = value;
+    } else {
+      sel.value = value || ''; input.style.display = 'none'; input.value = value || '';
+    }
+  });
+  syncChoiceStates();
+  ['client','payroll','prior'].forEach(renderContactExtras);
+}
+
+function renderIntake(){
+  const banner = document.getElementById('editBanner');
+  banner.classList.toggle('show', editingExisting);
+  if(editingExisting) document.getElementById('editBannerName').textContent = S.planName || 'plan';
+  document.getElementById('genBtnLabel').textContent = editingExisting ? 'Apply changes' : 'Generate checklist';
+  if(!editingExisting && !document.getElementById('day1').value){
+    document.getElementById('day1').value = todayDateStr();
+  }
+  validate();
+}
+
+function resetIntakeState(options = {}){
+  const confirmFirst = options.confirmFirst !== false;
+  if(confirmFirst && !confirm('Clear the current intake form and in-progress checklist?\n\nBrowser saves are not deleted.')) return false;
+  S = blankPlanState();
+  CHARS = { nonqual:false, loans:false, roth:false, autoenroll:false };
+  CS = {}; TE = {}; CD = {}; WS = {}; CN = {}; CT = {}; CAL_ITEMS = []; PINS = [];
+  PHASES = []; schedOverrides = {};
+  saveKey = null; planStatus = 'active'; sessionSavedFilename = null;
+  hasGenerated = false; hasPendingChanges = false; editingExisting = false;
+  document.getElementById('planNotes').value = '';
+  syncIntakeFromState();
+  document.getElementById('day1').value = todayDateStr();
+  S.day1 = todayDateStr();
+  renderIntake();
+  if(options.toast !== false) showToast('Intake cleared');
+  return true;
+}
+function clearAllIntake(){ resetIntakeState({ confirmFirst:true, toast:true }); }
+
+function enterEditMode(){
+  editingExisting = true;
+  syncIntakeFromState();
+  renderIntake();
+  setActiveScreen('intake');
+}
+function cancelEditMode(){
+  editingExisting = false;
+  openChecklistDirect();
+}
+
+function generate(){
+  readIntakeIntoState();
+  if(document.getElementById('genBtn').disabled) return;
+  if(editingExisting){
+    editingExisting = false;
+    PHASES = buildPhases();
+    hasGenerated = true;
+    markChanged();
+    openChecklistDirect();
+    showToast('Plan details updated');
+    return;
+  }
+  CS = {}; TE = {}; CD = {}; WS = {}; CN = {}; CT = {}; CAL_ITEMS = []; PINS = [];
+  saveKey = null; planStatus = 'active'; sessionSavedFilename = null; schedOverrides = {};
+  document.getElementById('planNotes').value = '';
+  ensureDefaultPinnedNotes();
+  PHASES = buildPhases();
+  hasGenerated = true;
+  hasPendingChanges = true;
+  openChecklistDirect();
+  showToast('Checklist generated — ' + S.planName);
+}
+
+// ═══════════ CHECKLIST ═══════════
+const phaseCollapsed = new Set();
+
+function setStatus(s){
+  planStatus = s;
+  const pill = document.getElementById('statusPill');
+  pill.className = 'status-pill st-' + s;
+  document.getElementById('statusLabel').textContent = { active:'Active', complete:'Complete', hold:'On hold' }[s] || s;
+  document.getElementById('statusMenu').classList.remove('open');
+  markChanged();
+}
+function toggleStatusMenu(e){
+  e.stopPropagation();
+  document.getElementById('statusMenu').classList.toggle('open');
+}
+
+function renderChecklist(){
+  document.getElementById('clPlanName').textContent = S.planName || 'Implementation checklist';
+  document.getElementById('clCase').textContent = S.caseNumber ? 'Case No. ' + S.caseNumber : '';
+  const pill = document.getElementById('statusPill');
+  pill.className = 'status-pill st-' + planStatus;
+  document.getElementById('statusLabel').textContent = { active:'Active', complete:'Complete', hold:'On hold' }[planStatus];
+  renderBadges();
+  renderCounters();
+  renderPhases();
+  renderPlanDetails();
+  renderPins();
+  updProg();
+}
+
+function renderBadges(){
+  const b = [];
+  if(S.planType) b.push(S.planType);
+  if(S.mergerType) b.push(S.mergerType);
+  S.strategies.forEach(s => b.push(s === 'tik' ? 'TIK' : s));
+  if(CHARS.nonqual) b.push('non-qual');
+  if(CHARS.roth) b.push('roth');
+  if(CHARS.loans) b.push('loans');
+  if(CHARS.autoenroll) b.push('auto-enroll');
+  document.getElementById('clBadges').innerHTML =
+    b.map(x => `<span class="plan-badge">${esc(x)}</span>`).join('');
+}
+
+function renderCounters(){
+  const items = [];
+  const daysFrom = ds => {
+    if(!ds) return null;
+    const t = new Date(ds + 'T00:00:00'), n = new Date(); n.setHours(0,0,0,0);
+    return Math.round((t - n) / 86400000);
+  };
+  const ed = daysFrom(S.effectiveDate);
+  if(ed !== null){
+    const cls = ed > 30 ? 'cv-ok' : ed > 14 ? 'cv-warn' : 'cv-urgent';
+    const lbl = ed < 0 ? Math.abs(ed) + 'd past' : ed === 0 ? 'Today' : ed + 'd';
+    items.push(`<div class="counter"><div class="cv ${cls}">${lbl}</div><div class="ck">To effective</div></div>`);
+  }
+  const wd = daysFrom(S.wireDate);
+  if(wd !== null){
+    const cls = wd > 14 ? 'cv-ok' : wd > 7 ? 'cv-warn' : 'cv-urgent';
+    const lbl = wd < 0 ? Math.abs(wd) + 'd past' : wd === 0 ? 'Today' : wd + 'd';
+    items.push(`<div class="counter"><div class="cv ${cls}">${lbl}</div><div class="ck">To wire</div></div>`);
+  }
+  if(S.effectiveDate){
+    items.push(`<div class="counter"><div class="cv">${fmtMed(S.effectiveDate).replace(', ' + new Date().getFullYear(),'')}</div><div class="ck">Effective date</div></div>`);
+  }
+  document.getElementById('clCounters').innerHTML = items.join('');
+}
+
+function taskMatchesFilters(t){
+  if(tagFilter !== 'all' && !(t.tags || []).includes(tagFilter)) return false;
+  if(dateFilter !== 'all'){
+    const key = dueFilterKey(t.id);
+    if(dateFilter !== key) return false;
+  }
+  return true;
+}
+function setTagFilter(tag){
+  tagFilter = tag;
+  document.querySelectorAll('#tagChips .fchip').forEach(el =>
+    el.classList.toggle('on', el.dataset.tag === tag));
+  renderPhases();
+}
+function setDateFilter(f){
+  dateFilter = f;
+  document.querySelectorAll('#dateChips .fchip').forEach(el =>
+    el.classList.toggle('on', el.dataset.date === f));
+  renderPhases();
+}
+function toggleAllPhases(){
+  const anyOpen = PHASES.some(p => !phaseCollapsed.has(p.id));
+  PHASES.forEach(p => anyOpen ? phaseCollapsed.add(p.id) : phaseCollapsed.delete(p.id));
+  document.getElementById('collapseAllBtn').textContent = anyOpen ? 'Expand all' : 'Collapse all';
+  renderPhases();
+}
+function togPhase(id){
+  if(phaseCollapsed.has(id)) phaseCollapsed.delete(id); else phaseCollapsed.add(id);
+  const el = document.getElementById('phase-' + id);
+  if(el) el.classList.toggle('closed', phaseCollapsed.has(id));
+}
+
+function dueBadgeHTML(taskId){
+  const dc = dueClass(taskId);
+  if(dc === 'done' || dc === '') return '';
+  const res = calcTaskDueResolution(taskId);
+  const icon = k => {
+    const a = 'viewBox="0 0 24 24"';
+    if(k === 'overdue') return `<svg ${a}><path d="M10.3 3.8 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.8a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
+    if(k === 'future' || k === 'week-bucket') return `<svg ${a}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`;
+    return `<svg ${a}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`;
+  };
+  if(dc === 'pending'){
+    const label = res.missingAnchor && TASK_EVENT_META[res.missingAnchor]
+      ? 'Pending ' + TASK_EVENT_META[res.missingAnchor].label : 'Pending trigger';
+    if(res.source === 'week')
+      return `<span class="due d-pending nohover" title="${escAttr(label)}">${icon('pending')}Pending</span>`;
+    return `<span class="due d-pending" title="${escAttr(label)} — click to set a manual due date" onclick="event.stopPropagation();openTaskDueEditor('${taskId}')">${icon('pending')}Pending</span>`;
+  }
+  if(res.source === 'week'){
+    const rangeLabel = res.range && res.range.label ? ` · ${res.range.label}` : '';
+    const title = `Week ${res.week}${rangeLabel} from Documents Received`;
+    const cls = dc === 'overdue' ? 'd-overdue' : 'd-week';
+    return `<span class="due ${cls} nohover" title="${escAttr(title)}">${icon(dc === 'overdue' ? 'overdue' : 'week-bucket')}Wk ${res.week}</span>`;
+  }
+  const due = res.due;
+  if(!due) return '';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((due - today) / 86400000);
+  let label = fmtShort(due);
+  if(diff === 0) label = 'Today';
+  else if(diff === 1) label = 'Tomorrow';
+  else if(diff === -1) label = 'Yesterday';
+  const suffix = res.source === 'manual' ? ' · manual override'
+    : res.source === 'cascade' ? ' · forecast from manual override' : '';
+  const title = 'Due ' + due.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'}) + suffix + ' — click to edit';
+  return `<span class="due d-${dc}${res.source === 'manual' ? ' d-manual' : ''}" title="${escAttr(title)}" onclick="event.stopPropagation();openTaskDueEditor('${taskId}')">${icon(dc)}${label}</span>`;
+}
+
+function taskRowHTML(phase, t, isCustom){
+  const done = !!CS[t.id];
+  const working = !!WS[t.id];
+  const note = CN[t.id] || '';
+  const trigger = isTaskEvent(t.id);
+  const tags = (t.tags || []).map(tag =>
+    `<span class="${tag === 'critical' ? 'tg-critical' : ''}">${esc(tag)}</span>`).join(' · ');
+  const res = calcTaskDueResolution(t.id);
+  const dueVal = taskManualDueDate(t.id) || (res.due ? toDateStr(res.due) : '');
+
+  let sectionHead = '';
+  if(t.sectionTitle){
+    sectionHead = `<div class="task" style="border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--sunken) 45%,transparent);padding:9px 20px">
+      <div style="font:500 10.5px/1.5 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--mut)">
+        ${esc(t.sectionTitle)}${t.sectionCopy ? ` <span style="text-transform:none;letter-spacing:0;font:400 11px var(--sans)"> — ${esc(t.sectionCopy)}</span>` : ''}
+      </div></div>`;
+  }
+
+  return sectionHead + `
+  <div class="task ${done ? 'done' : ''} ${t.inSubsection ? 'subtask' : ''}" id="task-${t.id}">
+    <button class="task-check" onclick="togTask('${t.id}')" aria-label="Toggle done">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    </button>
+    <div class="task-main">
+      <div class="task-row1">
+        <span class="task-text">${esc(t.text)}</span>
+        ${tags ? `<span class="task-tags">${tags}</span>` : ''}
+      </div>
+      ${trigger ? `<div class="task-event" onclick="event.stopPropagation()">
+        <span class="te-lbl">${esc(TASK_EVENT_META[t.id].label)}</span>
+        <input type="date" value="${escAttr(TE[t.id] || '')}" onchange="setTaskEventDate('${t.id}', this.value)">
+      </div>` : ''}
+      <div class="due-editor" id="mde-${t.id}" onclick="event.stopPropagation()">
+        <span class="de-lbl">Manual due</span>
+        <input type="date" id="mdd-${t.id}" value="${escAttr(dueVal)}">
+        <button onclick="setCustomDueDate('${t.id}')">Apply</button>
+        <button onclick="clearCustomDueDate('${t.id}')">Auto</button>
+      </div>
+      ${note && !noteEditing[t.id] ? `<div class="task-note"><div class="note-view">${esc(note)}</div></div>` : ''}
+      ${noteEditing[t.id] ? `<div class="task-note">
+        <textarea id="note-ta-${t.id}">${esc(note)}</textarea>
+        <div class="note-actions">
+          <button onclick="saveTaskNote('${t.id}')">Save note</button>
+          ${note ? `<button onclick="pinTaskNote('${t.id}')">Pin to sidebar</button>` : ''}
+          <button class="cancel" onclick="cancelTaskNote('${t.id}')">Cancel</button>
+        </div>
+      </div>` : ''}
+    </div>
+    <div class="task-side">
+      ${dueBadgeHTML(t.id)}
+      ${t.workingToggle ? `<button class="working-flag ${working ? 'on' : ''}" onclick="toggleWorkingTask('${t.id}')">${working ? 'Working' : 'Start'}</button>` : ''}
+      <button class="tbtn ${note ? 'on' : ''}" title="${note ? 'Edit note' : 'Add note'}" onclick="togTaskNote('${t.id}')">
+        <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      </button>
+      ${isCustom ? `<button class="tbtn del" title="Delete task" onclick="removeCustomTask('${phase.id}','${t.id}')">
+        <svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      </button>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderPhases(){
+  const mount = document.getElementById('phaseMount');
+  mount.innerHTML = PHASES.map(phase => {
+    const all = getAllTasksForPhase(phase);
+    const visible = all.filter(taskMatchesFilters);
+    const pp = calculatePhaseProgress(phase);
+    const overdue = all.filter(t => !CS[t.id] && dueClass(t.id) === 'overdue').length;
+    const dates = phase.tasks.map(t => calcTaskDue(t.id)).filter(Boolean).sort((a,b) => a - b);
+    const range = dates.length
+      ? (dates[0].getTime() === dates[dates.length-1].getTime()
+        ? fmtShort(dates[0]) : fmtShort(dates[0]) + ' – ' + fmtShort(dates[dates.length-1]))
+      : '';
+    const collapsed = phaseCollapsed.has(phase.id);
+    const rows = visible.length
+      ? visible.map(t => taskRowHTML(phase, t, (CT[phase.id] || []).some(c => c.id === t.id))).join('')
+      : `<div class="tasks-empty">No tasks match the current filters.</div>`;
+    return `
+    <section class="phase ${collapsed ? 'closed' : ''}" id="phase-${phase.id}" style="--phc:${phase.color}">
+      <header class="phase-hd" onclick="togPhase('${phase.id}')">
+        <span class="phase-num">${String(phase.num).padStart(2,'0')}</span>
+        <div class="phase-hd-main">
+          <h3 class="phase-title">${esc(phase.title)}</h3>
+          <div class="phase-sub">${esc(phase.subtitle || '')}</div>
+        </div>
+        <div class="phase-hd-meta">
+          ${range ? `<span class="phase-range">${range}</span>` : ''}
+          ${overdue ? `<span class="phase-late">${overdue} overdue</span>` : ''}
+          <span class="phase-count">${pp.done}/${pp.total}</span>
+          <svg class="phase-chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="phase-bar"><i style="width:${pp.pct}%"></i></div>
+      </header>
+      <div class="phase-body">
+        ${rows}
+        <div class="phase-foot" onclick="event.stopPropagation()">
+          <input type="text" id="ct-input-${phase.id}" placeholder="Add a task to ${escAttr(phase.title)}…"
+            onkeydown="if(event.key==='Enter')addCustomTask('${phase.id}')">
+          <button onclick="addCustomTask('${phase.id}')">Add task</button>
+        </div>
+      </div>
+    </section>`;
+  }).join('');
+}
+
+function togTask(id){
+  const wasDone = !!CS[id];
+  if(wasDone) delete CS[id];
+  else CS[id] = Date.now();
+  if(!wasDone && isTaskEvent(id) && !TE[id]) TE[id] = todayDateStr();
+  markChanged();
+  renderPhases();
+  updProg();
+}
+function setTaskEventDate(taskId, value){
+  if(!isTaskEvent(taskId)) return;
+  if(!value){ showToast('Pick a date for this trigger'); return; }
+  TE[taskId] = value;
+  markChanged();
+  renderPhases();
+  updProg();
+}
+function toggleWorkingTask(id){
+  if(WS[id]) delete WS[id]; else WS[id] = Date.now();
+  markChanged();
+  renderPhases();
+}
+function openTaskDueEditor(taskId){
+  document.querySelectorAll('.due-editor.open').forEach(el => {
+    if(el.id !== 'mde-' + taskId) el.classList.remove('open');
+  });
+  const editor = document.getElementById('mde-' + taskId);
+  if(!editor) return;
+  editor.classList.toggle('open');
+  const input = document.getElementById('mdd-' + taskId);
+  if(editor.classList.contains('open') && input){
+    setTimeout(() => {
+      input.focus();
+      if(typeof input.showPicker === 'function'){ try { input.showPicker(); } catch(e){} }
+    }, 0);
+  }
+}
+function setCustomDueDate(taskId){
+  const input = document.getElementById('mdd-' + taskId);
+  const next = input ? input.value : '';
+  if(!TASK_DUE[taskId]){ showToast('Task does not have a due-date rule'); return; }
+  if(!isDateInputValue(next)){ showToast('Pick a valid due date'); return; }
+  CD[taskId] = next;
+  markChanged();
+  renderPhases(); updProg();
+  showToast('Manual due date set');
+}
+function clearCustomDueDate(taskId){
+  if(CD[taskId]) delete CD[taskId];
+  markChanged();
+  renderPhases(); updProg();
+  showToast('Due date back on auto');
+}
+
+// notes
+const noteEditing = {};
+function togTaskNote(id){
+  noteEditing[id] = !noteEditing[id];
+  renderPhases();
+  if(noteEditing[id]){
+    const ta = document.getElementById('note-ta-' + id);
+    if(ta){ ta.focus(); ta.selectionStart = ta.value.length; }
+  }
+}
+function saveTaskNote(id){
+  const ta = document.getElementById('note-ta-' + id);
+  if(!ta) return;
+  const v = ta.value.trim();
+  if(v) CN[id] = v; else delete CN[id];
+  noteEditing[id] = false;
+  markChanged();
+  renderPhases();
+}
+function cancelTaskNote(id){
+  noteEditing[id] = false;
+  renderPhases();
+}
+function pinTaskNote(id){
+  const ta = document.getElementById('note-ta-' + id);
+  const text = (ta ? ta.value : CN[id] || '').trim();
+  if(!text){ showToast('Nothing to pin'); return; }
+  let taskText = id;
+  PHASES.forEach(ph => getAllTasksForPhase(ph).forEach(t => { if(t.id === id) taskText = t.text; }));
+  PINS.unshift({ id:'pin_' + Date.now(), title:taskText, note:text, ts:Date.now(),
+    column:'keep', type:'task', author:PLAN_AUTHOR || null, taskId:id });
+  markChanged();
+  renderPins();
+  showToast('Pinned to sidebar');
+}
+
+// custom tasks
+function addCustomTask(phaseId){
+  const input = document.getElementById('ct-input-' + phaseId);
+  const text = (input ? input.value : '').trim();
+  if(!text) return;
+  if(!CT[phaseId]) CT[phaseId] = [];
+  CT[phaseId].push({ id:'custom_' + Date.now(), text });
+  if(input) input.value = '';
+  markChanged();
+  renderPhases(); updProg();
+}
+function removeCustomTask(phaseId, taskId){
+  CT[phaseId] = (CT[phaseId] || []).filter(t => t.id !== taskId);
+  if(!CT[phaseId].length) delete CT[phaseId];
+  delete CS[taskId]; delete CN[taskId]; delete WS[taskId];
+  markChanged();
+  renderPhases(); updProg();
+}
+
+function updProg(){
+  const p = calculateProgress();
+  document.getElementById('progFill').style.width = p.pct + '%';
+  document.getElementById('progNum').textContent = `${p.done} of ${p.total} · ${p.pct}%`;
+}
+
+// plan details sidebar
+function renderPlanDetails(){
+  const rows = [];
+  const row = (l, v, mono) => v ? `<div class="pd-row"><span class="l">${esc(l)}</span><span class="v ${mono ? 'mono' : ''}">${v}</span></div>` : '';
+  const group = (label, inner) => inner.trim()
+    ? `<div class="pd-group"><div class="pd-g-lbl">${esc(label)}</div>${inner}</div>` : '';
+  const contact = (name, email) => {
+    if(!name && !email) return '';
+    return (name ? esc(name) : '') + (email ? `${name ? '<br>' : ''}<a href="mailto:${escAttr(email)}">${esc(email)}</a>` : '');
+  };
+
+  const typeLabel = S.planType ? S.planType[0].toUpperCase() + S.planType.slice(1) +
+    (S.mergerType ? ' · ' + S.mergerType : '') : '';
+  rows.push(group('Plan',
+    row('Case number', esc(S.caseNumber), true) +
+    row('Type', esc(typeLabel)) +
+    row('Strategy', esc(S.strategies.map(s => s === 'tik' ? 'TIK' : s).join(', '))) +
+    row('Effective', esc(fmtMed(S.effectiveDate)), true) +
+    row('Wire date', esc(fmtMed(S.wireDate)), true) +
+    row('Day 1', esc(fmtMed(S.day1)), true) +
+    row('Coordinator', esc(S.dcFileCoordinator))
+  ));
+  const extras = g => (S[g] || []).map(c => row('Also', contact(c.name, c.email))).join('');
+  rows.push(group('Client',
+    row('Contact', contact(S.clientName, S.clientEmail)) + extras('clientExtras') +
+    row('Folder', S.spUrl ? `<a href="${escAttr(S.spUrl)}" target="_blank" rel="noopener">Open folder ↗</a>` : '')
+  ));
+  rows.push(group('Team',
+    row('TM', contact(S.tmName, S.tmEmail)) +
+    row('TC', contact(S.tcName, S.tcEmail))
+  ));
+  rows.push(group('Payroll',
+    row('Vendor', esc(S.payrollVendor)) +
+    row('Contact', contact(S.payrollName, S.payrollEmail)) + extras('payrollExtras')
+  ));
+  rows.push(group('Prior record keeper',
+    row('Vendor', esc(S.priorVendorName)) +
+    row('Contact', contact(S.priorContactName, S.priorContactEmail)) + extras('priorExtras')
+  ));
+  const html = rows.join('');
+  document.getElementById('planDetailRows').innerHTML =
+    html.trim() ? html : '<div class="pins-empty">No details yet — click Edit to fill them in.</div>';
+}
+
+// pins
+function togglePinForm(){
+  const f = document.getElementById('pinForm');
+  f.hidden = !f.hidden;
+  if(!f.hidden) document.getElementById('pinInput').focus();
+}
+function addFreePin(){
+  const input = document.getElementById('pinInput');
+  const text = input.value.trim();
+  if(!text){ showToast('Write a note first'); return; }
+  PINS.unshift({ id:'pin_' + Date.now(), title:'', note:text, ts:Date.now(),
+    column:'keep', type:'default', author:PLAN_AUTHOR || null, free:true });
+  input.value = '';
+  document.getElementById('pinForm').hidden = true;
+  markChanged();
+  renderPins();
+}
+function removePin(id){
+  PINS = PINS.filter(p => p.id !== id);
+  markChanged();
+  renderPins();
+}
+function togglePinImportant(id){
+  const p = PINS.find(p => p.id === id);
+  if(p) p.important = !p.important;
+  markChanged();
+  renderPins();
+}
+function renderPins(){
+  const mount = document.getElementById('pinMount');
+  if(!PINS.length){
+    mount.innerHTML = '<div class="pins-empty">Nothing pinned. Pin the stuff you must not forget.</div>';
+    return;
+  }
+  const sorted = [...PINS].sort((a,b) => (b.important?1:0) - (a.important?1:0) || (b.ts||0) - (a.ts||0));
+  mount.innerHTML = sorted.map(p => `
+    <div class="pin-card ${p.important ? 'important' : ''}">
+      ${p.title ? `<div style="font:500 11px var(--mono);color:var(--mut);margin-bottom:4px">${esc(p.title)}</div>` : ''}
+      <div class="pin-note">${esc(p.note || '')}</div>
+      <div class="pin-meta">
+        ${p.author ? `<span>${esc(p.author)}</span><span>·</span>` : ''}
+        <span>${p.ts ? new Date(p.ts).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : ''}</span>
+      </div>
+      <div class="pin-acts">
+        <button class="star ${p.important ? 'on' : ''}" title="Mark important" onclick="togglePinImportant('${p.id}')">
+          <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </button>
+        <button title="Remove pin" onclick="removePin('${p.id}')">
+          <svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+    </div>`).join('');
+}
+function saveNotesBtn(){
+  markChanged();
+  saveChecklist();
+}
+
+// ═══════════ DASHBOARD ═══════════
+function planRecords(){
+  const saves = getSaves();
+  return Object.entries(saves).map(([key, sv]) => ({
+    key, planName:sv.planName || key, caseNumber:sv.caseNumber || '',
+    status:sv.status || 'active', pct:sv.pct || 0,
+    doneTasks:sv.doneTasks || 0, totalTasks:sv.totalTasks || 0,
+    effectiveDate:(sv.S || {}).effectiveDate || sv.effectiveDate || '',
+    planType:(sv.S || {}).planType || '',
+    deletedAt:sv.deletedAt || null,
+    S:sv.S || {}, CS:sv.CS || {}, TE:sv.TE || {}, CD:sv.CD || {},
+    tasks:sv.tasks || null, ts:sv.ts || 0
+  })).sort((a,b) => b.ts - a.ts);
+}
+function planTaskList(rec){
+  if(rec.tasks && rec.tasks.length) return rec.tasks;
+  return Object.keys(TASK_DUE).map(id => ({
+    id, text:(TASK_NAME_FALLBACK[id] || {}).text || id,
+    phaseName:(TASK_NAME_FALLBACK[id] || {}).phase || ''
+  }));
+}
+function upcomingForPlan(rec){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const out = [];
+  planTaskList(rec).forEach(t => {
+    if(rec.CS && rec.CS[t.id]) return;
+    if(!TASK_DUE[t.id]) return;
+    const due = calcTaskDueFor(t.id, rec.S, rec.TE, rec.CD);
+    if(!due) return;
+    const diff = Math.round((due - today) / 86400000);
+    if(diff > 7) return;
+    out.push({ ...t, due, diff });
+  });
+  out.sort((a,b) => a.diff - b.diff);
+  return out;
+}
+function effChipHTML(rec){
+  const days = effDaysLeft(rec.effectiveDate);
+  if(days === null) return '';
+  const cls = days < 0 ? '' : days <= 14 ? 'late' : days <= 30 ? 'warn' : 'ok';
+  const lbl = days < 0 ? `Eff ${Math.abs(days)}d ago`
+    : days === 0 ? 'Eff today' : `Eff in ${days}d`;
+  return `<span class="pc-chip ${cls}">${lbl}</span>`;
+}
+
+function renderDashboard(){
+  const records = planRecords();
+  const live = records.filter(r => !r.deletedAt);
+  const active = live.filter(r => r.status === 'active');
+  const held = live.filter(r => r.status === 'hold');
+  const complete = live.filter(r => r.status === 'complete');
+  const trashed = records.filter(r => r.deletedAt);
+
+  document.getElementById('dashSummary').innerHTML = [
+    `<span class="pc-chip">${active.length} active</span>`,
+    held.length ? `<span class="pc-chip warn">${held.length} on hold</span>` : '',
+    complete.length ? `<span class="pc-chip ok">${complete.length} complete</span>` : ''
+  ].filter(Boolean).join('');
+
+  const mount = document.getElementById('dashMount');
+  if(!live.length && !trashed.length){
+    mount.innerHTML = `<div class="dash-empty">
+      <h3>No saved plans yet</h3>
+      <p>Generate a checklist and hit Save, or import a plan .json file.</p>
+      <button class="btn primary" onclick="openIntake()">Start a new plan</button>
+    </div>`;
+    return;
+  }
+
+  const html = [];
+
+  // week board
+  if(active.length){
+    const boards = active.map(rec => {
+      const items = upcomingForPlan(rec);
+      const shown = items.slice(0, 6);
+      const rows = shown.length ? shown.map(t => {
+        const cls = t.diff < 0 ? 'late' : t.diff === 0 ? 'today' : '';
+        const when = t.diff < 0 ? `${Math.abs(t.diff)}d late` : t.diff === 0 ? 'Today' : fmtShort(t.due);
+        return `<div class="wk-row ${cls}">
+          <span class="wr-date">${when}</span>
+          <span class="wr-text">${esc(t.text)}</span>
+          <span class="wr-phase">${esc(t.phaseName || '')}</span>
+        </div>`;
+      }).join('') + (items.length > 6 ? `<div class="wk-row"><span class="wr-date"></span><span class="wr-text" style="color:var(--mut)">+ ${items.length - 6} more…</span></div>` : '')
+      : `<div class="wk-clear"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Nothing due in the next 7 days</div>`;
+      return `<div class="wk-plan">
+        <div class="wk-plan-hd" onclick="loadSave('${rec.key}')">
+          <span class="wp-name">${esc(rec.planName)}</span>
+          <span class="wp-case">${esc(rec.caseNumber)}</span>
+          ${effChipHTML(rec)}
+          <span class="wp-open">Open checklist →</span>
+        </div>
+        <div class="wk-rows">${rows}</div>
+      </div>`;
+    }).join('');
+    html.push(`<div class="dash-section">
+      <div class="ds-hd"><h2>This week</h2><span class="ds-count">${active.length} active plan${active.length === 1 ? '' : 's'}</span></div>
+      <div class="week-board">${boards}</div>
+    </div>`);
+  }
+
+  const card = (rec, extraCls, actions) => `
+    <div class="plan-card ${extraCls}" onclick="loadSave('${rec.key}')">
+      <div class="pc-top"><div>
+        <div class="pc-name">${esc(rec.planName)}</div>
+        <div class="pc-case">${esc(rec.caseNumber)}</div>
+      </div></div>
+      <div class="pc-meta">
+        ${rec.planType ? `<span class="pc-chip">${esc(rec.planType)}</span>` : ''}
+        ${effChipHTML(rec)}
+        ${getOverdueCountFor(rec.S, rec.CS, rec.TE, rec.CD) ? `<span class="pc-chip late">${getOverdueCountFor(rec.S, rec.CS, rec.TE, rec.CD)} overdue</span>` : ''}
+      </div>
+      <div class="pc-prog">
+        <div class="track"><i style="width:${rec.pct}%"></i></div>
+        <span>${rec.doneTasks}/${rec.totalTasks} · ${rec.pct}%</span>
+      </div>
+      <div class="pc-acts">${actions}</div>
+    </div>`;
+  const iconBtn = (title, onclick, path, cls) =>
+    `<button class="${cls || ''}" title="${title}" onclick="${onclick}"><svg viewBox="0 0 24 24">${path}</svg></button>`;
+  const holdIcon = '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>';
+  const playIcon = '<polygon points="6 3 20 12 6 21 6 3"/>';
+  const checkIcon = '<polyline points="20 6 9 17 4 12"/>';
+  const trashIcon = '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>';
+  const restoreIcon = '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v5h5"/>';
+
+  if(active.length || held.length){
+    const cards = active.map(r => card(r, '',
+        iconBtn('Put on hold', `event.stopPropagation();setPlanStatusByKey(event,'${r.key}','hold')`, holdIcon) +
+        iconBtn('Mark complete', `event.stopPropagation();setPlanStatusByKey(event,'${r.key}','complete')`, checkIcon) +
+        iconBtn('Move to trash', `trashPlan(event,'${r.key}')`, trashIcon, 'del')))
+      .concat(held.map(r => card(r, 'held',
+        iconBtn('Reactivate', `event.stopPropagation();setPlanStatusByKey(event,'${r.key}','active')`, playIcon) +
+        iconBtn('Move to trash', `trashPlan(event,'${r.key}')`, trashIcon, 'del'))))
+      .join('');
+    html.push(`<div class="dash-section">
+      <div class="ds-hd"><h2>Plans</h2><span class="ds-count">${active.length + held.length}</span></div>
+      <div class="plan-grid">${cards}</div>
+    </div>`);
+  }
+
+  if(complete.length){
+    html.push(`<div class="dash-section">
+      <div class="ds-hd"><h2>Completed</h2><span class="ds-count">${complete.length}</span></div>
+      <div class="plan-grid">${complete.map(r => card(r, '',
+        iconBtn('Reactivate', `event.stopPropagation();setPlanStatusByKey(event,'${r.key}','active')`, playIcon) +
+        iconBtn('Move to trash', `trashPlan(event,'${r.key}')`, trashIcon, 'del'))).join('')}</div>
+    </div>`);
+  }
+
+  if(trashed.length){
+    html.push(`<div class="dash-section">
+      <div class="ds-hd"><h2>Trash</h2><span class="ds-count">${trashed.length}</span>
+        <button class="ds-act" onclick="emptyTrash()">Empty trash</button></div>
+      <div class="plan-grid">${trashed.map(r => card(r, 'trashed',
+        iconBtn('Restore', `restoreTrashedPlan(event,'${r.key}')`, restoreIcon) +
+        iconBtn('Delete forever', `permanentlyDeletePlan(event,'${r.key}')`, trashIcon, 'del'))).join('')}</div>
+    </div>`);
+  }
+
+  mount.innerHTML = html.join('');
+}
+
+// ═══════════ CALENDAR ═══════════
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+let calSelectedDate = null;
+
+function buildCalTasks(){
+  const currentOnly = document.getElementById('calScopeToggle').checked;
+  const items = [];
+  const today = todayDateStr();
+
+  const pushPlanTasks = (planName, planKey, planS, planCS, planTE, planCD, taskList) => {
+    taskList.forEach(t => {
+      if(!TASK_DUE[t.id]) return;
+      const due = calcTaskDueFor(t.id, planS, planTE, planCD);
+      if(!due) return;
+      const ds = toDateStr(due);
+      const done = !!(planCS && planCS[t.id]);
+      const cls = done ? 'done' : ds < today ? 'late' : ds === today ? 'today' : '';
+      items.push({ date:ds, text:t.text, plan:planName, planKey, cls, kind:'task' });
+    });
+  };
+  const pushCustomItems = (planName, list, deletable) => {
+    (list || []).forEach(ci => {
+      if(!ci.date) return;
+      items.push({ date:ci.date, text:ci.text, plan:planName, cls:'custom', kind:'custom',
+        deletable, itemId:ci.id });
+    });
+  };
+
+  if(hasGenerated){
+    const liveTasks = PHASES.flatMap(ph => getAllTasksForPhase(ph));
+    pushPlanTasks(S.planName || 'Current plan', null, S, CS, TE, CD, liveTasks);
+    pushCustomItems(S.planName || 'Current plan', CAL_ITEMS, true);
+  }
+  if(!currentOnly){
+    planRecords().forEach(rec => {
+      if(rec.deletedAt || rec.status === 'complete') return;
+      if(hasGenerated && saveKey === rec.key) return; // already shown as live plan
+      pushPlanTasks(rec.planName, rec.key, rec.S, rec.CS, rec.TE, rec.CD, planTaskList(rec));
+      const sv = getSaves()[rec.key];
+      pushCustomItems(rec.planName, sv && sv.CAL_ITEMS, false);
+    });
+  }
+  return items;
+}
+
+function renderCalendar(){
+  const first = new Date(calYear, calMonth, 1);
+  document.getElementById('calMonthLabel').textContent =
+    first.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+
+  const tasks = buildCalTasks();
+  const dayMap = {};
+  tasks.forEach(t => { (dayMap[t.date] = dayMap[t.date] || []).push(t); });
+
+  const startDow = first.getDay();
+  const gridStart = new Date(calYear, calMonth, 1 - startDow);
+  const today = todayDateStr();
+  const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = dows.map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+  for(let i = 0; i < 42; i++){
+    const d = new Date(gridStart);
+    d.setDate(gridStart.getDate() + i);
+    const ds = toDateStr(d);
+    const dim = d.getMonth() !== calMonth;
+    const isToday = ds === today;
+    const sel = ds === calSelectedDate;
+    const dayItems = dayMap[ds] || [];
+    const shown = dayItems.slice(0, 3);
+    html += `<div class="cal-cell ${dim ? 'dim' : ''} ${isToday ? 'today' : ''} ${sel ? 'sel' : ''}" onclick="calSelectDay('${ds}')">
+      <span class="cd-num">${d.getDate()}</span>
+      <div class="cal-items">
+        ${shown.map(t => `<div class="cal-item ${t.cls}" title="${escAttr(t.plan + ' — ' + t.text)}">${esc(t.text)}</div>`).join('')}
+        ${dayItems.length > 3 ? `<div class="cal-more">+${dayItems.length - 3} more</div>` : ''}
+      </div>
+    </div>`;
+  }
+  document.getElementById('calGrid').innerHTML = html;
+  renderCalDayPanel(dayMap);
+}
+function renderCalDayPanel(dayMap){
+  const title = document.getElementById('calDayTitle');
+  const list = document.getElementById('calDayList');
+  if(!calSelectedDate){
+    title.textContent = 'Select a day';
+    list.innerHTML = '<div class="day-empty">Click a date to see its tasks.</div>';
+    return;
+  }
+  title.textContent = new Date(calSelectedDate + 'T00:00:00')
+    .toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  const items = (dayMap || {})[calSelectedDate] || [];
+  if(!items.length){
+    list.innerHTML = '<div class="day-empty">Nothing scheduled.</div>';
+    return;
+  }
+  list.innerHTML = items.map(t => `
+    <div class="day-task ${t.cls === 'late' ? 'late' : ''} ${t.kind === 'custom' ? 'custom' : ''}">
+      ${t.deletable ? `<button class="dt-del" title="Remove item" onclick="removeCalItem('${t.itemId}')">&times;</button>` : ''}
+      ${esc(t.text)}
+      <div class="dt-plan">${esc(t.plan)}${t.kind === 'custom' ? ' · custom item' : ''}</div>
+    </div>`).join('');
+}
+function calSelectDay(ds){
+  calSelectedDate = ds;
+  const di = document.getElementById('calItemDate');
+  if(di) di.value = ds;
+  renderCalendar();
+}
+function calPrevMonth(){ calMonth--; if(calMonth < 0){ calMonth = 11; calYear--; } renderCalendar(); }
+function calNextMonth(){ calMonth++; if(calMonth > 11){ calMonth = 0; calYear++; } renderCalendar(); }
+function calGoToday(){
+  const n = new Date();
+  calYear = n.getFullYear(); calMonth = n.getMonth();
+  calSelectedDate = todayDateStr();
+  renderCalendar();
+}
+function addCalItem(){
+  if(!hasGenerated){ showToast('Load or generate a plan first — items attach to the current plan'); return; }
+  const text = document.getElementById('calItemText').value.trim();
+  const date = document.getElementById('calItemDate').value;
+  if(!text || !date){ showToast('Add a description and a date'); return; }
+  CAL_ITEMS.push({ id:'cal_' + Date.now(), text, date });
+  document.getElementById('calItemText').value = '';
+  markChanged();
+  calSelectedDate = date;
+  renderCalendar();
+  showToast('Added to calendar');
+}
+function removeCalItem(id){
+  CAL_ITEMS = CAL_ITEMS.filter(ci => ci.id !== id);
+  markChanged();
+  renderCalendar();
+}
+
+// ═══════════ SETTINGS ═══════════
+function openSettingsModal(){
+  document.getElementById('setBizDays').checked = S.useBusinessDays !== false;
+  document.getElementById('setAuthor').value = PLAN_AUTHOR || '';
+  renderSchedMount();
+  document.getElementById('settingsOverlay').classList.add('open');
+}
+function closeSettingsModal(){
+  document.getElementById('settingsOverlay').classList.remove('open');
+  if(hasGenerated && currentScreen === 'checklist') renderChecklist();
+}
+function setBusinessDays(on){
+  S.useBusinessDays = !!on;
+  markChanged();
+}
+function setSessionAuthor(v){
+  PLAN_AUTHOR = (v || '').trim();
+  localStorage.setItem('planner:lastAuthor', PLAN_AUTHOR);
+}
+function renderSchedMount(){
+  document.getElementById('schedMount').innerHTML = SCHED_ACTIVE.map(({key, label, hint}) => {
+    const overridden = key in schedOverrides;
+    return `<div class="sched-row">
+      <span class="sr-lbl">${esc(label)} <span style="color:var(--mut)">— ${esc(hint)}</span></span>
+      <span class="sr-base">def ${SCHED_DEFAULTS[key]}</span>
+      <input type="number" class="${overridden ? 'overridden' : ''}" value="${getSched(key)}"
+        onchange="setSchedOverride('${key}', this.value)">
+    </div>`;
+  }).join('');
+}
+function setSchedOverride(key, value){
+  const n = parseInt(value, 10);
+  if(Number.isNaN(n) || n === SCHED_DEFAULTS[key]) delete schedOverrides[key];
+  else schedOverrides[key] = n;
+  markChanged();
+  renderSchedMount();
+}
+function resetSchedOverrides(){
+  schedOverrides = {};
+  markChanged();
+  renderSchedMount();
+  showToast('Timeline back to defaults');
+}
+
+// ═══════════ INIT ═══════════
+document.addEventListener('click', e => {
+  if(!e.target.closest('.status-ctl'))
+    document.getElementById('statusMenu').classList.remove('open');
+  if(!e.target.closest('.due-editor') && !e.target.closest('.due'))
+    document.querySelectorAll('.due-editor.open').forEach(el => el.classList.remove('open'));
+});
+
+(function init(){
+  initIntakeSelects();
+  ['planName','caseNumber','effectiveDate','day1','wireDate'].forEach(id =>
+    document.getElementById(id).addEventListener('input', validate));
+  document.getElementById('day1').value = todayDateStr();
+  S.day1 = todayDateStr();
+  document.getElementById('calItemDate').value = todayDateStr();
+  renderIntake();
+  const hasSaves = Object.values(getSaves()).some(sv => !sv.deletedAt);
+  if(hasSaves){ renderDashboard(); setActiveScreen('dashboard'); }
+  else setActiveScreen('intake');
+})();
+</script>
+</body>
+</html>

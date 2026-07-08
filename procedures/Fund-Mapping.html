@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fund Mapping · Procedure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/parchment.css">
+<style>
+  :root { --accent: var(--c-fund); }
+
+  .hero-art {
+    margin-top: 36px;
+    display: grid;
+    grid-template-columns: 1fr .9fr;
+    gap: 48px;
+    align-items: center;
+  }
+  @media (max-width: 900px) { .hero-art { grid-template-columns: 1fr; } }
+
+  .vessel {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px 24px;
+    position: relative;
+  }
+  .vessel::before {
+    content: "TOA · CROSSWALK";
+    position: absolute;
+    top: 14px; right: 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    color: var(--ink-faint);
+  }
+  .vessel-svg { width: 100%; height: auto; display: block; margin-top: 8px; }
+
+  /* Review-items grid */
+  .review-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-top: 24px;
+  }
+  @media (max-width: 700px) { .review-grid { grid-template-columns: 1fr; } }
+  .review-card {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 22px 24px;
+    border-left: 3px solid var(--c-fund);
+    transition: transform .35s var(--ease), border-color .35s var(--ease);
+  }
+  .review-card:hover { transform: translateY(-1px); border-left-color: var(--clay); }
+  .review-card .rc-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    color: var(--c-fund);
+    margin-bottom: 4px;
+  }
+  .review-card h4 {
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 460;
+    margin: 0 0 6px;
+    letter-spacing: -.012em;
+  }
+  .review-card p { font-size: 13px; color: var(--ink-2); margin: 0 0 8px; line-height: 1.55; }
+  .review-card .col-ref {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--c-fund);
+    letter-spacing: .04em;
+  }
+
+  /* I/O strip */
+  .io-strip {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 12px;
+    align-items: center;
+    margin-top: 28px;
+    padding: 26px 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  @media (max-width: 800px) { .io-strip { grid-template-columns: 1fr; } .io-strip .arrow { display: none; } }
+  .io-cell { text-align: center; padding: 14px; }
+  .io-cell .tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .18em;
+    color: var(--ink-mute);
+    margin-bottom: 6px;
+  }
+  .io-cell h4 {
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 460;
+    margin: 0 0 4px;
+  }
+  .io-cell p { font-size: 12px; color: var(--ink-dim); margin: 0; line-height: 1.5; }
+  .io-strip .arrow {
+    color: var(--c-fund);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 22px;
+    text-align: center;
+    opacity: .8;
+  }
+
+  /* Phases */
+  .phases {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-top: 28px;
+  }
+  @media (max-width: 900px) { .phases { grid-template-columns: 1fr; } }
+  .phase {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 24px;
+    transition: border-color .4s var(--ease);
+  }
+  .phase:hover { border-color: var(--c-fund); }
+  .phase .ph-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--c-fund);
+    margin-bottom: 6px;
+  }
+  .phase h3 {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 460;
+    margin: 0 0 14px;
+    letter-spacing: -.014em;
+  }
+  .phase ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+  .phase li {
+    font-size: 13.5px;
+    color: var(--ink-2);
+    line-height: 1.55;
+    padding-left: 22px;
+    position: relative;
+  }
+  .phase li::before {
+    content: "—";
+    position: absolute; left: 0;
+    color: var(--c-fund);
+    font-weight: 500;
+  }
+  .phase li b { color: var(--ink); font-weight: 500; }
+
+  /* All-three banner */
+  .all-three {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 28px;
+  }
+  @media (max-width: 700px) { .all-three { grid-template-columns: 1fr; } }
+  .all-method {
+    padding: 18px 22px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    border-top: 3px solid var(--c-fund);
+    position: relative;
+  }
+  .all-method.no { border-top-color: var(--ink-mute); opacity: .82; }
+  .all-method .nm {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    color: var(--c-fund);
+    margin-bottom: 4px;
+  }
+  .all-method.no .nm { color: var(--ink-mute); }
+  .all-method h4 {
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 460;
+    margin: 0 0 4px;
+  }
+  .all-method p { font-size: 12.5px; color: var(--ink-dim); margin: 0; line-height: 1.5; }
+  .all-method .stamp {
+    position: absolute;
+    top: 14px; right: 16px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: .18em;
+    color: var(--c-fund);
+    border: 1px solid var(--c-fund);
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .all-method.no .stamp { color: var(--ink-mute); border-color: var(--ink-mute); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="shell topbar-inner">
+    <div class="crumb">
+      <span class="crumb-dot" style="--accent: var(--c-fund);"></span>
+      <a href="index.html">Procedures</a>
+      <span class="sep">/</span>
+      <span class="here">Fund Mapping</span>
+    </div>
+    <nav>
+      <a href="#review">Review items</a>
+      <a href="#flow">Flow</a>
+      <a href="#phases">Phases</a>
+      <a href="#rereg">Re-registration</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="shell">
+    <div class="hero-art">
+      <div class="hero-side reveal">
+        <span class="hero-eyebrow"><span class="dot"></span>Procedure 07 · Asset-side mapping</span>
+        <h1>Fund<br><em>mapping</em>.<br>Built from the signed TOA.</h1>
+        <p class="lead">The fund-to-fund crosswalk that lets Informatica route asset transfers correctly. Built from the <em>signed TOA</em>, validated in <em>developer mode</em>, never built for a cash conversion — that's a flag the conversion type wasn't confirmed.</p>
+        <div class="hero-meta">
+          <div class="meta-item"><span class="label">Built from</span><span class="value">Signed TOA</span></div>
+          <div class="meta-item"><span class="label">Required for</span><span class="value">Mapping · TIK</span></div>
+          <div class="meta-item"><span class="label">Validated in</span><span class="value">Informatica dev mode</span></div>
+        </div>
+      </div>
+
+      <div class="vessel reveal">
+        <svg class="vessel-svg" viewBox="0 0 380 460" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="fnd-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0 0 L10 5 L0 10 z" fill="#6E3A6B"/>
+            </marker>
+            <linearGradient id="fnd-grad" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stop-color="#6E3A6B" stop-opacity=".18"/>
+              <stop offset="1" stop-color="#6E3A6B" stop-opacity=".42"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Stamp -->
+          <g transform="translate(310,28)" class="stamp-spin">
+            <circle r="22" fill="none" stroke="#6E3A6B" stroke-width=".6" stroke-dasharray="2 2"/>
+            <circle r="16" fill="none" stroke="#6E3A6B" stroke-width=".6"/>
+            <text y="2" font-family="JetBrains Mono" font-size="6.5" fill="#6E3A6B" letter-spacing="1.5" text-anchor="middle">SIGNED</text>
+            <text y="11" font-family="Fraunces" font-style="italic" font-size="10" fill="#6E3A6B" text-anchor="middle">TOA</text>
+          </g>
+
+          <!-- Prior funds column (TOA side) -->
+          <g transform="translate(20,40)">
+            <text x="0" y="0" font-family="JetBrains Mono" font-size="9" fill="#6E3A6B" letter-spacing="2">PRIOR · FUNDS</text>
+            <line x1="0" y1="8" x2="120" y2="8" stroke="#6E3A6B" stroke-width=".4"/>
+          </g>
+          <g font-family="Fraunces" font-size="12" fill="#1F1B16">
+            <rect x="14" y="58"  width="120" height="28" rx="4" fill="#FBF8F2" stroke="#6E3A6B" stroke-width="1"/>
+            <text x="22" y="76">VFIAX</text>
+            <text x="124" y="76" font-family="JetBrains Mono" font-size="9" fill="#9A9385" text-anchor="end">922908710</text>
+
+            <rect x="14" y="92"  width="120" height="28" rx="4" fill="#FBF8F2" stroke="#6E3A6B" stroke-width="1"/>
+            <text x="22" y="110">FXAIX</text>
+            <text x="124" y="110" font-family="JetBrains Mono" font-size="9" fill="#9A9385" text-anchor="end">315911750</text>
+
+            <rect x="14" y="126" width="120" height="28" rx="4" fill="#FBF8F2" stroke="#6E3A6B" stroke-width="1"/>
+            <text x="22" y="144">VBTLX</text>
+            <text x="124" y="144" font-family="JetBrains Mono" font-size="9" fill="#9A9385" text-anchor="end">921937835</text>
+
+            <rect x="14" y="160" width="120" height="28" rx="4" fill="#FBF8F2" stroke="#6E3A6B" stroke-width="1"/>
+            <text x="22" y="178">VTSAX</text>
+            <text x="124" y="178" font-family="JetBrains Mono" font-size="9" fill="#9A9385" text-anchor="end">922908769</text>
+
+            <rect x="14" y="194" width="120" height="28" rx="4" fill="#FBF8F2" stroke="#6E3A6B" stroke-width="1"/>
+            <text x="22" y="212">VTIAX</text>
+            <text x="124" y="212" font-family="JetBrains Mono" font-size="9" fill="#9A9385" text-anchor="end">921909859</text>
+
+            <rect x="14" y="228" width="120" height="28" rx="4" fill="#FBF8F2" stroke="#6E3A6B" stroke-width="1"/>
+            <text x="22" y="246">CASH-MMF</text>
+            <text x="124" y="246" font-family="JetBrains Mono" font-size="9" fill="#9A9385" text-anchor="end">— re-reg</text>
+          </g>
+
+          <!-- Crosswalk arrows -->
+          <g stroke="#6E3A6B" stroke-width="1.2" fill="none" marker-end="url(#fnd-arrow)">
+            <path class="flow-dash" d="M 144 72  C 180 72, 200 76, 235 76"/>
+            <path class="flow-dash" d="M 144 106 C 180 106, 200 110, 235 110"/>
+            <path class="flow-dash" d="M 144 140 C 180 140, 200 144, 235 144"/>
+            <path class="flow-dash" d="M 144 174 C 180 174, 200 178, 235 178"/>
+            <path class="flow-dash" d="M 144 208 C 180 208, 200 212, 235 212"/>
+            <path class="flow-dash" d="M 144 242 C 180 242, 200 246, 235 246" stroke-dasharray="2 3"/>
+          </g>
+
+          <!-- Receiving funds column -->
+          <g transform="translate(244,40)">
+            <text x="0" y="0" font-family="JetBrains Mono" font-size="9" fill="#6E3A6B" letter-spacing="2">NEW · FUNDS</text>
+            <line x1="0" y1="8" x2="120" y2="8" stroke="#6E3A6B" stroke-width=".4"/>
+          </g>
+          <g font-family="Fraunces" font-size="12" fill="#1F1B16">
+            <rect x="244" y="58"  width="120" height="28" rx="4" fill="url(#fnd-grad)" stroke="#6E3A6B" stroke-width="1.2"/>
+            <text x="252" y="76">S&amp;P 500 IDX</text>
+            <text x="354" y="76" font-family="JetBrains Mono" font-size="9" fill="#1F1B16" text-anchor="end">F1001</text>
+
+            <rect x="244" y="92"  width="120" height="28" rx="4" fill="url(#fnd-grad)" stroke="#6E3A6B" stroke-width="1.2"/>
+            <text x="252" y="110">S&amp;P 500 IDX</text>
+            <text x="354" y="110" font-family="JetBrains Mono" font-size="9" fill="#1F1B16" text-anchor="end">F1001</text>
+
+            <rect x="244" y="126" width="120" height="28" rx="4" fill="url(#fnd-grad)" stroke="#6E3A6B" stroke-width="1.2"/>
+            <text x="252" y="144">TOTAL BOND</text>
+            <text x="354" y="144" font-family="JetBrains Mono" font-size="9" fill="#1F1B16" text-anchor="end">F2014</text>
+
+            <rect x="244" y="160" width="120" height="28" rx="4" fill="url(#fnd-grad)" stroke="#6E3A6B" stroke-width="1.2"/>
+            <text x="252" y="178">TOTAL US MKT</text>
+            <text x="354" y="178" font-family="JetBrains Mono" font-size="9" fill="#1F1B16" text-anchor="end">F1108</text>
+
+            <rect x="244" y="194" width="120" height="28" rx="4" fill="url(#fnd-grad)" stroke="#6E3A6B" stroke-width="1.2"/>
+            <text x="252" y="212">INTL EQUITY</text>
+            <text x="354" y="212" font-family="JetBrains Mono" font-size="9" fill="#1F1B16" text-anchor="end">F1207</text>
+
+            <rect x="244" y="228" width="120" height="28" rx="4" fill="#F5E9DC" stroke="#6E3A6B" stroke-width="1.2" stroke-dasharray="3 3"/>
+            <text x="252" y="246">STABLE VALUE</text>
+            <text x="354" y="246" font-family="JetBrains Mono" font-size="9" fill="#6E3A6B" text-anchor="end">F3020 ✱</text>
+          </g>
+
+          <!-- Detail strip -->
+          <g transform="translate(20,290)">
+            <rect width="340" height="58" rx="6" fill="#FBF8F2" stroke="#6E3A6B" stroke-width="1" stroke-dasharray="3 3"/>
+            <text x="170" y="20" font-family="JetBrains Mono" font-size="9" fill="#6E3A6B" letter-spacing="2" text-anchor="middle">EACH ROW CARRIES</text>
+            <g font-family="Inter" font-size="10.5" fill="#6B6457">
+              <text x="20" y="42">⌖ ticker</text>
+              <text x="86" y="42">⌖ CUSIP</text>
+              <text x="158" y="42">⌖ descriptor</text>
+              <text x="240" y="42">⌖ re-reg flag</text>
+            </g>
+          </g>
+
+          <!-- Re-reg legend -->
+          <g transform="translate(20,360)">
+            <rect width="340" height="34" rx="6" fill="#FBF8F2" stroke="#6E3A6B" stroke-width=".6"/>
+            <text x="14" y="22" font-family="JetBrains Mono" font-size="9" fill="#6E3A6B" letter-spacing="2">✱ RE-REG</text>
+            <text x="100" y="22" font-family="Fraunces" font-style="italic" font-size="12" fill="#1F1B16">fund changes title without sale — title-only transfer</text>
+          </g>
+
+          <!-- Footer signature -->
+          <text x="190" y="420" font-family="Fraunces" font-style="italic" font-size="13" fill="#6E3A6B" text-anchor="middle">Signed TOA &middot; cross-walk &middot; dev-mode</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== ALL THREE METHODS ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 01 · Where it lives</span>
+      <h2>Two methods, <em>not three</em>.</h2>
+    </div>
+    <p class="section-sub reveal">Fund mapping is the asset-routing crosswalk — it only makes sense when assets are actually moving in kind. Cash conversions don't move assets; they move dollars, then re-buy. Building fund mapping for a cash conversion is the strongest signal the conversion type wasn't confirmed early.</p>
+
+    <div class="all-three reveal">
+      <div class="all-method no">
+        <span class="stamp">N / A</span>
+        <div class="nm">METHOD 01</div>
+        <h4>Cash Conversion</h4>
+        <p>No fund mapping. Assets are liquidated by the prior RK and arrive as a cash wire — receiving plan re-buys per participant election.</p>
+      </div>
+      <div class="all-method">
+        <span class="stamp">REQUIRED</span>
+        <div class="nm">METHOD 02</div>
+        <h4>Mapping</h4>
+        <p>Source mapping + Fund mapping. Both built from their respective inputs, both reviewed, both approved before the run.</p>
+      </div>
+      <div class="all-method">
+        <span class="stamp">REQUIRED</span>
+        <div class="nm">METHOD 03</div>
+        <h4>Transfer In-Kind</h4>
+        <p>Source mapping + Fund mapping + Re-registration. Re-reg lives <em>inside</em> fund mapping as a per-fund flag.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== I/O ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 02 · I/O</span>
+      <h2>Signed TOA <em>in</em>, dev-mode-validated crosswalk <em>out</em>.</h2>
+    </div>
+    <p class="section-sub reveal">The TOA is the source of truth — every fund line on it has to land in the receiving plan. The middle is review-and-validate; the back end is Informatica developer mode confirming the routes before the run.</p>
+
+    <div class="io-strip reveal">
+      <div class="io-cell">
+        <div class="tag">INPUT</div>
+        <h4>Signed TOA</h4>
+        <p>Fund codes, names, tickers, CUSIPs, descriptor codes, re-reg flags</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="io-cell">
+        <div class="tag">PROCESS</div>
+        <h4>Build &amp; cross-walk</h4>
+        <p>Map prior fund line → receiving plan fund — TOA is the spec</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="io-cell">
+        <div class="tag">OUTPUT</div>
+        <h4>Dev-mode validated</h4>
+        <p>Routes confirmed in Informatica developer mode, sign-off from QA / TC / TM</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== REVIEW ITEMS ============== -->
+<section id="review" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 03 · Review items</span>
+      <h2>Four surfaces to <em>validate</em>.</h2>
+    </div>
+    <p class="section-sub reveal">The TOA tells you <em>what</em> moves and <em>how</em>. The mapping translates that into the receiving plan's fund grid — names line up, tickers line up, CUSIPs line up, and any re-registrations are flagged for the title-only transfer path.</p>
+
+    <div class="review-grid reveal">
+      <div class="review-card">
+        <div class="rc-num">01</div>
+        <h4>Fund codes &amp; names</h4>
+        <p>Each prior-fund line on the TOA matches a receiving-plan fund code. Names should align — a mismatch is a flag, not a typo to fix silently.</p>
+        <span class="col-ref">FUND_C · FUND_NM</span>
+      </div>
+      <div class="review-card">
+        <div class="rc-num">02</div>
+        <h4>Tickers &amp; CUSIPs</h4>
+        <p>Tickers identify the share class — and share class drives fee. CUSIPs are the unambiguous identifier when tickers collide. Both must match the TOA exactly.</p>
+        <span class="col-ref">TICKER · CUSIP</span>
+      </div>
+      <div class="review-card">
+        <div class="rc-num">03</div>
+        <h4>Descriptor codes</h4>
+        <p>Vendor-specific descriptors tell Informatica how to route — domestic equity, intl equity, fixed income, stable value, target-date. One bad descriptor mis-routes a whole fund.</p>
+        <span class="col-ref">DESCR_C</span>
+      </div>
+      <div class="review-card">
+        <div class="rc-num">04</div>
+        <h4>Re-registrations</h4>
+        <p>Some funds change title without a sale — re-registration means the asset comes over <em>as is</em>. Each re-reg fund needs a distinct flag and external setup.</p>
+        <span class="col-ref">RE_REG_F · custodian setup</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== USER FLOW ============== -->
+<section id="flow" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 04 · Flow</span>
+      <h2>Signed TOA to <em>dev-mode validated</em>.</h2>
+    </div>
+    <p class="section-sub reveal">Linear path with one machine-checked decision: does Informatica developer mode resolve every fund route cleanly? If not, back to mapping with the dev-mode error log.</p>
+
+    <div class="flow-diagram reveal">
+      <svg viewBox="0 0 1100 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Fund mapping flow">
+        <defs>
+          <marker id="arrow-ff" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#6E3A6B"/>
+          </marker>
+        </defs>
+
+        <g transform="translate(20,108)">
+          <circle cx="32" cy="32" r="28" fill="#FBF8F2" stroke="#6E3A6B" stroke-width="1.6"/>
+          <text x="32" y="28" font-family="JetBrains Mono" font-size="8" fill="#6E3A6B" letter-spacing="2" text-anchor="middle">START</text>
+          <text x="32" y="44" font-family="Fraunces" font-style="italic" font-size="11" fill="#1F1B16" text-anchor="middle">signed TOA</text>
+        </g>
+        <line class="flow-dash" x1="80" y1="140" x2="118" y2="140" stroke="#6E3A6B" stroke-width="1.5" marker-end="url(#arrow-ff)"/>
+
+        <g transform="translate(120,112)">
+          <rect width="170" height="56" rx="28" fill="#FBF8F2" stroke="#6E3A6B" stroke-width="1.5"/>
+          <text x="85" y="22" font-family="JetBrains Mono" font-size="9" fill="#6E3A6B" letter-spacing="2" text-anchor="middle">ACTION</text>
+          <text x="85" y="42" font-family="Fraunces" font-size="14" fill="#1F1B16" text-anchor="middle">Build cross-walk</text>
+        </g>
+        <line class="flow-dash" x1="292" y1="140" x2="330" y2="140" stroke="#6E3A6B" stroke-width="1.5" marker-end="url(#arrow-ff)"/>
+
+        <g transform="translate(332,112)">
+          <rect width="190" height="56" rx="6" fill="#6E3A6B" stroke="#6E3A6B" stroke-width="1.5"/>
+          <line x1="6" y1="0" x2="6" y2="56" stroke="#FBF8F2" stroke-width="1.4" opacity=".5"/>
+          <line x1="184" y1="0" x2="184" y2="56" stroke="#FBF8F2" stroke-width="1.4" opacity=".5"/>
+          <text x="95" y="22" font-family="JetBrains Mono" font-size="9" fill="#F2C7B3" letter-spacing="2" text-anchor="middle">SYSTEM</text>
+          <text x="95" y="42" font-family="Fraunces" font-size="14" fill="#FBF8F2" text-anchor="middle">Informatica dev-mode</text>
+        </g>
+        <line class="flow-dash" x1="524" y1="140" x2="562" y2="140" stroke="#6E3A6B" stroke-width="1.5" marker-end="url(#arrow-ff)"/>
+
+        <g transform="translate(565,86)">
+          <path d="M 80 0 L 160 55 L 80 110 L 0 55 Z" fill="#FBF8F2" stroke="#6E3A6B" stroke-width="1.6"/>
+          <text x="80" y="48" font-family="JetBrains Mono" font-size="9" fill="#6E3A6B" letter-spacing="2" text-anchor="middle">DECISION</text>
+          <text x="80" y="68" font-family="Fraunces" font-size="13" fill="#1F1B16" text-anchor="middle">routes resolve?</text>
+        </g>
+
+        <line class="flow-dash" x1="645" y1="196" x2="645" y2="240" stroke="#B23A2E" stroke-width="1.4" marker-end="url(#arrow-ff)"/>
+        <text x="654" y="220" font-family="Caveat" font-size="14" fill="#B23A2E">no — fix</text>
+        <g transform="translate(560,242)">
+          <rect width="170" height="32" rx="6" fill="#FBF8F2" stroke="#B23A2E" stroke-width="1.2" stroke-dasharray="3 3"/>
+          <text x="85" y="20" font-family="Fraunces" font-style="italic" font-size="13" fill="#B23A2E" text-anchor="middle">back to build w/ log</text>
+        </g>
+
+        <line class="flow-dash" x1="725" y1="140" x2="763" y2="140" stroke="#6E3A6B" stroke-width="1.5" marker-end="url(#arrow-ff)"/>
+        <text x="730" y="131" font-family="Caveat" font-size="14" fill="#5C8A78">yes</text>
+
+        <g transform="translate(765,112)">
+          <rect width="200" height="56" rx="6" fill="#FBF8F2" stroke="#6E3A6B" stroke-width="1.5"/>
+          <text x="100" y="22" font-family="JetBrains Mono" font-size="9" fill="#6E3A6B" letter-spacing="2" text-anchor="middle">SIGN-OFF</text>
+          <text x="100" y="42" font-family="Fraunces" font-size="14" fill="#1F1B16" text-anchor="middle">QA / TC / TM</text>
+        </g>
+        <line class="flow-dash" x1="967" y1="140" x2="1005" y2="140" stroke="#6E3A6B" stroke-width="1.5" marker-end="url(#arrow-ff)"/>
+
+        <g transform="translate(1006,108)">
+          <circle cx="32" cy="32" r="28" fill="#FBF8F2" stroke="#6E3A6B" stroke-width="3"/>
+          <circle cx="32" cy="32" r="22" fill="none" stroke="#6E3A6B" stroke-width=".6"/>
+          <text x="32" y="36" font-family="Fraunces" font-size="12" fill="#6E3A6B" text-anchor="middle">CLOSE</text>
+        </g>
+      </svg>
+      <div class="flow-legend">
+        <span><span class="lg-shape entry"></span>Entry</span>
+        <span><span class="lg-shape action"></span>Action</span>
+        <span><span class="lg-shape system"></span>Dev-mode</span>
+        <span><span class="lg-shape decision"></span>Decision</span>
+        <span><span class="lg-shape screen"></span>Sign-off</span>
+        <span><span class="lg-shape end"></span>Close</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== PHASES ============== -->
+<section id="phases" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 05 · Phases</span>
+      <h2>Build · validate · sign off.</h2>
+    </div>
+    <p class="section-sub reveal">Three steps, each gated by a different audience. Build is internal. Validate is the machine (Informatica dev mode). Sign-off is human (QA, Trust Counsel, Trust Manager). All three are required; none can be skipped.</p>
+    <div class="phases reveal">
+      <div class="phase">
+        <div class="ph-tag">Phase · Build</div>
+        <h3>From signed TOA</h3>
+        <ul>
+          <li>Pull <b>signed TOA</b> from the file — that's the spec, no other source</li>
+          <li>Map <b>each fund line</b> to a receiving-plan fund code</li>
+          <li>Carry <b>ticker, CUSIP, descriptor code</b> exactly</li>
+          <li>Flag any fund flagged for <b>re-registration</b></li>
+        </ul>
+      </div>
+      <div class="phase">
+        <div class="ph-tag">Phase · Validate</div>
+        <h3>Informatica dev mode</h3>
+        <ul>
+          <li>Run the cross-walk through <b>developer mode</b> — every route resolves</li>
+          <li>Resolve <b>descriptor mismatches</b> on the spot</li>
+          <li>Verify <b>re-reg funds</b> route to the title-only path, not the sale path</li>
+          <li>If any route fails, <b>fix and re-run</b> — never wave through</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <div class="ph-tag">Phase · Sign-off</div>
+        <h3>QA / TC / TM</h3>
+        <ul>
+          <li>Send the validated cross-walk to <b>QA, TC, TM</b></li>
+          <li>Pair with the <b>source mapping</b> hand-off — both at once</li>
+          <li>Once approved, the cross-walk is <b>locked</b> for the run</li>
+          <li>Any post-sign-off change requires <b>re-validation</b></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== RE-REGISTRATION ============== -->
+<section id="rereg" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 06 · Re-registration</span>
+      <h2>The <em>title-only</em> path.</h2>
+    </div>
+    <p class="section-sub reveal">A re-registered fund doesn't get sold and re-bought — its title transfers from the prior custodian to the receiving custodian, holdings intact. It needs separate setup with the receiving custodian, a 22-day external window, and a hard gate before it can post. Re-reg lives <em>inside</em> fund mapping as a per-fund flag.</p>
+
+    <div class="tree reveal">
+      <div class="tree-branch">
+        <div class="tb-tag">RE-REG = N</div>
+        <h4>Standard map</h4>
+        <p>Fund line participates in the normal in-kind transfer — assets move via the run.</p>
+      </div>
+      <div class="tree-branch">
+        <div class="tb-tag">RE-REG = Y</div>
+        <h4>Title-only path</h4>
+        <p>Custodian setup with receiving custodian. 22-day external window. Hard gate before posting.</p>
+      </div>
+      <div class="tree-branch">
+        <div class="tb-tag">RE-REG = ?</div>
+        <h4>Ask, don't infer</h4>
+        <p>If the TOA is silent on whether a fund re-registers, ask the custodian. Don't infer from name or share class.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== ICON GRID ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 07 · Touch points</span>
+      <h2>What QA <em>actually checks</em>.</h2>
+    </div>
+    <div class="icon-grid reveal">
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg></span>
+        <div><h4>Fund codes</h4><p>Each TOA line has a receiving-plan code — explicit, no inference.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></span>
+        <div><h4>Names</h4><p>Fund names align across the crosswalk — mismatch is a flag.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg></span>
+        <div><h4>Tickers</h4><p>Share-class identifier — drives fee. Match TOA exactly.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14"/><circle cx="9" cy="7" r="1.2" fill="currentColor"/><circle cx="15" cy="12" r="1.2" fill="currentColor"/><circle cx="11" cy="17" r="1.2" fill="currentColor"/></svg></span>
+        <div><h4>CUSIPs</h4><p>Unambiguous identifier when tickers collide. Always 9 chars.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><path d="M3 12l4-4 4 4-4 4z"/><path d="M13 12l4-4 4 4-4 4z"/></svg></span>
+        <div><h4>Descriptors</h4><p>Vendor route codes — domestic, intl, fixed, stable value, TDF.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><path d="M4 6h13l3 3v9H4z"/><path d="M4 11h16M9 16h6"/></svg></span>
+        <div><h4>Re-reg flags</h4><p>Per-fund flag. Y means custodian setup + 22-day window + hard gate.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== RULES ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="callout ok reveal">
+      <strong>Build from the signed TOA — full stop</strong>
+      Don't start fund mapping from a draft TOA, an emailed list, or a screenshot. The signed TOA is the only spec; anything earlier rots when the document is finalized.
+    </div>
+    <div class="callout warn reveal" style="margin-top:14px;">
+      <strong>Always validate in developer mode</strong>
+      A cross-walk that looks right on paper can still fail Informatica's route resolution. Dev-mode validation isn't a formality — it's the test that catches descriptor and CUSIP errors before they become a posting issue.
+    </div>
+    <div class="callout stop reveal" style="margin-top:14px;">
+      <strong>Don't build fund mapping for a cash conversion</strong>
+      If you find yourself building fund mapping for what's labeled a cash conversion, stop and confirm the conversion type. Cash conversions liquidate at the prior RK and arrive as a wire — there's no asset to route, so there's no fund mapping to build.
+    </div>
+  </div>
+</section>
+
+<footer class="shell foot">
+  <span>Fund Mapping · Procedure 07 of 07</span>
+  <span><a href="Source-Mapping.html">↩ Source Mapping</a> &nbsp;·&nbsp; <a href="index.html">↩ all procedures</a></span>
+</footer>
+
+<script>
+  (function(){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) e.target.classList.add('in'); });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+  })();
+</script>
+</body>
+</html>

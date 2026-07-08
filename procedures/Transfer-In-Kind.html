@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transfer In-Kind · Balance Import</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/parchment.css">
+<style>
+  :root { --accent: var(--c-tik); }
+
+  .hero-art {
+    margin-top: 36px;
+    display: grid;
+    grid-template-columns: 1fr .85fr;
+    gap: 48px;
+    align-items: center;
+  }
+  @media (max-width: 900px) { .hero-art { grid-template-columns: 1fr; } }
+
+  /* In-kind certificate illustration */
+  .vessel {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px 24px;
+    position: relative;
+  }
+  .vessel::before {
+    content: "TRANSFER · IN-KIND";
+    position: absolute;
+    top: 14px; right: 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    color: var(--ink-faint);
+  }
+  .vessel-svg { width: 100%; height: auto; display: block; margin-top: 8px; }
+
+  /* Phase columns */
+  .phases {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-top: 28px;
+  }
+  @media (max-width: 900px) { .phases { grid-template-columns: 1fr; } }
+  .phase {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+    transition: border-color .4s var(--ease);
+  }
+  .phase:hover { border-color: var(--c-tik); }
+  .phase .ph-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--c-tik);
+    margin-bottom: 6px;
+  }
+  .phase h3 {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 460;
+    margin: 0 0 14px;
+    letter-spacing: -.014em;
+  }
+  .phase ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .phase li {
+    font-size: 13.5px;
+    color: var(--ink-2);
+    line-height: 1.55;
+    padding-left: 22px;
+    position: relative;
+  }
+  .phase li::before {
+    content: "—";
+    position: absolute;
+    left: 0;
+    color: var(--c-tik);
+    font-weight: 500;
+  }
+  .phase li b { color: var(--ink); font-weight: 500; }
+
+  /* 3-week re-registration timeline */
+  .runway {
+    margin-top: 28px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 36px 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .runway::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(139,58,58,.04) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .rw-track {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr 1fr .55fr;
+    gap: 0;
+    position: relative;
+    margin: 24px 0 0;
+  }
+  @media (max-width: 800px) { .rw-track { grid-template-columns: 1fr; gap: 28px; } }
+  .rw-line {
+    position: absolute;
+    top: 14px;
+    left: 4%;
+    right: 4%;
+    height: 1px;
+    background: var(--line-firm);
+    z-index: 0;
+  }
+  @media (max-width: 800px) { .rw-line { display: none; } }
+  .rw-stop {
+    position: relative;
+    z-index: 1;
+    padding-right: 18px;
+  }
+  .rw-stop .dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 2px solid var(--c-tik);
+    margin-bottom: 14px;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 14px;
+    color: var(--c-tik);
+  }
+  .rw-stop.gate .dot {
+    background: var(--c-tik);
+    color: #FBF8F2;
+    box-shadow: 0 0 0 6px rgba(139,58,58,.14);
+  }
+  .rw-stop.early .dot { border-color: var(--ink-mute); color: var(--ink-mute); }
+  .rw-stop .when {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-bottom: 6px;
+  }
+  .rw-stop.gate .when { color: var(--c-tik); }
+  .rw-stop h4 {
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 460;
+    margin: 0 0 6px;
+    letter-spacing: -.01em;
+  }
+  .rw-stop p {
+    font-size: 12.5px;
+    color: var(--ink-dim);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  /* Required pills row */
+  .reqs {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 22px;
+  }
+  .req {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .req .icon { width: 14px; height: 14px; flex: none; }
+  .req.yes { border-color: var(--c-tik); color: var(--c-tik); }
+  .req.no { color: var(--ink-mute); text-decoration: line-through; text-decoration-color: var(--ink-faint); }
+
+  /* Post-wire ordered steps */
+  .post {
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 900px) { .post { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 600px) { .post { grid-template-columns: 1fr; } }
+  .post-step {
+    padding: 18px 20px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--bg-card);
+  }
+  .post-step .pn {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 24px;
+    color: var(--c-tik);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .post-step h4 {
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 460;
+    margin: 0 0 4px;
+  }
+  .post-step p { font-size: 12.5px; color: var(--ink-dim); margin: 0; line-height: 1.45; }
+
+  /* SLA pair */
+  .sla {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 24px;
+  }
+  @media (max-width: 700px) { .sla { grid-template-columns: 1fr; } }
+  .sla-card {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 22px 24px;
+    border-left: 3px solid var(--c-tik);
+  }
+  .sla-card .day {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 36px;
+    color: var(--c-tik);
+    line-height: 1;
+  }
+  .sla-card .day small {
+    font-family: var(--mono);
+    font-style: normal;
+    font-size: 10px;
+    letter-spacing: .18em;
+    color: var(--ink-mute);
+    display: block;
+    margin-top: 4px;
+  }
+  .sla-card h4 {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 460;
+    margin: 14px 0 6px;
+  }
+  .sla-card p { font-size: 13px; color: var(--ink-2); margin: 0; line-height: 1.55; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="shell topbar-inner">
+    <div class="crumb">
+      <span class="crumb-dot" style="--accent: var(--c-tik);"></span>
+      <a href="index.html">Procedures</a>
+      <span class="sep">/</span>
+      <span>Balance Import</span>
+      <span class="sep">/</span>
+      <span class="here">Transfer In-Kind</span>
+    </div>
+    <nav>
+      <a href="#runway">Runway</a>
+      <a href="#prep">Prep</a>
+      <a href="#post">Post-Wire</a>
+      <a href="#gate">Gate</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="shell">
+    <div class="hero-art">
+      <div class="hero-side reveal">
+        <span class="hero-eyebrow"><span class="dot"></span>Balance Import · Method 03 of 03</span>
+        <h1>Transfer<br><em>in-kind</em>.<br>Securities, not cash.</h1>
+        <p class="lead">Assets move <em>as themselves</em> — same fund, same shares, re-registered to the new custodian. No liquidation, no market-day repricing. Buys runway, costs preparation: a three-week account-setup window comes before any wire moves.</p>
+        <div class="hero-meta">
+          <div class="meta-item"><span class="label">Pre-work</span><span class="value">Heaviest</span></div>
+          <div class="meta-item"><span class="label">Setup window</span><span class="value">~3 weeks</span></div>
+          <div class="meta-item"><span class="label">Risk profile</span><span class="value">Highest of three</span></div>
+        </div>
+      </div>
+
+      <div class="vessel reveal">
+        <svg class="vessel-svg" viewBox="0 0 380 320" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="grain-t" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
+              <circle cx=".5" cy=".5" r=".4" fill="#9A9385" opacity=".25"/>
+            </pattern>
+            <linearGradient id="tik-grad" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0" stop-color="#8B3A3A" stop-opacity=".18"/>
+              <stop offset="1" stop-color="#8B3A3A" stop-opacity=".4"/>
+            </linearGradient>
+            <marker id="tik-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0 0 L10 5 L0 10 z" fill="#8B3A3A"/>
+            </marker>
+          </defs>
+
+          <!-- Stamp ornament -->
+          <g transform="translate(280,18)">
+            <circle r="22" fill="none" stroke="#8B3A3A" stroke-width=".6" stroke-dasharray="2 2"/>
+            <circle r="16" fill="none" stroke="#8B3A3A" stroke-width=".6"/>
+            <text y="3" font-family="JetBrains Mono" font-size="7" fill="#8B3A3A" letter-spacing="1.5" text-anchor="middle">RE-REG</text>
+            <text y="12" font-family="JetBrains Mono" font-size="6" fill="#8B3A3A" letter-spacing="1" text-anchor="middle">REQUIRED</text>
+          </g>
+
+          <!-- Source certificate (prior RK) -->
+          <g transform="translate(20,40)">
+            <rect width="130" height="100" rx="2" fill="#FBF8F2" stroke="#8B3A3A" stroke-width="1.2"/>
+            <rect x="6" y="6" width="118" height="88" rx="1" fill="none" stroke="#8B3A3A" stroke-width=".4" stroke-dasharray="1 2"/>
+            <text x="65" y="22" font-family="JetBrains Mono" font-size="8" fill="#8B3A3A" letter-spacing="2" text-anchor="middle">PRIOR RK · SHARES</text>
+            <line x1="14" y1="32" x2="116" y2="32" stroke="#8B3A3A" stroke-width=".3"/>
+            <text x="14" y="48" font-family="Fraunces" font-size="11" fill="#1F1B16">VFINX</text>
+            <text x="116" y="48" font-family="JetBrains Mono" font-size="9" fill="#6B6457" text-anchor="end">1,247.32</text>
+            <text x="14" y="63" font-family="Fraunces" font-size="11" fill="#1F1B16">VBMFX</text>
+            <text x="116" y="63" font-family="JetBrains Mono" font-size="9" fill="#6B6457" text-anchor="end">682.04</text>
+            <text x="14" y="78" font-family="Fraunces" font-size="11" fill="#1F1B16">VTSAX</text>
+            <text x="116" y="78" font-family="JetBrains Mono" font-size="9" fill="#6B6457" text-anchor="end">312.18</text>
+            <text x="65" y="92" font-family="Caveat" font-size="11" fill="#D97757" text-anchor="middle">as-is</text>
+          </g>
+
+          <!-- Long arrow with notation -->
+          <path d="M 152 88 L 218 88" stroke="#8B3A3A" stroke-width="1.5" fill="none" marker-end="url(#tik-arrow)"/>
+          <text x="185" y="76" font-family="Caveat" font-size="14" fill="#D97757" text-anchor="middle">re-register</text>
+          <text x="185" y="104" font-family="JetBrains Mono" font-size="8" fill="#6B6457" letter-spacing="1.5" text-anchor="middle">SAME CUSIPS</text>
+
+          <!-- Receiving custodian -->
+          <g transform="translate(225,40)">
+            <rect width="130" height="100" rx="2" fill="url(#tik-grad)" stroke="#8B3A3A" stroke-width="1.5"/>
+            <rect x="6" y="6" width="118" height="88" rx="1" fill="none" stroke="#8B3A3A" stroke-width=".4" stroke-dasharray="1 2"/>
+            <text x="65" y="22" font-family="JetBrains Mono" font-size="8" fill="#8B3A3A" letter-spacing="2" text-anchor="middle">NEW · SHARES</text>
+            <line x1="14" y1="32" x2="116" y2="32" stroke="#8B3A3A" stroke-width=".3"/>
+            <text x="14" y="48" font-family="Fraunces" font-size="11" fill="#1F1B16">VFINX</text>
+            <text x="116" y="48" font-family="JetBrains Mono" font-size="9" fill="#1F1B16" text-anchor="end">1,247.32</text>
+            <text x="14" y="63" font-family="Fraunces" font-size="11" fill="#1F1B16">VBMFX</text>
+            <text x="116" y="63" font-family="JetBrains Mono" font-size="9" fill="#1F1B16" text-anchor="end">682.04</text>
+            <text x="14" y="78" font-family="Fraunces" font-size="11" fill="#1F1B16">VTSAX</text>
+            <text x="116" y="78" font-family="JetBrains Mono" font-size="9" fill="#1F1B16" text-anchor="end">312.18</text>
+            <text x="65" y="92" font-family="Caveat" font-size="11" fill="#5C8A78" text-anchor="middle">identical</text>
+          </g>
+
+          <!-- 3-week setup band below -->
+          <g transform="translate(20,180)">
+            <rect width="335" height="56" rx="6" fill="#FBF8F2" stroke="#8B3A3A" stroke-width="1" stroke-dasharray="3 3"/>
+            <text x="167" y="20" font-family="JetBrains Mono" font-size="9" fill="#8B3A3A" letter-spacing="2" text-anchor="middle">3-WEEK ACCOUNT-SETUP RUNWAY</text>
+            <line x1="20" y1="34" x2="315" y2="34" stroke="#8B3A3A" stroke-width=".5"/>
+            <circle cx="40" cy="34" r="3" fill="#8B3A3A"/>
+            <circle cx="167" cy="34" r="3" fill="#8B3A3A" opacity=".5"/>
+            <circle cx="295" cy="34" r="3" fill="#8B3A3A" opacity=".25"/>
+            <text x="40" y="50" font-family="Inter" font-size="9" fill="#6B6457" text-anchor="middle">submit</text>
+            <text x="167" y="50" font-family="Inter" font-size="9" fill="#6B6457" text-anchor="middle">accounts ready</text>
+            <text x="295" y="50" font-family="Inter" font-size="9" fill="#6B6457" text-anchor="middle">wire</text>
+          </g>
+
+          <!-- Footer rule -->
+          <text x="190" y="270" font-family="Fraunces" font-style="italic" font-size="13" fill="#8B3A3A" text-anchor="middle">Hard gate · do not process until confirmed</text>
+          <text x="190" y="290" font-family="Inter" font-size="10" fill="#6B6457" text-anchor="middle">Matt O'Connell's team owns the setup</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== REQUIREMENTS ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 01 · Requires</span>
+      <h2>The longest pre-work list <em>of the three</em>.</h2>
+    </div>
+    <p class="section-sub reveal">Re-registration is the core dependency. Funds keep their identity through the move, which means receiving accounts must exist, be funded with the right tickers, and be confirmed before any wire is booked.</p>
+    <div class="reqs reveal">
+      <span class="req yes">
+        <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8.5l3 3L13 4.5"/></svg>
+        Source Mapping
+      </span>
+      <span class="req yes">
+        <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8.5l3 3L13 4.5"/></svg>
+        Fund Mapping
+      </span>
+      <span class="req yes">
+        <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8.5l3 3L13 4.5"/></svg>
+        Re-registration
+      </span>
+      <span class="req yes">
+        <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8.5l3 3L13 4.5"/></svg>
+        Account setup confirmation
+      </span>
+      <span class="req yes">
+        <svg class="icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 8.5l3 3L13 4.5"/></svg>
+        Share-tracker file
+      </span>
+    </div>
+  </div>
+</section>
+
+<!-- ============== RUNWAY ============== -->
+<section id="runway" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 02 · Three-week runway</span>
+      <h2>Submit, wait, <em>confirm</em>, then wire.</h2>
+    </div>
+    <p class="section-sub reveal">In-kind transfers are not a wire-day event — they are a three-week build that ends with a wire. The runway exists to give the receiving custodian time to open accounts that mirror the source positions exactly.</p>
+
+    <div class="runway reveal">
+      <div class="rw-track">
+        <div class="rw-line"></div>
+        <div class="rw-stop early">
+          <div class="dot">−3w</div>
+          <div class="when">~3 weeks before</div>
+          <h4>Submit to Matt O'Connell's team</h4>
+          <p>Send the re-registration request package — fund list, CUSIPs, account roster — to the team that owns custodial setup. This is the hand-off that starts the clock.</p>
+        </div>
+        <div class="rw-stop">
+          <div class="dot">−1w</div>
+          <div class="when">~1–2 weeks before</div>
+          <h4>Accounts ready &amp; confirmed</h4>
+          <p>Receiving accounts are opened with the right tickers/CUSIPs. The setup team writes back to confirm — explicit, in writing. No confirmation, no transfer.</p>
+        </div>
+        <div class="rw-stop">
+          <div class="dot">F</div>
+          <div class="when">On final file receipt</div>
+          <h4>Update share tracker</h4>
+          <p>The moment the final share file lands, update the share-tracker spreadsheet immediately. This is the system of record for what arrived versus what was promised.</p>
+        </div>
+        <div class="rw-stop gate">
+          <div class="dot">!</div>
+          <div class="when">Hard gate</div>
+          <h4>Do not process</h4>
+          <p>Until confirmation arrives. Period.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== PHASES ============== -->
+<section id="prep" class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 03 · Three phases</span>
+      <h2>Prep, <em>wire day</em>, post-wire.</h2>
+    </div>
+    <div class="phases reveal">
+      <div class="phase">
+        <div class="ph-tag">Phase · Prep</div>
+        <h3>Set the table</h3>
+        <ul>
+          <li>Build <b>Source Mapping</b> from prior-RK test files</li>
+          <li>Build <b>Fund Mapping</b> from the signed TOA</li>
+          <li>Validate fund mapping in <b>Informatica dev mode</b> with QA</li>
+          <li>Submit <b>re-registration package</b> to Matt O'Connell's team</li>
+          <li>Build <b>Informatica parameter file</b> for the In-Kind workflow</li>
+          <li>Wait for <b>account-ready confirmation</b> in writing</li>
+        </ul>
+      </div>
+      <div class="phase" id="wire">
+        <div class="ph-tag">Phase · Wire Day</div>
+        <h3>Receive the shares</h3>
+        <ul>
+          <li><b>−3 days</b> · advance heads-up to vendor &amp; Cashiering</li>
+          <li>Day of · request <b>final share file</b> from prior RK</li>
+          <li>Confirm <b>account-setup status</b> one more time</li>
+          <li>Book the in-kind transfer · process incoming shares against the <b>share tracker</b></li>
+        </ul>
+      </div>
+      <div class="phase" id="post">
+        <div class="ph-tag">Phase · Post-Wire</div>
+        <h3>Distribute, reconcile</h3>
+        <ul>
+          <li>Update <b>share tracker</b> immediately on file receipt</li>
+          <li>Apply <b>fund mapping</b> a second time to participants</li>
+          <li>Reconcile share counts — every CUSIP, every line</li>
+          <li>Sign-off case once balances tie</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== SLA ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 04 · SLA</span>
+      <h2>Day one — and the <em>twenty-two</em> after.</h2>
+    </div>
+    <div class="sla reveal">
+      <div class="sla-card">
+        <div class="day">Day 1<small>SLA · IMMEDIATE</small></div>
+        <h4>Initial response &amp; intake</h4>
+        <p>Day-one acknowledgement of the case, intake confirmation to the requesting party, and ownership assignment within the operations team. The clock for the 22-day SLA starts here.</p>
+      </div>
+      <div class="sla-card">
+        <div class="day">22 days<small>SLA · COMPLETION</small></div>
+        <h4>Process completion target</h4>
+        <p>Full balance-import processing — re-registration confirmed, share file received, fund mapping applied twice, reconciliation closed — within twenty-two business days of intake.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== USER-FLOW ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 04b · Flow</span>
+      <h2>The hard <em>gate</em> on the path.</h2>
+    </div>
+    <p class="section-sub reveal">In-kind has only one branching point that matters — the gate. Until accounts are confirmed open and correctly registered, nothing downstream can run. The flow is short, but the wait inside the gate is long.</p>
+
+    <div class="flow-diagram reveal">
+      <svg viewBox="0 0 1100 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Transfer in-kind user flow">
+        <defs>
+          <marker id="arrow-tf" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#8B3A3A"/>
+          </marker>
+        </defs>
+
+        <!-- Entry -->
+        <g transform="translate(20,130)">
+          <circle cx="32" cy="32" r="28" fill="#FBF8F2" stroke="#8B3A3A" stroke-width="1.6"/>
+          <text x="32" y="28" font-family="JetBrains Mono" font-size="8" fill="#8B3A3A" letter-spacing="2" text-anchor="middle">START</text>
+          <text x="32" y="44" font-family="Fraunces" font-style="italic" font-size="11" fill="#1F1B16" text-anchor="middle">case</text>
+        </g>
+        <line class="flow-dash" x1="80" y1="162" x2="118" y2="162" stroke="#8B3A3A" stroke-width="1.5" marker-end="url(#arrow-tf)"/>
+
+        <!-- Action: submit re-reg -->
+        <g transform="translate(120,134)">
+          <rect width="180" height="56" rx="28" fill="#FBF8F2" stroke="#8B3A3A" stroke-width="1.5"/>
+          <text x="90" y="22" font-family="JetBrains Mono" font-size="9" fill="#8B3A3A" letter-spacing="2" text-anchor="middle">ACTION</text>
+          <text x="90" y="42" font-family="Fraunces" font-size="13" fill="#1F1B16" text-anchor="middle">Submit re-reg pkg</text>
+        </g>
+        <line class="flow-dash" x1="302" y1="162" x2="340" y2="162" stroke="#8B3A3A" stroke-width="1.5" marker-end="url(#arrow-tf)"/>
+
+        <!-- System: setup team -->
+        <g transform="translate(342,134)">
+          <rect width="180" height="56" rx="6" fill="#8B3A3A" stroke="#8B3A3A" stroke-width="1.5"/>
+          <line x1="6" y1="0" x2="6" y2="56" stroke="#FBF8F2" stroke-width="1.4" opacity=".5"/>
+          <line x1="174" y1="0" x2="174" y2="56" stroke="#FBF8F2" stroke-width="1.4" opacity=".5"/>
+          <text x="90" y="22" font-family="JetBrains Mono" font-size="9" fill="#F2C7B3" letter-spacing="2" text-anchor="middle">EXTERNAL</text>
+          <text x="90" y="42" font-family="Fraunces" font-size="13" fill="#FBF8F2" text-anchor="middle">M. O'Connell · setup</text>
+        </g>
+        <line class="flow-dash" x1="524" y1="162" x2="562" y2="162" stroke="#8B3A3A" stroke-width="1.5" marker-end="url(#arrow-tf)"/>
+
+        <!-- Decision: confirmed? -->
+        <g transform="translate(565,108)">
+          <path d="M 80 0 L 160 55 L 80 110 L 0 55 Z" fill="#FBF8F2" stroke="#8B3A3A" stroke-width="1.8"/>
+          <text x="80" y="48" font-family="JetBrains Mono" font-size="9" fill="#8B3A3A" letter-spacing="2" text-anchor="middle">HARD GATE</text>
+          <text x="80" y="68" font-family="Fraunces" font-size="13" fill="#1F1B16" text-anchor="middle">accounts ready?</text>
+        </g>
+
+        <!-- No: hold -->
+        <line class="flow-dash" x1="645" y1="218" x2="645" y2="270" stroke="#B23A2E" stroke-width="1.5" marker-end="url(#arrow-tf)"/>
+        <text x="654" y="244" font-family="Caveat" font-size="14" fill="#B23A2E">no — wait</text>
+        <g transform="translate(560,272)">
+          <rect width="170" height="40" rx="6" fill="#FBF8F2" stroke="#B23A2E" stroke-width="1.4" stroke-dasharray="3 3"/>
+          <text x="85" y="25" font-family="Fraunces" font-style="italic" font-size="13" fill="#B23A2E" text-anchor="middle">do not process</text>
+        </g>
+
+        <!-- Yes: book transfer -->
+        <line class="flow-dash" x1="725" y1="162" x2="763" y2="162" stroke="#8B3A3A" stroke-width="1.5" marker-end="url(#arrow-tf)"/>
+        <text x="730" y="153" font-family="Caveat" font-size="14" fill="#5C8A78">yes</text>
+
+        <g transform="translate(765,134)">
+          <rect width="170" height="56" rx="28" fill="#FBF8F2" stroke="#8B3A3A" stroke-width="1.5"/>
+          <text x="85" y="22" font-family="JetBrains Mono" font-size="9" fill="#8B3A3A" letter-spacing="2" text-anchor="middle">ACTION</text>
+          <text x="85" y="42" font-family="Fraunces" font-size="13" fill="#1F1B16" text-anchor="middle">Book + reconcile</text>
+        </g>
+        <line class="flow-dash" x1="937" y1="162" x2="975" y2="162" stroke="#8B3A3A" stroke-width="1.5" marker-end="url(#arrow-tf)"/>
+
+        <!-- End -->
+        <g transform="translate(978,130)">
+          <circle cx="32" cy="32" r="28" fill="#FBF8F2" stroke="#8B3A3A" stroke-width="3"/>
+          <circle cx="32" cy="32" r="22" fill="none" stroke="#8B3A3A" stroke-width=".6"/>
+          <text x="32" y="36" font-family="Fraunces" font-size="12" fill="#8B3A3A" text-anchor="middle">CLOSE</text>
+        </g>
+
+        <!-- 22-day SLA band -->
+        <line x1="60" y1="74" x2="1010" y2="74" stroke="#8B3A3A" stroke-width=".5" stroke-dasharray="2 3" opacity=".5"/>
+        <text x="60" y="62" font-family="JetBrains Mono" font-size="9" fill="#8B3A3A" letter-spacing="2">DAY 1 ────────────────────────── 22 DAYS ──────────────────────────────────────────── CLOSE</text>
+      </svg>
+      <div class="flow-legend">
+        <span><span class="lg-shape entry"></span>Entry</span>
+        <span><span class="lg-shape action"></span>Action</span>
+        <span><span class="lg-shape system"></span>External team</span>
+        <span><span class="lg-shape decision"></span>Hard gate</span>
+        <span><span class="lg-shape end"></span>Close</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== POST-WIRE STEPS ============== -->
+<section class="section">
+  <div class="shell">
+    <div class="section-head reveal">
+      <span class="section-num">§ 05 · Post-wire</span>
+      <h2>Four steps from wire <em>to participant</em>.</h2>
+    </div>
+    <div class="post reveal">
+      <div class="post-step">
+        <div class="pn">①</div>
+        <h4>Receive final share file</h4>
+        <p>Confirm completeness against the wire breakdown. Update share tracker the moment the file lands.</p>
+      </div>
+      <div class="post-step">
+        <div class="pn">②</div>
+        <h4>Apply fund mapping</h4>
+        <p>Second twin-apply pass — fund mapping fires again to land shares onto participant accounts.</p>
+      </div>
+      <div class="post-step">
+        <div class="pn">③</div>
+        <h4>Reconcile share counts</h4>
+        <p>Every CUSIP, every position, every account. In-kind reconciles on shares — not dollars.</p>
+      </div>
+      <div class="post-step">
+        <div class="pn">④</div>
+        <h4>Sign-off</h4>
+        <p>Final balance check, case closed. Share tracker filed as the system of record.</p>
+      </div>
+    </div>
+
+    <div class="ornament reveal" style="margin-top:42px;">touch points</div>
+
+    <div class="icon-grid reveal">
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></span>
+        <div><h4>Final share file</h4><p>Land the file. Update share tracker the moment it arrives.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16M7 7l10 10M17 7L7 17"/></svg></span>
+        <div><h4>Twin apply</h4><p>Fund mapping fires the second time — onto participant accounts.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><path d="M3 6h7v12H3zM14 6h7v12h-7z"/><path d="M10 9l4 6M14 9l-4 6"/></svg></span>
+        <div><h4>Reconcile shares</h4><p>Every CUSIP, every position. In-kind reconciles on shares — not dollars.</p></div>
+      </div>
+      <div class="icon-cell">
+        <span class="badge"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/><circle cx="12" cy="12" r="9"/></svg></span>
+        <div><h4>Sign-off</h4><p>Share tracker filed as system of record. Close the case.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== GATE / RULES ============== -->
+<section id="gate" class="section">
+  <div class="shell">
+    <div class="callout stop reveal">
+      <strong>Hard gate · do not process until confirmed</strong>
+      The receiving accounts must be confirmed open and correctly registered <em>in writing</em> by the setup team before any wire is booked. Process before confirmation and the shares can land in the wrong account, the wrong ticker, or fail re-registration entirely. This is the single most expensive mistake on the in-kind path.
+    </div>
+
+    <div class="callout warn reveal" style="margin-top:14px;">
+      <strong>Three-week submission rule</strong>
+      Submit the re-registration package to Matt O'Connell's team approximately three weeks ahead of the intended transfer date. Earlier is fine — later compresses the runway and the setup team can't guarantee accounts will be ready.
+    </div>
+
+    <div class="callout ok reveal" style="margin-top:14px;">
+      <strong>Share tracker · update on receipt</strong>
+      The moment the final share file lands, update the share-tracker spreadsheet. Don't batch the update with reconciliation, don't wait until end-of-day. The tracker is the source of truth that everyone downstream will reconcile against.
+    </div>
+  </div>
+</section>
+
+<footer class="shell foot">
+  <span>Transfer In-Kind · Method 03 of 03 · Procedure 05 of 07</span>
+  <span><a href="Source-Mapping.html">Source Mapping →</a> &nbsp;·&nbsp; <a href="Mapping.html">↩ Method 02</a> &nbsp;·&nbsp; <a href="index.html">↩ all procedures</a></span>
+</footer>
+
+<script>
+  (function(){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ if (e.isIntersecting) e.target.classList.add('in'); });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+  })();
+</script>
+</body>
+</html>
