@@ -1467,7 +1467,7 @@ let CN = {};          // per-task notes
 let CT = {};          // custom tasks per phase
 let CAL_ITEMS = [];   // custom calendar items
 let PINS = [];        // pinned notes
-let PLAN_AUTHOR = localStorage.getItem('planner:lastAuthor') || '';
+let PLAN_AUTHOR = ''; try { PLAN_AUTHOR = localStorage.getItem('planner:lastAuthor') || ''; } catch(e){}
 let PHASES = [];
 let planStatus = 'active';
 let saveKey = null;
@@ -1819,12 +1819,29 @@ function getPlanSaves(){
   try { return JSON.parse(localStorage.getItem(PLAN_SAVES_STORE) || '{}') || {}; }
   catch(e){ return {}; }
 }
-function putPlanSaves(saves){ localStorage.setItem(PLAN_SAVES_STORE, JSON.stringify(saves || {})); }
+let storageWriteFailureNotified = false;
+function safeGetItem(key){
+  try { return localStorage.getItem(key); } catch(e){ return null; }
+}
+function notifyStorageWriteFailure(e){
+  console.warn('localStorage write failed', e);
+  if(storageWriteFailureNotified) return;
+  storageWriteFailureNotified = true;
+  try { showToast('Save failed — browser storage is full or blocked. Export your plans to avoid losing work.'); }
+  catch(_){ /* toast UI not ready */ }
+}
+function putPlanSaves(saves){
+  try { localStorage.setItem(PLAN_SAVES_STORE, JSON.stringify(saves || {})); storageWriteFailureNotified = false; }
+  catch(e){ notifyStorageWriteFailure(e); }
+}
 function getPlanMeta(){
   try { return JSON.parse(localStorage.getItem(PLAN_META_STORE) || '{}') || {}; }
   catch(e){ return {}; }
 }
-function putPlanMeta(meta){ localStorage.setItem(PLAN_META_STORE, JSON.stringify(meta || {})); }
+function putPlanMeta(meta){
+  try { localStorage.setItem(PLAN_META_STORE, JSON.stringify(meta || {})); }
+  catch(e){ notifyStorageWriteFailure(e); }
+}
 function getSaves(){ return clone(getPlanSaves()); }
 function putSaves(o){ putPlanSaves(o); }
 
@@ -1869,7 +1886,7 @@ function normalizeLoadedPlannerData(data){
     schedOverrides: cloneState(loaded.schedOverrides || {}),
     status: loaded.status || 'active',
     author: (typeof loaded.author === 'string' && loaded.author)
-      ? loaded.author : (localStorage.getItem('planner:lastAuthor') || '')
+      ? loaded.author : (safeGetItem('planner:lastAuthor') || '')
   };
 }
 function applyPlannerCoreState(n){
@@ -4151,7 +4168,7 @@ function setBusinessDays(on){
 }
 function setSessionAuthor(v){
   PLAN_AUTHOR = (v || '').trim();
-  localStorage.setItem('planner:lastAuthor', PLAN_AUTHOR);
+  try { localStorage.setItem('planner:lastAuthor', PLAN_AUTHOR); } catch(e){}
 }
 function renderSchedMount(){
   document.getElementById('schedMount').innerHTML = SCHED_ACTIVE.map(({key, label, hint}) => {
@@ -4189,7 +4206,7 @@ document.addEventListener('click', e => {
 (function init(){
   initIntakeSelects();
   ['planName','caseNumber','effectiveDate','day1','wireDate'].forEach(id =>
-    document.getElementById(id).addEventListener('input', validate));
+    document.getElementById(id)?.addEventListener('input', validate));
   document.getElementById('day1').value = todayDateStr();
   S.day1 = todayDateStr();
   document.getElementById('calItemDate').value = todayDateStr();

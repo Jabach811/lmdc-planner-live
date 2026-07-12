@@ -135,9 +135,20 @@ function loadPlans() {
   }
 }
 
+let persistFailureNotified = false;
+
 function persist() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
-  if (selectedPlanId) localStorage.setItem(SELECTED_KEY, selectedPlanId);
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
+    if (selectedPlanId) localStorage.setItem(SELECTED_KEY, selectedPlanId);
+    persistFailureNotified = false;
+  } catch (error) {
+    console.warn("Could not save plans", error);
+    if (!persistFailureNotified) {
+      persistFailureNotified = true;
+      alert("Could not save your changes — browser storage is full or blocked. Export your plans to avoid losing work.");
+    }
+  }
 }
 
 function render() {
@@ -394,9 +405,14 @@ function syncPlanTypeVisibility() {
   document.querySelectorAll(".merger-only").forEach(el => el.classList.toggle("hidden", !merger));
 }
 
+function makePlanId() {
+  if (window.crypto?.randomUUID) return crypto.randomUUID();
+  return `plan-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function savePlanFromForm(event) {
   event.preventDefault();
-  const id = els.planId.value || crypto.randomUUID();
+  const id = els.planId.value || makePlanId();
   const existing = plans.find(plan => plan.id === id);
   const oldIntake = existing?.intake || {};
   const now = new Date().toISOString();
@@ -718,7 +734,13 @@ function importJson(event) {
       if (!data || data.exportVersion !== 1 || !Array.isArray(data.plans)) {
         throw new Error("Invalid export");
       }
-      plans = data.plans;
+      if (plans.length) {
+        const proceed = confirm(`Import ${data.plans.length} plan(s)? Plans with matching IDs will be updated and your other ${plans.length} existing plan(s) will be kept.`);
+        if (!proceed) return;
+      }
+      const byId = new Map(plans.map(plan => [plan.id, plan]));
+      data.plans.forEach(plan => byId.set(plan.id, plan));
+      plans = [...byId.values()];
       selectedPlanId = visiblePlans()[0]?.id || "";
       persist();
       render();

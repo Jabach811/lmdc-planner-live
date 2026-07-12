@@ -1394,7 +1394,20 @@ function loadDB(){
   const cutoff = Date.now() - TRASH_RETENTION_MS;
   DB.plans = DB.plans.filter(p => !(p.status === 'trash' && p.trashedAt && Date.parse(p.trashedAt) < cutoff));
 }
-function saveDB(){ localStorage.setItem(K.db, JSON.stringify(DB)); }
+let saveDBFailureNotified = false;
+function saveDB(){
+  try{
+    localStorage.setItem(K.db, JSON.stringify(DB));
+    saveDBFailureNotified = false;
+  }catch(e){
+    console.warn('saveDB failed', e);
+    if(!saveDBFailureNotified){
+      saveDBFailureNotified = true;
+      try{ toast('Save failed — browser storage is full or blocked. Export your plans to avoid losing work.'); }catch(_){ /* toast UI not ready */ }
+    }
+  }
+}
+function safeSetItem(key, value){ try{ localStorage.setItem(key, value); }catch(e){ console.warn('storage write failed', key, e); } }
 const plan = () => DB.plans.find(p => p.id === DB.selectedId) || null;
 const activePlans = () => DB.plans.filter(p => p.status === 'active' || p.status === 'hold');
 const touch = p => { p.updatedAt = new Date().toISOString(); };
@@ -1468,7 +1481,7 @@ function migrateLegacy(){
       }
     }
   }catch(e){ console.warn('legacy migration failed', e); }
-  localStorage.setItem(K.migrated, '1');
+  safeSetItem(K.migrated, '1');
   if(count) saveDB();
   return count;
 }
@@ -1575,12 +1588,12 @@ function currentTheme(){ return document.documentElement.dataset.theme || 'light
 function toggleTheme(){
   const next = currentTheme() === 'dark' ? 'light' : 'dark';
   document.documentElement.dataset.theme = next;
-  localStorage.setItem(K.theme, next);
+  safeSetItem(K.theme, next);
   render();
 }
 function toggleRail(){
   $('#appRoot').classList.toggle('rail-collapsed');
-  localStorage.setItem(K.rail, $('#appRoot').classList.contains('rail-collapsed') ? '1' : '');
+  safeSetItem(K.rail, $('#appRoot').classList.contains('rail-collapsed') ? '1' : '');
 }
 
 /* ================= 8a. HOME ================= */

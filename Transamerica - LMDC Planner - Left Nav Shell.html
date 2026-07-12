@@ -8264,7 +8264,7 @@ function normalizeLoadedPlannerData(data){
     status: loaded.status || 'active',
     author: (typeof loaded.author === 'string' && loaded.author)
       ? loaded.author
-      : (localStorage.getItem('planner:lastAuthor') || '')
+      : (safeGetItem('planner:lastAuthor') || '')
   };
 }
 function applyPlannerCoreState(normalized){
@@ -8289,15 +8289,28 @@ function getPlanSaves(){
   try { return JSON.parse(localStorage.getItem(PLAN_SAVES_STORE) || '{}') || {}; }
   catch(e){ return {}; }
 }
+let storageWriteFailureNotified = false;
+function notifyStorageWriteFailure(e){
+  console.warn('localStorage write failed', e);
+  if(storageWriteFailureNotified) return;
+  storageWriteFailureNotified = true;
+  try { showToast('Save failed — browser storage is full or blocked. Export your plans to avoid losing work.'); }
+  catch(_){ /* toast UI not ready */ }
+}
+function safeGetItem(key){
+  try { return localStorage.getItem(key); } catch(e){ return null; }
+}
 function putPlanSaves(saves){
-  localStorage.setItem(PLAN_SAVES_STORE, JSON.stringify(saves || {}));
+  try { localStorage.setItem(PLAN_SAVES_STORE, JSON.stringify(saves || {})); storageWriteFailureNotified = false; }
+  catch(e){ notifyStorageWriteFailure(e); }
 }
 function getPlanMeta(){
   try { return JSON.parse(localStorage.getItem(PLAN_META_STORE) || '{}') || {}; }
   catch(e){ return {}; }
 }
 function putPlanMeta(meta){
-  localStorage.setItem(PLAN_META_STORE, JSON.stringify(meta || {}));
+  try { localStorage.setItem(PLAN_META_STORE, JSON.stringify(meta || {})); }
+  catch(e){ notifyStorageWriteFailure(e); }
 }
 function uniqueSaveKey(baseKey, saves){
   let key = baseKey || ('p_' + Date.now());
@@ -11591,7 +11604,7 @@ function validate(){
           && (S.planType==='startup'||S.strategies.length);
   document.getElementById('genBtn').disabled=!ok;
 }
-['planName','caseNumber','effectiveDate'].forEach(id=>document.getElementById(id).addEventListener('input',validate));
+['planName','caseNumber','effectiveDate'].forEach(id=>document.getElementById(id)?.addEventListener('input',validate));
 
 // â•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Â COUNTDOWN â•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Ââ•Â
 function daysFrom(ds){ if(!ds) return null; const t=new Date(ds+'T00:00:00'),n=new Date(); n.setHours(0,0,0,0); return Math.round((t-n)/86400000); }
