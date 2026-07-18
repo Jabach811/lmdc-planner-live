@@ -122,6 +122,9 @@ input,select,textarea{ font-family:inherit; font-size:0.9rem; color:var(--ink); 
 :root[data-theme="dark"] .btn.primary{ color:#0F1719; }
 .btn.ghost{ background:transparent; }
 .btn.sm{ padding:5px 10px; font-size:0.76rem; }
+.btn.danger{ color:var(--muted); }
+.btn.danger:hover{ border-color:var(--crit); color:var(--crit); }
+.btn.active{ background:var(--accent-soft); color:var(--accent-ink); border-color:var(--accent-line); }
 .icon-btn{ border:1px solid var(--line); background:var(--surface); border-radius:8px; width:32px; height:32px; display:inline-flex; align-items:center; justify-content:center; color:var(--muted); }
 .icon-btn:hover{ color:var(--ink); border-color:var(--accent); }
 
@@ -252,6 +255,8 @@ input,select,textarea{ font-family:inherit; font-size:0.9rem; color:var(--ink); 
 .trow .t-due{ font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:0.7rem; font-weight:700; color:var(--muted); }
 .trow .t-due.crit{ color:var(--crit); }
 .trow .t-due.warn{ color:var(--warn); }
+.trow .t-due.bucket{ color:var(--accent-ink); }
+.trow .t-due.pending{ color:var(--faint); font-weight:600; font-style:italic; }
 .trow.is-done .t-name{ color:var(--muted); text-decoration:line-through; text-decoration-color:var(--faint); }
 .trow.is-na{ opacity:0.5; }
 .trow-warn{ font-size:0.72rem; color:var(--warn); font-weight:600; }
@@ -300,6 +305,12 @@ input,select,textarea{ font-family:inherit; font-size:0.9rem; color:var(--ink); 
 .hist{ font-size:0.74rem; color:var(--muted); line-height:1.6; }
 
 /* ═══════════════════════ RADAR VIEW ═══════════════════════ */
+.radar-filter{ display:flex; align-items:center; gap:9px; margin-bottom:16px; }
+.radar-filter label{ font-size:0.68rem; letter-spacing:0.1em; text-transform:uppercase; font-weight:800; color:var(--muted); }
+.radar-filter select{
+  border:1px solid var(--line); background:var(--surface); border-radius:8px; padding:6px 10px;
+  font-size:0.82rem; font-weight:600; max-width:min(320px, 70vw);
+}
 .radar-day{ margin-bottom:16px; }
 .radar-day .rd-hd{ display:flex; align-items:baseline; gap:9px; margin-bottom:6px; }
 .radar-day .rd-hd b{ font-size:0.86rem; font-weight:800; }
@@ -350,14 +361,17 @@ table.sched td.ph{ color:var(--muted); font-size:0.74rem; }
 .fld input:focus,.fld select:focus,.fld textarea:focus{ border-color:var(--accent); outline:none; }
 .fld .hint{ font-size:0.68rem; color:var(--faint); margin-top:3px; }
 .chk-row{ display:flex; flex-wrap:wrap; gap:10px 16px; padding-top:2px; }
-.chk{ display:flex; align-items:center; gap:6px; font-size:0.82rem; font-weight:600; }
+.chk{ display:flex; align-items:center; gap:9px; font-size:0.82rem; font-weight:600; }
 .chk input{ accent-color:var(--accent); width:15px; height:15px; }
 .fsec{ font-size:0.7rem; letter-spacing:0.12em; text-transform:uppercase; font-weight:800; color:var(--accent-ink); border-bottom:1px solid var(--line-soft); padding-bottom:5px; margin-top:6px; }
 .modal-foot{ display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
 .hidden{ display:none !important; }
 
+/* Bottom-left keeps the toast clear of modal footers and primary actions
+   (which sit bottom-right / center). */
 .toast{
-  position:fixed; bottom:22px; left:50%; transform:translateX(-50%); z-index:200;
+  position:fixed; bottom:22px; left:22px; z-index:200;
+  max-width:min(400px, calc(100vw - 44px));
   background:var(--ink); color:var(--ground); font-size:0.82rem; font-weight:700;
   border-radius:9px; padding:9px 16px; opacity:0; pointer-events:none; transition:opacity .2s;
 }
@@ -375,10 +389,20 @@ table.sched td.ph{ color:var(--muted); font-size:0.74rem; }
   .detail-grid{ grid-template-columns:1fr; }
   .side-col{ position:static; }
 }
+.mobile-nav{ display:none; }
 @media (max-width: 780px){
   .rail{ display:none; }
   .content{ padding:16px 14px 60px; }
   .topbar{ padding:10px 14px; flex-wrap:wrap; }
+  /* Compact view nav replaces the hidden rail so navigation never dead-ends. */
+  .mobile-nav{
+    display:flex; gap:6px; overflow-x:auto; padding:8px 14px;
+    background:var(--ground); border-bottom:1px solid var(--line);
+  }
+  .mobile-nav .btn{ white-space:nowrap; flex:0 0 auto; }
+  /* Countdown chips: two-up grid instead of tight wrapping. */
+  .plan-hd .meta{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; }
+  .countdown{ min-width:0; }
 }
 </style>
 </head>
@@ -406,6 +430,7 @@ table.sched td.ph{ color:var(--muted); font-size:0.74rem; }
       <label class="btn sm ghost" style="display:inline-flex;align-items:center">Import<input type="file" id="importInput" accept="application/json" style="display:none"></label>
       <button class="btn primary sm" onclick="CC.openPlanModal()">+ New Plan</button>
     </div>
+    <nav class="mobile-nav" id="mobileNav" aria-label="Views"></nav>
     <div class="content" id="content"></div>
   </div>
 </div>
@@ -566,9 +591,11 @@ const TASKS = [
 const TASK_BY_ID = Object.fromEntries(TASKS.map(t=>[t.id,t]));
 
 /* ─── Due Date Engine ───
-   Week-based dues anchor on the "Obtain All Documents" completion
-   (fallback: case start, then plan creation). Wire / final-files
-   anchored dues use partner-schedule offsets. */
+   Week-based dues anchor on the *actual completion* of "Obtain All
+   Documents". Until that clock starts they are PENDING — no due date,
+   never overdue (canonical calcTaskDueResolution semantics).
+   Wire-anchored dues use partner-schedule offsets. "Final"-anchored
+   dues are pending until Receive Final Files is actually done. */
 const SCHED = {
   wireAdvanceVendor: -5,    // WIRE-5 : pre-wire advance emails
   finalFilesDeadline: 7,    // WIRE+7 : final files SLA
@@ -584,7 +611,8 @@ const TASK_DUE = {
   "setup-vendor-workflow-confirm":{from:"docs", week:2},
   "setup-informatica-prep":       {from:"docs", week:2},
   "setup-wire-instructions-prk":  {from:"docs", week:1},
-  "payroll-complete-template":    {from:"docs", week:2},
+  /* NOTE: payroll-complete-template intentionally has no due — it has no
+     entry in the canonical TASK_DUE map (Left Nav Shell / app.js). */
   "payroll-ftp-setup":            {from:"docs", week:3},
   "payroll-obf-confirm":          {from:"docs", week:2},
   "payroll-receive-test-file":    {from:"docs", week:3},
@@ -691,7 +719,14 @@ function addDays(dateStr, n){
   return toDateStr(d);
 }
 function todayStr(){ return toDateStr(new Date()); }
+/* Parses both dates at local midnight; Math.round absorbs the ±1h a DST
+   transition can introduce, so whole-day deltas stay exact. */
 function daysBetween(a, b){ return Math.round((parseDate(b) - parseDate(a)) / 86400000); }
+function isJanOne(dateStr){
+  if(!dateStr) return false;
+  const d = parseDate(dateStr);
+  return d.getMonth() === 0 && d.getDate() === 1;
+}
 function fmtDate(s){
   if(!s) return "—";
   return parseDate(s).toLocaleDateString("en-US",{month:"short",day:"numeric"});
@@ -701,7 +736,109 @@ function fmtDateY(s){
   return parseDate(s).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
 }
 
+/* ─── Validation / normalization ───
+   Every plan record entering state — import, legacy migration, or a
+   previously-persisted store — goes through normalizePlan. A record that
+   can't be normalized is dropped instead of ever reaching render(). */
+const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
+const PLAN_TYPES = ["conversion","merger","startup"];
+const PLAN_STATUSES = ["pre_start","active","on_hold","complete"];
+const TASK_STATUSES = ["open","working","done","na"];
+const STRATEGY_IDS = ["cash","mapping","tik"];
+function newId(){
+  return (crypto.randomUUID && crypto.randomUUID()) || ("p" + Date.now() + "-" + Math.random().toString(36).slice(2,10));
+}
+function strOr(v, max=4000){ return typeof v === "string" ? v.slice(0, max) : ""; }
+function dateOr(v){
+  if(typeof v !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return "";
+  const d = parseDate(v);
+  return !Number.isNaN(d.getTime()) && toDateStr(d) === v ? v : "";
+}
+function isoOr(v){
+  return (typeof v === "string" && v.length <= 40 && !Number.isNaN(Date.parse(v))) ? v : "";
+}
+/* Only http(s) and mailto schemes may ever render as a clickable href. */
+function safeUrl(u){
+  if(typeof u !== "string" || !u.trim()) return "";
+  try{
+    const proto = new URL(u.trim()).protocol;
+    return ["http:","https:","mailto:"].includes(proto) ? u.trim() : "";
+  }catch(e){ return ""; }
+}
+function normalizePlan(raw){
+  if(!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const ri = raw.intake;
+  if(!ri || typeof ri !== "object" || Array.isArray(ri)) return null;
+  if(typeof ri.planName !== "string" || !ri.planName.trim()) return null;
+  const contact = c => ({
+    vendorName: strOr(c?.vendorName, 200), name: strOr(c?.name, 200), email: strOr(c?.email, 320)
+  });
+  const rc = (ri.contacts && typeof ri.contacts === "object") ? ri.contacts : {};
+  const ch = (raw.characteristics && typeof raw.characteristics === "object") ? raw.characteristics : {};
+  const plan = {
+    id: (typeof raw.id === "string" && SAFE_ID.test(raw.id)) ? raw.id : newId(),
+    createdAt: isoOr(raw.createdAt) || new Date().toISOString(),
+    updatedAt: isoOr(raw.updatedAt),
+    archivedAt: isoOr(raw.archivedAt),
+    status: PLAN_STATUSES.includes(raw.status) ? raw.status : "pre_start",
+    notes: strOr(raw.notes, 20000),
+    intake: {
+      planName: ri.planName.trim().slice(0, 300),
+      caseNumber: strOr(ri.caseNumber, 100),
+      planType: PLAN_TYPES.includes(ri.planType) ? ri.planType : "conversion",
+      mergerType: ["internal","external"].includes(ri.mergerType) ? ri.mergerType : "",
+      strategies: Array.isArray(ri.strategies) ? ri.strategies.filter(s => STRATEGY_IDS.includes(s)) : [],
+      caseStartDate: dateOr(ri.caseStartDate),
+      effectiveDate: dateOr(ri.effectiveDate),
+      firstPayrollTaDate: dateOr(ri.firstPayrollTaDate),
+      wireDate: dateOr(ri.wireDate),
+      clientFolderUrl: strOr(ri.clientFolderUrl, 2000),
+      contacts: { payroll: contact(rc.payroll), priorRecordKeeper: contact(rc.priorRecordKeeper) }
+    },
+    characteristics: {
+      isOneOnePlan: !!ch.isOneOnePlan, autoEnroll: !!ch.autoEnroll,
+      loans: !!ch.loans, roth: !!ch.roth, nonQual: !!ch.nonQual
+    },
+    tasks: {},
+    dateHistory: []
+  };
+  const rt = raw.tasks;
+  if(rt && typeof rt === "object" && !Array.isArray(rt)){
+    for(const t of TASKS){                       // only canonical task IDs survive
+      const e = rt[t.id];
+      if(!e || typeof e !== "object") continue;
+      const status = TASK_STATUSES.includes(e.status) ? e.status : "open";
+      plan.tasks[t.id] = {
+        taskId: t.id, status,
+        note: strOr(e.note, 4000),
+        updatedAt: isoOr(e.updatedAt),
+        completedAt: status === "done" ? (isoOr(e.completedAt) || isoOr(e.updatedAt) || new Date().toISOString()) : ""
+      };
+    }
+  }
+  if(Array.isArray(raw.dateHistory)){
+    plan.dateHistory = raw.dateHistory
+      .filter(h => h && typeof h === "object")
+      .map(h => ({ field: strOr(h.field, 60), newDate: dateOr(h.newDate), changedAt: isoOr(h.changedAt) }))
+      .slice(-50);
+  }
+  return plan;
+}
+function normalizePlans(list){
+  const out = [], seen = new Set();
+  for(const raw of (Array.isArray(list) ? list : [])){
+    const p = normalizePlan(raw);
+    if(!p) continue;
+    if(seen.has(p.id)) p.id = newId();
+    seen.add(p.id);
+    out.push(p);
+  }
+  return out;
+}
+
 /* ─── State ─── */
+/* Ephemeral view state — never persisted. */
+const ui = { noteOpen:{}, radarPlan:"" };
 let state = load();
 function load(){
   try{
@@ -721,11 +858,11 @@ function load(){
 }
 function withDefaults(s){
   return {
-    plans: s.plans || [],
-    view: s.view || "deck",
-    selectedPlanId: s.selectedPlanId || "",
-    collapsed: s.collapsed || {},
-    theme: s.theme || ""
+    plans: normalizePlans(s.plans),
+    view: typeof s.view === "string" ? s.view : "deck",
+    selectedPlanId: typeof s.selectedPlanId === "string" ? s.selectedPlanId : "",
+    collapsed: (s.collapsed && typeof s.collapsed === "object") ? s.collapsed : {},
+    theme: ["light","dark"].includes(s.theme) ? s.theme : ""
   };
 }
 function persist(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
@@ -739,11 +876,7 @@ function taskState(plan, taskId){
   return plan.tasks?.[taskId] || { taskId, status:"open", note:"", updatedAt:"" };
 }
 function isOneOne(plan){
-  if(plan.characteristics?.isOneOnePlan) return true;
-  const eff = plan.intake.effectiveDate;
-  if(!eff) return false;
-  const d = parseDate(eff);
-  return d.getMonth() === 0 && d.getDate() === 1;
+  return !!plan.characteristics?.isOneOnePlan || isJanOne(plan.intake.effectiveDate);
 }
 function appliesToPlan(t, plan){
   const r = t.applies, strategies = plan.intake.strategies || [];
@@ -771,25 +904,69 @@ function taskLabel(plan, t){
   return t.label;
 }
 
-function docsAnchor(plan){
-  const done = taskState(plan, "setup-all-docs");
-  if(done.status === "done" && done.completedAt) return done.completedAt.slice(0,10);
-  return plan.intake.caseStartDate || (plan.createdAt || "").slice(0,10) || todayStr();
+function taskDoneDate(plan, taskId){
+  const st = taskState(plan, taskId);
+  if(st.status !== "done") return "";
+  return (st.completedAt || st.updatedAt || "").slice(0,10) || todayStr();
 }
+/* Actual completion date of "Obtain All Documents" — "" until the clock starts. */
+function docsAnchor(plan){ return taskDoneDate(plan, "setup-all-docs"); }
+/* Projection used only for the Final Files countdown chip (not for dues). */
 function finalFilesAnchor(plan){
-  const ff = taskState(plan, "post-receive-final-files");
-  if(ff.status === "done" && ff.completedAt) return ff.completedAt.slice(0,10);
+  const done = taskDoneDate(plan, "post-receive-final-files");
+  if(done) return done;
   return plan.intake.wireDate ? addDays(plan.intake.wireDate, SCHED.finalFilesDeadline) : "";
 }
-function taskDueDate(plan, t){
-  const rule = TASK_DUE[t.id];
-  if(!rule) return "";
-  let base = "";
-  if(rule.from === "docs")  base = rule.week != null ? addDays(docsAnchor(plan), rule.week*7) : docsAnchor(plan);
-  if(rule.from === "wire")  base = plan.intake.wireDate ? addDays(plan.intake.wireDate, rule.days||0) : "";
-  if(rule.from === "final") base = finalFilesAnchor(plan) ? addDays(finalFilesAnchor(plan), rule.days||0) : "";
-  return base ? snapToBusinessDay(base, 1) : "";
+/* ── Week buckets (ported from the canonical weekBucketRange) ──
+   Anchor normalizes weekend starts forward to Monday; week 1 runs from the
+   anchor to that work-week's Friday; each later week is the following
+   Mon–Fri. Due (for overdue math) is the bucket END. */
+function normalizeWeekAnchorStart(anchorDate){
+  if(!anchorDate) return null;
+  const d = parseDate(anchorDate);
+  if(Number.isNaN(d.getTime())) return null;
+  const dow = d.getDay();
+  if(dow === 6) d.setDate(d.getDate() + 2);
+  else if(dow === 0) d.setDate(d.getDate() + 1);
+  return d;
 }
+function weekBucketRange(anchorDate, week){
+  const anchor = normalizeWeekAnchorStart(anchorDate);
+  if(!anchor) return { start:"", end:"", label:"" };
+  const firstWeekEnd = new Date(anchor);
+  firstWeekEnd.setDate(firstWeekEnd.getDate() + (5 - firstWeekEnd.getDay()));
+  const start = new Date(week === 1 ? anchor : firstWeekEnd);
+  if(week > 1) start.setDate(firstWeekEnd.getDate() + 3 + ((week - 2) * 7));
+  const end = new Date(start);
+  end.setDate(start.getDate() + (5 - start.getDay()));
+  const s = toDateStr(start), e = toDateStr(end);
+  return { start:s, end:e, label:`${fmtDate(s)} – ${fmtDate(e)}` };
+}
+/* Resolves a task's due. Returns:
+   { due, pending, waitingOn, bucket, label } — due:"" + pending:true means
+   the schedule clock hasn't started (never counted overdue). */
+function taskDueInfo(plan, t){
+  const rule = TASK_DUE[t.id];
+  if(!rule) return { due:"", pending:false };
+  if(rule.from === "docs"){
+    const anchor = docsAnchor(plan);
+    if(!anchor) return { due:"", pending:true, waitingOn:"Obtain All Documents", week:rule.week };
+    const range = weekBucketRange(anchor, rule.week || 1);
+    if(!range.end) return { due:"", pending:true, waitingOn:"Obtain All Documents", week:rule.week };
+    return { due:range.end, pending:false, bucket:true, week:rule.week, label:range.label };
+  }
+  if(rule.from === "wire"){
+    if(!plan.intake.wireDate) return { due:"", pending:false };
+    return { due: snapToBusinessDay(addDays(plan.intake.wireDate, rule.days||0), 1), pending:false };
+  }
+  if(rule.from === "final"){
+    const anchor = taskDoneDate(plan, "post-receive-final-files");
+    if(!anchor) return { due:"", pending:true, waitingOn:"Receive Final Files" };
+    return { due: snapToBusinessDay(addDays(anchor, rule.days||0), 1), pending:false };
+  }
+  return { due:"", pending:false };
+}
+function taskDueDate(plan, t){ return taskDueInfo(plan, t).due; }
 
 function planProgress(plan){
   const tasks = applicableTasks(plan);
@@ -800,12 +977,16 @@ function planProgress(plan){
 function openTasks(plan){
   return applicableTasks(plan)
     .filter(t => ["open","working"].includes(taskState(plan, t.id).status))
-    .map(t => ({
-      plan, task:t, label: taskLabel(plan, t),
-      phase: PHASES.find(p => p.id === t.phaseId)?.label || t.phaseId,
-      due: taskDueDate(plan, t),
-      status: taskState(plan, t.id).status
-    }));
+    .map(t => {
+      const info = taskDueInfo(plan, t);
+      return {
+        plan, task:t, label: taskLabel(plan, t),
+        phase: PHASES.find(p => p.id === t.phaseId)?.label || t.phaseId,
+        due: info.due, bucket: !!info.bucket, bucketLabel: info.label || "",
+        pending: !!info.pending,
+        status: taskState(plan, t.id).status
+      };
+    });
 }
 function planWarnings(plan){
   const w = [];
@@ -880,15 +1061,18 @@ function renderRail(){
   $("railNav").innerHTML = VIEWS.map(v => {
     const badge = v.id === "radar" && overdueTotal
       ? `<span class="badge crit">${overdueTotal}</span>` : "";
-    return `<button class="rail-btn ${state.view===v.id?"active":""}" onclick="CC.go('${v.id}')">${v.label}${badge}</button>`;
+    return `<button class="rail-btn ${state.view===v.id?"active":""}" data-act="go" data-view="${esc(v.id)}">${v.label}${badge}</button>`;
   }).join("");
+  $("mobileNav").innerHTML = VIEWS.map(v =>
+    `<button class="btn sm ${state.view===v.id?"active":""}" data-act="go" data-view="${esc(v.id)}">${v.label}${v.id==="radar"&&overdueTotal?` <b style="color:var(--crit)">${overdueTotal}</b>`:""}</button>`
+  ).join("");
   const plans = activePlans();
   $("railPlans").innerHTML = `<span class="glbl">Plans</span>` + (plans.length
     ? plans.map(p => {
         const h = planHealth(p);
         const cls = h === "crit" ? "crit" : h === "warn" ? "warn" : "ok";
         const active = state.view === "plan" && state.selectedPlanId === p.id;
-        return `<button class="rail-plan ${active?"active":""}" onclick="CC.openPlan('${p.id}')">
+        return `<button class="rail-plan ${active?"active":""}" data-act="open-plan" data-plan="${esc(p.id)}">
           <span class="dot ${cls}"></span><span class="nm">${esc(p.intake.planName || "Untitled")}</span>
         </button>`;
       }).join("")
@@ -913,7 +1097,7 @@ function renderDeck(){
     return `<div class="empty-deck">
       <h2>No plans on deck</h2>
       <p>Add your first plan shell — details can land as the case gets real.</p>
-      <button class="btn primary" onclick="CC.openPlanModal()">+ New Plan</button>
+      <button class="btn primary" data-act="new-plan">+ New Plan</button>
     </div>`;
   }
   const all = plans.flatMap(openTasks);
@@ -950,17 +1134,18 @@ function deckPanel(title, tone, items, emptyMsg){
 }
 function agendaRow(x){
   const today = todayStr();
-  const cls = x.due < today ? "crit" : daysBetween(today, x.due) <= 2 ? "warn" : "";
-  return `<button class="agenda-row" onclick="CC.openPlan('${x.plan.id}')">
+  const cls = x.due < today ? "crit" : (!x.bucket && daysBetween(today, x.due) <= 2) ? "warn" : "";
+  const phase = x.bucket ? `${x.phase} · wk of ${x.bucketLabel}` : x.phase;
+  return `<button class="agenda-row" data-act="open-plan" data-plan="${esc(x.plan.id)}">
     <span class="when ${cls}">${fmtDate(x.due)}</span>
-    <span class="what"><b>${esc(x.label)}</b><span>${esc(x.plan.intake.planName)} · ${esc(x.phase)}</span></span>
+    <span class="what"><b>${esc(x.label)}</b><span>${esc(x.plan.intake.planName)} · ${esc(phase)}</span></span>
   </button>`;
 }
 function payrollPanel(watches){
   return `<div class="panel">
     <div class="panel-hd"><span class="stripe" style="background:var(--accent)"></span><h3>Payroll Watch</h3><span class="cnt">${watches.length}</span></div>
     <div class="panel-body">${watches.length ? watches.map(({p,w}) => `
-      <button class="agenda-row" onclick="CC.openPlan('${p.id}')">
+      <button class="agenda-row" data-act="open-plan" data-plan="${esc(p.id)}">
         <span class="when ${w.crit?"crit":"warn"}">${fmtDate(p.intake.firstPayrollTaDate)}</span>
         <span class="what"><b>${esc(p.intake.planName)}</b><span>${esc(w.msg)}</span></span>
       </button>`).join("") : `<div class="panel-empty">No first-payroll dates inside 14 days.</div>`}</div>
@@ -977,7 +1162,7 @@ function cardHtml(p){
   return `<article class="card">
     <div class="card-top">
       <div style="min-width:0;flex:1">
-        <button class="ttl" onclick="CC.openPlan('${p.id}')">${esc(p.intake.planName || "Untitled Plan")}</button>
+        <button class="ttl" data-act="open-plan" data-plan="${esc(p.id)}">${esc(p.intake.planName || "Untitled Plan")}</button>
         <div class="case">${esc(p.intake.caseNumber || "no case #")} · ${esc(typeLabel(p))}</div>
       </div>
       <span class="pill ${pillClass(p.status)}">${statusLabel(p.status)}</span>
@@ -989,9 +1174,9 @@ function cardHtml(p){
     </div>
     ${warns.length?`<div class="card-warns">${warns.map(w=>`<div class="cwarn ${w.crit?"crit":""}">${esc(w.msg)}</div>`).join("")}</div>`:""}
     <div class="card-foot">
-      <button class="btn sm" onclick="CC.openPlan('${p.id}')">Open</button>
-      <button class="btn sm ghost" onclick="CC.openPlanModal('${p.id}')">Edit</button>
-      <button class="btn sm ghost" onclick="CC.toggleHold('${p.id}')">${p.status==="on_hold"?"Resume":"Hold"}</button>
+      <button class="btn sm" data-act="open-plan" data-plan="${esc(p.id)}">Open</button>
+      <button class="btn sm ghost" data-act="edit-plan" data-plan="${esc(p.id)}">Edit</button>
+      <button class="btn sm ghost" data-act="toggle-hold" data-plan="${esc(p.id)}">${p.status==="on_hold"?"Resume":"Hold"}</button>
     </div>
   </article>`;
 }
@@ -1013,7 +1198,7 @@ function pillClass(s){ return ({pre_start:"pre",active:"active",on_hold:"hold",c
 /* ── Plan detail ── */
 function renderPlan(){
   const p = planById(state.selectedPlanId);
-  if(!p) return `<div class="empty-deck"><h2>Plan not found</h2><p>It may have been removed.</p><button class="btn" onclick="CC.go('deck')">Back to Deck</button></div>`;
+  if(!p) return `<div class="empty-deck"><h2>Plan not found</h2><p>It may have been removed.</p><button class="btn" data-act="go" data-view="deck">Back to Deck</button></div>`;
   const prog = planProgress(p);
   const tasks = applicableTasks(p);
   const grouped = PHASES.map(ph => ({ ...ph, tasks: tasks.filter(t => t.phaseId === ph.id) })).filter(g => g.tasks.length);
@@ -1037,8 +1222,10 @@ function renderPlan(){
           ${esc(p.intake.caseNumber || "no case #")} · ${esc(typeLabel(p))} · <span class="pill ${pillClass(p.status)}">${statusLabel(p.status)}</span>
         </div>
       </div>
-      <button class="btn sm" onclick="CC.openPlanModal('${p.id}')">Edit Intake</button>
-      <button class="btn sm ghost" onclick="CC.toggleHold('${p.id}')">${p.status==="on_hold"?"Resume":"Hold"}</button>
+      <button class="btn sm" data-act="edit-plan" data-plan="${esc(p.id)}">Edit Intake</button>
+      <button class="btn sm ghost" data-act="toggle-hold" data-plan="${esc(p.id)}">${p.status==="on_hold"?"Resume":"Hold"}</button>
+      ${p.status!=="complete"?`<button class="btn sm ghost" data-act="archive-plan" data-plan="${esc(p.id)}">Archive</button>`:""}
+      <button class="btn sm ghost danger" data-act="delete-plan" data-plan="${esc(p.id)}">Delete</button>
     </div>
     <div class="meta">${cds.join("")}
       <div class="countdown"><span class="c-lbl">Progress</span><span class="c-val">${prog.done}/${prog.total}</span><span class="c-sub">${Math.round(prog.pct*100)}% done</span></div>
@@ -1066,7 +1253,7 @@ function phaseHtml(p, g){
   const eligible = g.tasks.filter(t => taskState(p, t.id).status !== "na").length;
   const collapsed = state.collapsed[p.id + ":" + g.id] ?? (done === eligible && eligible > 0);
   return `<section class="phase-card ${collapsed?"collapsed":""}">
-    <button class="phase-hd" onclick="CC.togglePhase('${p.id}','${g.id}')" aria-expanded="${!collapsed}">
+    <button class="phase-hd" data-act="toggle-phase" data-plan="${esc(p.id)}" data-phase="${esc(g.id)}" aria-expanded="${!collapsed}">
       <span class="ph-num">${g.num}</span><h3>${g.label}</h3>
       <span class="ph-cnt">${done}/${eligible}</span>
       <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
@@ -1079,17 +1266,27 @@ function phaseHtml(p, g){
 }
 function taskRow(p, t){
   const st = taskState(p, t.id);
-  const due = taskDueDate(p, t);
+  const info = taskDueInfo(p, t);
+  const due = info.due;
   const today = todayStr();
-  const dueCls = !due || ["done","na"].includes(st.status) ? "" : due < today ? "crit" : daysBetween(today,due) <= 2 ? "warn" : "";
+  const inactive = ["done","na"].includes(st.status);
+  // Week buckets: neutral inside the bucket, crit only past the bucket end.
+  const dueCls = !due || inactive ? "" :
+    due < today ? "crit" :
+    info.bucket ? "bucket" :
+    daysBetween(today,due) <= 2 ? "warn" : "";
+  const dueHtml = inactive ? "" :
+    info.pending ? ` <span class="t-due pending">pending — awaiting ${esc(info.waitingOn)}</span>` :
+    due && info.bucket ? ` <span class="t-due ${dueCls}">wk ${info.week}: ${esc(info.label)}</span>` :
+    due ? ` <span class="t-due ${dueCls}">due ${fmtDate(due)}</span>` : "";
   const label = taskLabel(p, t);
   const warn = warnFor(p, t);
-  const noteOpen = state["noteOpen:" + p.id + ":" + t.id];
+  const noteOpen = ui.noteOpen[p.id + ":" + t.id];
   return `<div class="trow ${st.status==="done"?"is-done":""} ${st.status==="na"?"is-na":""}">
     <div class="trow-main">
       <div style="min-width:0">
         <div class="t-name">${esc(label)}</div>
-        <div class="t-sub">${esc(t.description || "")}${due?` <span class="t-due ${dueCls}">due ${fmtDate(due)}</span>`:""}</div>
+        <div class="t-sub">${esc(t.description || "")}${dueHtml}</div>
         ${warn?`<div class="trow-warn">${esc(warn)}</div>`:""}
       </div>
       <div class="t-ctrl">
@@ -1099,13 +1296,13 @@ function taskRow(p, t){
         ${t.allowNA?stBtn(p.id,t.id,st.status,"na","N/A"):""}
       </div>
     </div>
-    <button class="note-toggle ${st.note?"has-note":""}" onclick="CC.toggleNote('${p.id}','${t.id}')">${st.note?"✎ note":"+ note"}</button>
+    <button class="note-toggle ${st.note?"has-note":""}" data-act="toggle-note" data-plan="${esc(p.id)}" data-task="${esc(t.id)}">${st.note?"✎ note":"+ note"}</button>
     ${noteOpen||st.note?`<div class="t-note"><textarea rows="1" placeholder="Two sentences max — future-you will thank you."
-      oninput="CC.setNote('${p.id}','${t.id}',this.value)">${esc(st.note||"")}</textarea></div>`:""}
+      data-input="task-note" data-plan="${esc(p.id)}" data-task="${esc(t.id)}">${esc(st.note||"")}</textarea></div>`:""}
   </div>`;
 }
 function stBtn(pid, tid, cur, val, lbl){
-  return `<button class="stbtn ${cur===val?"on-"+val:""}" onclick="CC.setStatus('${pid}','${tid}','${val}')">${lbl}</button>`;
+  return `<button class="stbtn ${cur===val?"on-"+val:""}" data-act="set-status" data-plan="${esc(pid)}" data-task="${esc(tid)}" data-status="${esc(val)}">${lbl}</button>`;
 }
 function warnFor(p, t){
   const docsDone = taskState(p,"setup-all-docs").status === "done";
@@ -1141,7 +1338,7 @@ function sidePanels(p){
     ${c.payroll?.name?`<div class="kv"><span class="k"></span><span class="v" style="font-weight:500">${esc(c.payroll.name)}${c.payroll.email?` · ${esc(c.payroll.email)}`:""}</span></div>`:""}
     <div class="kv"><span class="k">Prior RK</span><span class="v">${esc(c.priorRecordKeeper?.vendorName||"—")}</span></div>
     ${c.priorRecordKeeper?.name?`<div class="kv"><span class="k"></span><span class="v" style="font-weight:500">${esc(c.priorRecordKeeper.name)}${c.priorRecordKeeper.email?` · ${esc(c.priorRecordKeeper.email)}`:""}</span></div>`:""}
-    ${p.intake.clientFolderUrl?`<div class="kv"><span class="k">Folder</span><span class="v"><a href="${esc(p.intake.clientFolderUrl)}" target="_blank" rel="noopener" style="color:var(--accent)">open ↗</a></span></div>`:""}
+    ${folderLinkHtml(p.intake.clientFolderUrl)}
   </div>
   ${around.length?`<div class="side-panel">
     <h4>Partner Timeline</h4>
@@ -1157,18 +1354,35 @@ function sidePanels(p){
   </div>`:`<div class="side-panel"><h4>Partner Timeline</h4><div class="panel-empty" style="padding:4px 0">Set a Case Start (Day 1) date to project the partner schedule.</div></div>`}
   <div class="side-panel">
     <h4>Plan Notes</h4>
-    <textarea oninput="CC.setPlanNotes('${p.id}',this.value)" placeholder="Running notes for this plan…">${esc(p.notes||"")}</textarea>
+    <textarea data-input="plan-notes" data-plan="${esc(p.id)}" placeholder="Running notes for this plan…">${esc(p.notes||"")}</textarea>
   </div>
   ${hist.length?`<div class="side-panel"><h4>Date History</h4><div class="hist">${hist.map(h=>`${esc(fieldLabel(h.field))} → <b>${fmtDateY(h.newDate)}</b>`).join("<br>")}</div></div>`:""}`;
 }
 function fieldLabel(f){
   return ({effectiveDate:"Effective Date",wireDate:"Wire Date",firstPayrollTaDate:"First Payroll",caseStartDate:"Case Start"})[f] || f;
 }
+/* Only whitelisted schemes render as a clickable link; anything else shows inert. */
+function folderLinkHtml(raw){
+  if(!raw) return "";
+  const url = safeUrl(raw);
+  if(url) return `<div class="kv"><span class="k">Folder</span><span class="v"><a href="${esc(url)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">open ↗</a></span></div>`;
+  return `<div class="kv"><span class="k">Folder</span><span class="v" style="font-weight:500;color:var(--faint)" title="Link blocked — only http(s)/mailto URLs open">${esc(raw)}</span></div>`;
+}
 
 /* ── Radar (all upcoming, grouped by day) ── */
 function renderRadar(){
-  const all = visiblePlans().flatMap(openTasks).filter(x => x.due).sort((a,b)=>a.due.localeCompare(b.due));
-  if(!all.length) return `<div class="empty-deck"><h2>Radar is clear</h2><p>No dated tasks on active plans.</p></div>`;
+  const plans = visiblePlans();
+  const sel = ui.radarPlan && plans.some(p => p.id === ui.radarPlan) ? ui.radarPlan : "";
+  const filterHtml = plans.length > 1 ? `<div class="radar-filter">
+    <label for="radarFilter">Plan</label>
+    <select id="radarFilter" data-input="radar-filter">
+      <option value="">All plans (${plans.length})</option>
+      ${plans.map(p=>`<option value="${esc(p.id)}"${p.id===sel?" selected":""}>${esc(p.intake.planName)}</option>`).join("")}
+    </select>
+  </div>` : "";
+  const source = sel ? plans.filter(p => p.id === sel) : plans;
+  const all = source.flatMap(openTasks).filter(x => x.due).sort((a,b)=>a.due.localeCompare(b.due));
+  if(!all.length) return filterHtml + `<div class="empty-deck"><h2>Radar is clear</h2><p>No dated tasks on ${sel?"this plan":"active plans"}. Week-anchored tasks stay pending until Obtain All Documents is done.</p></div>`;
   const today = todayStr();
   const groups = new Map();
   for(const x of all){
@@ -1187,7 +1401,7 @@ function renderRadar(){
       <div class="panel"><div class="panel-body">${items.map(agendaRow).join("")}</div></div>
     </div>`;
   }
-  return html;
+  return filterHtml + html;
 }
 
 /* ── Partner Schedule reference ── */
@@ -1236,13 +1450,14 @@ function renderArchive(){
     <article class="card">
       <div class="card-top">
         <div style="min-width:0;flex:1">
-          <button class="ttl" onclick="CC.openPlan('${p.id}')">${esc(p.intake.planName)}</button>
+          <button class="ttl" data-act="open-plan" data-plan="${esc(p.id)}">${esc(p.intake.planName)}</button>
           <div class="case">${esc(p.intake.caseNumber||"no case #")} · completed ${p.archivedAt?fmtDateY(p.archivedAt.slice(0,10)):"—"}</div>
         </div>
         <span class="pill done">Complete</span>
       </div>
       <div class="card-foot">
-        <button class="btn sm ghost" onclick="CC.reopenPlan('${p.id}')">Reopen</button>
+        <button class="btn sm ghost" data-act="reopen-plan" data-plan="${esc(p.id)}">Reopen</button>
+        <button class="btn sm ghost danger" data-act="delete-plan" data-plan="${esc(p.id)}">Delete</button>
       </div>
     </article>`).join("")}</div>`;
 }
@@ -1257,8 +1472,8 @@ const CC = {
     persist(); render();
   },
   toggleNote(pid, tid){
-    const k = "noteOpen:" + pid + ":" + tid;
-    state[k] = !state[k];
+    const k = pid + ":" + tid;           // ephemeral UI state — never persisted
+    ui.noteOpen[k] = !ui.noteOpen[k];
     render();
   },
   setStatus(pid, tid, status){
@@ -1295,6 +1510,25 @@ const CC = {
     const p = planById(pid); if(!p) return;
     p.status = "active"; p.archivedAt = "";
     persist(); render();
+  },
+  archivePlan(pid){
+    const p = planById(pid); if(!p) return;
+    if(!confirm(`Archive "${p.intake.planName}"? It moves to the Archive view (you can reopen it later).`)) return;
+    p.status = "complete";
+    p.archivedAt = p.archivedAt || new Date().toISOString();
+    p.updatedAt = new Date().toISOString();
+    if(state.selectedPlanId === pid && state.view === "plan"){ state.view = "deck"; state.selectedPlanId = ""; }
+    persist(); render(); toast("Plan archived");
+  },
+  deletePlan(pid){
+    const p = planById(pid); if(!p) return;
+    if(!confirm(`Delete "${p.intake.planName}" permanently? This cannot be undone.`)) return;
+    state.plans = state.plans.filter(x => x.id !== pid);
+    if(state.selectedPlanId === pid){
+      state.selectedPlanId = "";
+      if(state.view === "plan") state.view = "deck";
+    }
+    persist(); render(); toast("Plan deleted");
   },
 
   openPlanModal(id=""){
@@ -1374,7 +1608,8 @@ const CC = {
       }
     };
     next.characteristics = {
-      isOneOnePlan: $("f_oneone").checked,
+      // Canonical app.js OR-s in the date-derived value so exports carry it too.
+      isOneOnePlan: $("f_oneone").checked || isJanOne(next.intake.effectiveDate),
       autoEnroll: $("f_auto").checked,
       loans: $("f_loans").checked,
       roth: $("f_roth").checked,
@@ -1413,15 +1648,39 @@ const CC = {
     if(!file) return;
     const reader = new FileReader();
     reader.onload = () => {
+      // 1. Parse + shape-check (never touches state on failure).
+      let incoming;
       try{
         const data = JSON.parse(reader.result);
         if(!data || data.exportVersion !== 1 || !Array.isArray(data.plans)) throw new Error("bad format");
-        state.plans = data.plans;
-        state.selectedPlanId = "";
-        state.view = "deck";
-        persist(); render();
-        toast("Imported " + data.plans.length + " plan(s)");
-      }catch(e){ toast("Could not import that file — expected an exportVersion 1 JSON."); }
+        incoming = data.plans;
+      }catch(e){
+        toast("Could not import that file — expected an exportVersion 1 JSON.");
+        return;
+      }
+      // 2. Validate/normalize every plan; malformed records are dropped.
+      const valid = normalizePlans(incoming);
+      const skipped = incoming.length - valid.length;
+      if(!valid.length){
+        toast(incoming.length ? "Import rejected — that file has no valid plans. Nothing was changed." : "That file contains no plans.");
+        return;
+      }
+      // 3. Swap in, render, and only persist after a successful render.
+      const prev = { plans: state.plans, selectedPlanId: state.selectedPlanId, view: state.view };
+      state.plans = valid;
+      state.selectedPlanId = "";
+      state.view = "deck";
+      try{
+        render();
+      }catch(err){
+        console.error("Import produced unrenderable state; rolling back.", err);
+        Object.assign(state, prev);
+        render();
+        toast("Import failed — the data could not be displayed. Nothing was changed.");
+        return;
+      }
+      persist();
+      toast(`Imported ${valid.length} plan(s)` + (skipped ? ` · ${skipped} invalid record(s) skipped` : ""));
     };
     reader.readAsText(file);
     ev.target.value = "";
@@ -1445,6 +1704,37 @@ function toast(msg){
 }
 
 /* ─── Boot ─── */
+/* Event delegation: all dynamic controls carry data-act / data-input
+   attributes — no user-influenced strings are ever interpolated into
+   inline handlers. */
+function handleAction(el){
+  const d = el.dataset;
+  switch(d.act){
+    case "go":           CC.go(d.view); break;
+    case "open-plan":    CC.openPlan(d.plan); break;
+    case "new-plan":     CC.openPlanModal(); break;
+    case "edit-plan":    CC.openPlanModal(d.plan); break;
+    case "toggle-hold":  CC.toggleHold(d.plan); break;
+    case "reopen-plan":  CC.reopenPlan(d.plan); break;
+    case "archive-plan": CC.archivePlan(d.plan); break;
+    case "delete-plan":  CC.deletePlan(d.plan); break;
+    case "toggle-phase": CC.togglePhase(d.plan, d.phase); break;
+    case "set-status":   CC.setStatus(d.plan, d.task, d.status); break;
+    case "toggle-note":  CC.toggleNote(d.plan, d.task); break;
+    case "reset-data":
+      if(confirm("Clear all saved Command Center data? This cannot be undone.")){
+        localStorage.removeItem(STORE_KEY);
+        location.reload();
+      }
+      break;
+  }
+}
+function handleInput(el){
+  const d = el.dataset;
+  if(d.input === "task-note") CC.setNote(d.plan, d.task, el.value);
+  else if(d.input === "plan-notes") CC.setPlanNotes(d.plan, el.value);
+  else if(d.input === "radar-filter"){ ui.radarPlan = el.value; render(); }
+}
 document.addEventListener("DOMContentLoaded", () => {
   if(state.theme) document.documentElement.setAttribute("data-theme", state.theme);
   $("planForm").addEventListener("submit", CC.savePlan);
@@ -1455,7 +1745,25 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("keydown", e => {
     if(e.key === "Escape") CC.closePlanModal();
   });
-  render();
+  document.addEventListener("click", e => {
+    const el = e.target.closest("[data-act]");
+    if(el) handleAction(el);
+  });
+  document.addEventListener("input", e => {
+    const el = e.target.closest("[data-input]");
+    if(el) handleInput(el);
+  });
+  try{
+    render();
+  }catch(err){
+    // Never brick: if saved data can't render, offer a recovery path.
+    console.error("Initial render failed", err);
+    $("content").innerHTML = `<div class="empty-deck">
+      <h2>Something went wrong</h2>
+      <p>The saved data could not be displayed. You can reset the Command Center to a clean state.</p>
+      <button class="btn" data-act="reset-data">Reset saved data</button>
+    </div>`;
+  }
 });
 window.CC = CC;
 </script>
