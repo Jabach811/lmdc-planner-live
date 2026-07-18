@@ -155,6 +155,11 @@ input,select,textarea{ font-family:inherit; font-size:0.9rem; color:var(--ink); 
 .panel-body{ padding:6px 8px 10px; flex:1; }
 .panel-empty{ font-size:0.8rem; color:var(--faint); padding:14px 10px; }
 
+.agenda-more{
+  display:block; width:100%; text-align:left; background:none; border:none;
+  color:var(--accent-ink); font-size:0.76rem; font-weight:700; padding:8px 8px 4px;
+}
+.agenda-more:hover{ text-decoration:underline; }
 .agenda-row{
   display:flex; align-items:flex-start; gap:9px; padding:8px 8px; border-radius:8px; width:100%;
   border:none; background:transparent; text-align:left; color:var(--ink);
@@ -270,6 +275,16 @@ input,select,textarea{ font-family:inherit; font-size:0.9rem; color:var(--ink); 
 .stbtn.on-working{ background:var(--warn-soft); color:var(--warn); border-color:var(--warn); }
 .stbtn.on-done{ background:var(--good-soft); color:var(--good); border-color:var(--good); }
 .stbtn.on-na{ background:var(--hold-soft); color:var(--hold); border-color:var(--hold); }
+.due-pencil{ background:none; border:none; color:var(--faint); font-size:0.74rem; padding:0 3px; line-height:1; vertical-align:baseline; }
+.due-pencil:hover{ color:var(--accent); }
+.due-pencil.has-ovr{ color:var(--accent-ink); }
+.due-edit{ display:flex; align-items:center; gap:7px; margin-top:5px; }
+.due-edit label{ font-size:0.64rem; letter-spacing:0.09em; text-transform:uppercase; font-weight:800; color:var(--muted); }
+.due-edit input[type=date]{
+  border:1px solid var(--line); background:var(--ground); border-radius:7px;
+  padding:3px 7px; font-size:0.74rem; font-family:var(--mono);
+}
+.due-edit input[type=date]:focus{ border-color:var(--accent); outline:none; }
 .t-note{ width:100%; }
 .t-note textarea{
   width:100%; border:1px solid var(--line-soft); background:var(--ground); border-radius:7px;
@@ -361,8 +376,11 @@ table.sched td.ph{ color:var(--muted); font-size:0.74rem; }
 .fld input:focus,.fld select:focus,.fld textarea:focus{ border-color:var(--accent); outline:none; }
 .fld .hint{ font-size:0.68rem; color:var(--faint); margin-top:3px; }
 .chk-row{ display:flex; flex-wrap:wrap; gap:10px 16px; padding-top:2px; }
-.chk{ display:flex; align-items:center; gap:9px; font-size:0.82rem; font-weight:600; }
-.chk input{ accent-color:var(--accent); width:15px; height:15px; }
+/* Label text lives in a <span> so flex gap reliably separates it from the box.
+   `.fld label` (display:block) outranks a bare `.chk`, which is why the gap
+   never applied — match its specificity so the flex layout actually wins. */
+.chk, .fld label.chk{ display:flex; align-items:center; gap:9px; margin-bottom:0; }
+.chk input{ accent-color:var(--accent); width:15px; height:15px; flex:0 0 15px; }
 .fsec{ font-size:0.7rem; letter-spacing:0.12em; text-transform:uppercase; font-weight:800; color:var(--accent-ink); border-bottom:1px solid var(--line-soft); padding-bottom:5px; margin-top:6px; }
 .modal-foot{ display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
 .hidden{ display:none !important; }
@@ -455,9 +473,9 @@ table.sched td.ph{ color:var(--muted); font-size:0.74rem; }
       </div>
       <div class="fld full" id="f_stratWrap"><label>Conversion Strategy</label>
         <div class="chk-row">
-          <label class="chk"><input type="checkbox" name="strategy" value="cash">Cash</label>
-          <label class="chk"><input type="checkbox" name="strategy" value="mapping">Mapping</label>
-          <label class="chk"><input type="checkbox" name="strategy" value="tik">Transfer In-Kind</label>
+          <label class="chk"><input type="checkbox" name="strategy" value="cash"><span>Cash</span></label>
+          <label class="chk"><input type="checkbox" name="strategy" value="mapping"><span>Mapping</span></label>
+          <label class="chk"><input type="checkbox" name="strategy" value="tik"><span>Transfer In-Kind</span></label>
         </div>
       </div>
       <div class="fld full fsec">Key Dates</div>
@@ -468,11 +486,11 @@ table.sched td.ph{ color:var(--muted); font-size:0.74rem; }
       <div class="fld full fsec">Characteristics</div>
       <div class="fld full">
         <div class="chk-row">
-          <label class="chk"><input type="checkbox" id="f_oneone">1/1 Plan</label>
-          <label class="chk"><input type="checkbox" id="f_auto">Auto-Enroll</label>
-          <label class="chk"><input type="checkbox" id="f_loans">Loans</label>
-          <label class="chk"><input type="checkbox" id="f_roth">Roth</label>
-          <label class="chk"><input type="checkbox" id="f_nonqual">Non-Qual</label>
+          <label class="chk"><input type="checkbox" id="f_oneone"><span>1/1 Plan</span></label>
+          <label class="chk"><input type="checkbox" id="f_auto"><span>Auto-Enroll</span></label>
+          <label class="chk"><input type="checkbox" id="f_loans"><span>Loans</span></label>
+          <label class="chk"><input type="checkbox" id="f_roth"><span>Roth</span></label>
+          <label class="chk"><input type="checkbox" id="f_nonqual"><span>Non-Qual</span></label>
         </div>
       </div>
       <div class="fld full fsec">Contacts</div>
@@ -592,14 +610,16 @@ const TASK_BY_ID = Object.fromEntries(TASKS.map(t=>[t.id,t]));
 
 /* ─── Due Date Engine ───
    Week-based dues anchor on the *actual completion* of "Obtain All
-   Documents". Until that clock starts they are PENDING — no due date,
-   never overdue (canonical calcTaskDueResolution semantics).
-   Wire-anchored dues use partner-schedule offsets. "Final"-anchored
-   dues are pending until Receive Final Files is actually done. */
+   Documents" (or a manually pinned anchor date). Until that clock starts
+   they are PENDING — no due date, never overdue (canonical
+   calcTaskDueResolution semantics). Wire- and final-anchored offsets are
+   counted in BUSINESS days via addBusinessDays — the canonical addSlaDays
+   default (useBusinessDays is ON in the Shell). "Final"-anchored dues are
+   pending until Receive Final Files is actually done (or pinned). */
 const SCHED = {
-  wireAdvanceVendor: -5,    // WIRE-5 : pre-wire advance emails
-  finalFilesDeadline: 7,    // WIRE+7 : final files SLA
-  postWireComplete: 14      // WIRE+14: post-wire processing complete
+  wireAdvanceVendor: -5,    // WIRE-5 business days : pre-wire advance emails
+  finalFilesDeadline: 7,    // WIRE+7 business days : final files SLA
+  postWireComplete: 14      // WIRE+14 business days: post-wire processing complete
 };
 const TASK_DUE = {
   "setup-all-docs":               {from:"docs", week:1},
@@ -639,7 +659,8 @@ const TASK_DUE = {
   "post-final-check":             {from:"final", days:14},
   "p5-extra-participants":{from:"final", days:7}, "p5-elections":{from:"final", days:7},
   "p5-def":{from:"final", days:7}, "p5-elig":{from:"final", days:7},
-  "p5-loans":{from:"final", days:7}, "p5-basis-roth":{from:"final", days:7},
+  /* NOTE: p5-loans and p5-basis-roth intentionally have no due — neither
+     has an entry in the canonical TASK_DUE map (Left Nav Shell / app.js). */
   "p5-yos":{from:"final", days:7}, "p5-ytd-comp":{from:"final", days:7},
   "p5-ytd-contrib":{from:"final", days:7}, "p5-ytd-hours":{from:"final", days:7},
   "p5-ben":{from:"final", days:7}, "p5-py-comp":{from:"final", days:7},
@@ -705,11 +726,21 @@ function isBusinessDay(d){
   const dow = d.getDay();
   return dow !== 0 && dow !== 6 && !FEDERAL_HOLIDAYS.has(toDateStr(d));
 }
-function snapToBusinessDay(dateStr, dir=1){
-  if(!dateStr) return dateStr;
+/* Ported from the canonical addBusinessDays (Left Nav Shell ~7696):
+   the anchor stays as entered; the offset is counted in business days
+   (weekends + federal holidays skipped). +5 from a Friday lands the next
+   Friday; -5 from a Thursday lands the previous Thursday. A zero offset
+   returns the anchor unchanged, even if the anchor is a weekend. */
+function addBusinessDays(dateStr, days){
+  if(!dateStr) return "";
   const d = parseDate(dateStr);
-  let guard = 0;
-  while(!isBusinessDay(d) && guard++ < 10) d.setDate(d.getDate() + dir);
+  if(days === 0) return toDateStr(d);
+  const step = days > 0 ? 1 : -1;
+  let remaining = Math.abs(days), guard = 0;
+  while(remaining > 0 && guard++ < 1000){
+    d.setDate(d.getDate() + step);
+    if(isBusinessDay(d)) remaining--;
+  }
   return toDateStr(d);
 }
 function addDays(dateStr, n){
@@ -800,8 +831,18 @@ function normalizePlan(raw){
       loans: !!ch.loans, roth: !!ch.roth, nonQual: !!ch.nonQual
     },
     tasks: {},
+    customDates: {},
     dateHistory: []
   };
+  // Manual due-date overrides — canonical normalizeCustomDueDates: only
+  // canonical TASK_DUE ids with a valid YYYY-MM-DD survive.
+  const rcd = raw.customDates;
+  if(rcd && typeof rcd === "object" && !Array.isArray(rcd)){
+    for(const id of Object.keys(TASK_DUE)){
+      const v = dateOr(rcd[id]);
+      if(v) plan.customDates[id] = v;
+    }
+  }
   const rt = raw.tasks;
   if(rt && typeof rt === "object" && !Array.isArray(rt)){
     for(const t of TASKS){                       // only canonical task IDs survive
@@ -838,7 +879,7 @@ function normalizePlans(list){
 
 /* ─── State ─── */
 /* Ephemeral view state — never persisted. */
-const ui = { noteOpen:{}, radarPlan:"" };
+const ui = { noteOpen:{}, radarPlan:"", dueEdit:{} };
 let state = load();
 function load(){
   try{
@@ -907,15 +948,33 @@ function taskLabel(plan, t){
 function taskDoneDate(plan, taskId){
   const st = taskState(plan, taskId);
   if(st.status !== "done") return "";
-  return (st.completedAt || st.updatedAt || "").slice(0,10) || todayStr();
+  const ts = st.completedAt || st.updatedAt;
+  if(!ts) return todayStr();
+  // LOCAL date of the completion instant (canonical normalizeTaskEvents:
+  // toDateStr(new Date(ts))) — a UTC slice would shift evening completions
+  // to the next day and drag the whole week-bucket cascade with them.
+  const d = new Date(ts);
+  return Number.isNaN(d.getTime()) ? todayStr() : toDateStr(d);
 }
-/* Actual completion date of "Obtain All Documents" — "" until the clock starts. */
-function docsAnchor(plan){ return taskDoneDate(plan, "setup-all-docs"); }
+/* Manually pinned due/anchor date for a task ("" when not set). Mirrors the
+   canonical taskManualDueDate: only tasks with a TASK_DUE rule can carry one. */
+function manualDue(plan, taskId){ return (plan.customDates || {})[taskId] || ""; }
+/* Anchor for week buckets — actual completion of "Obtain All Documents",
+   falling back to a manually pinned date (canonical taskAnchorDate order:
+   actual → manual). "" until either exists. */
+function docsAnchor(plan){
+  return taskDoneDate(plan, "setup-all-docs") || manualDue(plan, "setup-all-docs");
+}
+/* Anchor for final-file loads — actual completion of "Receive Final Files",
+   falling back to a manually pinned date (actual → manual). */
+function finalAnchor(plan){
+  return taskDoneDate(plan, "post-receive-final-files") || manualDue(plan, "post-receive-final-files");
+}
 /* Projection used only for the Final Files countdown chip (not for dues). */
 function finalFilesAnchor(plan){
-  const done = taskDoneDate(plan, "post-receive-final-files");
+  const done = finalAnchor(plan);
   if(done) return done;
-  return plan.intake.wireDate ? addDays(plan.intake.wireDate, SCHED.finalFilesDeadline) : "";
+  return plan.intake.wireDate ? addBusinessDays(plan.intake.wireDate, SCHED.finalFilesDeadline) : "";
 }
 /* ── Week buckets (ported from the canonical weekBucketRange) ──
    Anchor normalizes weekend starts forward to Monday; week 1 runs from the
@@ -943,11 +1002,16 @@ function weekBucketRange(anchorDate, week){
   return { start:s, end:e, label:`${fmtDate(s)} – ${fmtDate(e)}` };
 }
 /* Resolves a task's due. Returns:
-   { due, pending, waitingOn, bucket, label } — due:"" + pending:true means
-   the schedule clock hasn't started (never counted overdue). */
+   { due, pending, waitingOn, bucket, label, manual } — due:"" + pending:true
+   means the schedule clock hasn't started (never counted overdue).
+   Wire/final offsets count BUSINESS days (canonical addSlaDays default).
+   A pinned date on the task itself wins (manual:true) so reality can be
+   corrected when it diverges from the model. */
 function taskDueInfo(plan, t){
   const rule = TASK_DUE[t.id];
   if(!rule) return { due:"", pending:false };
+  const pinned = manualDue(plan, t.id);
+  if(pinned) return { due:pinned, pending:false, manual:true };
   if(rule.from === "docs"){
     const anchor = docsAnchor(plan);
     if(!anchor) return { due:"", pending:true, waitingOn:"Obtain All Documents", week:rule.week };
@@ -957,12 +1021,12 @@ function taskDueInfo(plan, t){
   }
   if(rule.from === "wire"){
     if(!plan.intake.wireDate) return { due:"", pending:false };
-    return { due: snapToBusinessDay(addDays(plan.intake.wireDate, rule.days||0), 1), pending:false };
+    return { due: addBusinessDays(plan.intake.wireDate, rule.days||0), pending:false };
   }
   if(rule.from === "final"){
-    const anchor = taskDoneDate(plan, "post-receive-final-files");
+    const anchor = finalAnchor(plan);
     if(!anchor) return { due:"", pending:true, waitingOn:"Receive Final Files" };
-    return { due: snapToBusinessDay(addDays(anchor, rule.days||0), 1), pending:false };
+    return { due: addBusinessDays(anchor, rule.days||0), pending:false };
   }
   return { due:"", pending:false };
 }
@@ -1118,8 +1182,8 @@ function renderDeck(){
   </div>
 
   <div class="deck-grid">
-    ${deckPanel("Overdue","crit",overdue.slice(0,8), "Nothing overdue. Clean board.")}
-    ${deckPanel("This Week","warn",thisWeek.slice(0,8), "Nothing due in the next 7 days.")}
+    ${deckPanel("Overdue","crit",overdue, "Nothing overdue. Clean board.")}
+    ${deckPanel("This Week","warn",thisWeek, "Nothing due in the next 7 days.")}
     ${payrollPanel(watches)}
   </div>
 
@@ -1127,9 +1191,15 @@ function renderDeck(){
 }
 function deckPanel(title, tone, items, emptyMsg){
   const color = tone === "crit" ? "var(--crit)" : "var(--warn)";
+  // Header count is always the FULL total (matching the KPI band); the body
+  // shows the first 8 with an explicit overflow link into Radar.
+  const shown = items.slice(0, 8);
+  const more = items.length - shown.length;
   return `<div class="panel">
     <div class="panel-hd"><span class="stripe" style="background:${color}"></span><h3>${title}</h3><span class="cnt">${items.length}</span></div>
-    <div class="panel-body">${items.length ? items.map(agendaRow).join("") : `<div class="panel-empty">${emptyMsg}</div>`}</div>
+    <div class="panel-body">${shown.length
+      ? shown.map(agendaRow).join("") + (more > 0 ? `<button class="agenda-more" data-act="go" data-view="radar">+${more} more — view all in Radar</button>` : "")
+      : `<div class="panel-empty">${emptyMsg}</div>`}</div>
   </div>`;
 }
 function agendaRow(x){
@@ -1277,17 +1347,30 @@ function taskRow(p, t){
     daysBetween(today,due) <= 2 ? "warn" : "";
   const dueHtml = inactive ? "" :
     info.pending ? ` <span class="t-due pending">pending — awaiting ${esc(info.waitingOn)}</span>` :
+    due && info.manual ? ` <span class="t-due ${dueCls}" title="Manually pinned due date">due ${fmtDate(due)} · pinned</span>` :
     due && info.bucket ? ` <span class="t-due ${dueCls}">wk ${info.week}: ${esc(info.label)}</span>` :
     due ? ` <span class="t-due ${dueCls}">due ${fmtDate(due)}</span>` : "";
   const label = taskLabel(p, t);
   const warn = warnFor(p, t);
   const noteOpen = ui.noteOpen[p.id + ":" + t.id];
+  // Manual due-date override (canonical taskManualDueDate): a pencil on any
+  // task that has a TASK_DUE rule; the pinned date also anchors downstream
+  // forecasts when set on an anchor task (Obtain All Docs / Final Files).
+  const ovr = manualDue(p, t.id);
+  const canPin = !!TASK_DUE[t.id] && !inactive;
+  const pencil = canPin ? ` <button class="due-pencil ${ovr?"has-ovr":""}" data-act="edit-due" data-plan="${esc(p.id)}" data-task="${esc(t.id)}" title="${ovr?"Due date pinned — edit or clear":"Pin a manual due date"}" aria-label="Override due date">✎</button>` : "";
+  const dueEditor = canPin && ui.dueEdit[p.id + ":" + t.id] ? `<div class="due-edit">
+      <label>Pin due</label>
+      <input type="date" value="${esc(ovr)}" data-change="due-override" data-plan="${esc(p.id)}" data-task="${esc(t.id)}" aria-label="Manual due date">
+      ${ovr?`<button type="button" class="btn sm ghost" data-act="clear-due" data-plan="${esc(p.id)}" data-task="${esc(t.id)}">Clear</button>`:""}
+    </div>` : "";
   return `<div class="trow ${st.status==="done"?"is-done":""} ${st.status==="na"?"is-na":""}">
     <div class="trow-main">
       <div style="min-width:0">
         <div class="t-name">${esc(label)}</div>
-        <div class="t-sub">${esc(t.description || "")}${dueHtml}</div>
+        <div class="t-sub">${esc(t.description || "")}${dueHtml}${pencil}</div>
         ${warn?`<div class="trow-warn">${esc(warn)}</div>`:""}
+        ${dueEditor}
       </div>
       <div class="t-ctrl">
         ${stBtn(p.id,t.id,st.status,"open","Open")}
@@ -1321,7 +1404,9 @@ function sidePanels(p){
       if(m.merger && p.intake.planType !== "merger") continue;
       let base = m.anchor === "D1" ? d1 : m.anchor === "EFF" ? p.intake.effectiveDate : p.intake.wireDate;
       if(!base) continue;
-      milestones.push({ label:m.label, date: snapToBusinessDay(addDays(base, m.off), 1) });
+      // Business-day offsets (canonical addSlaDays default) — a WIRE-5
+      // milestone means 5 business days of lead, never eroded by a weekend.
+      milestones.push({ label:m.label, date: addBusinessDays(base, m.off) });
     }
     milestones.sort((a,b)=>a.date.localeCompare(b.date));
   }
@@ -1408,8 +1493,8 @@ function renderRadar(){
 function renderSched(){
   return `
   <p class="sched-note">The partner schedule drives expectations with the client, payroll vendor, and prior record keeper.
-  Offsets are calendar days from the anchor — <b>D1</b> is case start, <b>EFF</b> effective date, <b>WIRE</b> wire date.
-  Dates on each plan's Partner Timeline snap forward to the next business day (weekends + federal holidays).</p>
+  Offsets are <b>business days</b> from the anchor (canonical SLA math — weekends and federal holidays are skipped) —
+  <b>D1</b> is case start, <b>EFF</b> effective date, <b>WIRE</b> wire date.</p>
   <div class="sched-wrap">
   <table class="sched">
     <thead><tr><th>Phase</th><th>Milestone</th><th>Anchor</th><th>Offset</th></tr></thead>
@@ -1418,7 +1503,7 @@ function renderSched(){
         <td class="ph">${esc(m.phase)}</td>
         <td>${esc(m.label)}${m.tik?" <span style='color:var(--accent);font-weight:700;font-size:0.7rem'>TIK</span>":""}${m.merger?" <span style='color:var(--muted);font-weight:700;font-size:0.7rem'>MERGER</span>":""}</td>
         <td class="off">${m.anchor}</td>
-        <td class="off">${m.off>0?"+":""}${m.off}d</td>
+        <td class="off">${m.off>0?"+":""}${m.off}bd</td>
       </tr>`).join("")}
     </tbody>
   </table>
@@ -1476,6 +1561,27 @@ const CC = {
     ui.noteOpen[k] = !ui.noteOpen[k];
     render();
   },
+  toggleDueEdit(pid, tid){
+    const k = pid + ":" + tid;           // ephemeral UI state — never persisted
+    ui.dueEdit[k] = !ui.dueEdit[k];
+    render();
+  },
+  setDueOverride(pid, tid, val){
+    const p = planById(pid); if(!p || !TASK_DUE[tid]) return;
+    p.customDates = p.customDates || {};
+    if(dateOr(val)) p.customDates[tid] = val;
+    else if(!val) delete p.customDates[tid];
+    else return;                         // partial/invalid input — ignore
+    p.updatedAt = new Date().toISOString();
+    persist(); render();
+  },
+  clearDueOverride(pid, tid){
+    const p = planById(pid); if(!p) return;
+    if(p.customDates) delete p.customDates[tid];
+    ui.dueEdit[pid + ":" + tid] = false;
+    p.updatedAt = new Date().toISOString();
+    persist(); render();
+  },
   setStatus(pid, tid, status){
     const p = planById(pid); if(!p) return;
     const st = taskState(p, tid);
@@ -1502,13 +1608,25 @@ const CC = {
   },
   toggleHold(pid){
     const p = planById(pid); if(!p) return;
-    p.status = p.status === "on_hold" ? "active" : "on_hold";
+    if(p.status === "on_hold"){
+      // Resume re-derives the status from the docs/go-live invariant, so a
+      // docs-incomplete plan lands back in Pre-Start, not Active.
+      p.status = "active";
+      updateLifecycle(p);
+    } else {
+      p.status = "on_hold";
+    }
     p.updatedAt = new Date().toISOString();
     persist(); render();
   },
   reopenPlan(pid){
     const p = planById(pid); if(!p) return;
-    p.status = "active"; p.archivedAt = "";
+    // Reopen applies the docs-driven side of the lifecycle only — running
+    // the full updateLifecycle would instantly re-complete a plan whose
+    // Go-Live + Payroll Handoff are still marked done.
+    p.status = taskState(p, "setup-all-docs").status === "done" ? "active" : "pre_start";
+    p.archivedAt = "";
+    p.updatedAt = new Date().toISOString();
     persist(); render();
   },
   archivePlan(pid){
@@ -1589,7 +1707,7 @@ const CC = {
     if(planType === "merger" && !$("f_merger").value){ toast("Pick a merger type."); return; }
 
     const oldIntake = existing?.intake || {};
-    const next = existing ? structuredClone(existing) : { id, createdAt: now, status:"pre_start", tasks:{}, dateHistory:[] };
+    const next = existing ? structuredClone(existing) : { id, createdAt: now, status:"pre_start", tasks:{}, customDates:{}, dateHistory:[] };
     next.updatedAt = now;
     next.intake = {
       planName: $("f_name").value.trim(),
@@ -1665,9 +1783,34 @@ const CC = {
         toast(incoming.length ? "Import rejected — that file has no valid plans. Nothing was changed." : "That file contains no plans.");
         return;
       }
-      // 3. Swap in, render, and only persist after a successful render.
+      // 3. Choose a strategy when plans already exist — import can never
+      //    silently destroy data. Default is merge-by-ID; Replace requires
+      //    an explicit second confirmation.
+      let mode = "replace";
+      if(state.plans.length){
+        if(confirm(`Import ${valid.length} plan(s)?\n\nOK — MERGE into your ${state.plans.length} existing plan(s): matching IDs are updated, new plans are added.\nCancel — choose Replace instead.`)){
+          mode = "merge";
+        } else if(confirm(`REPLACE ALL: delete your ${state.plans.length} existing plan(s) and keep only the ${valid.length} imported plan(s)?\n\nCancel to abort the import — nothing will change.`)){
+          mode = "replace";
+        } else {
+          toast("Import cancelled — nothing was changed.");
+          return;
+        }
+      }
+      let nextPlans, updated = 0;
+      if(mode === "merge"){
+        nextPlans = state.plans.slice();
+        for(const np of valid){
+          const i = nextPlans.findIndex(x => x.id === np.id);
+          if(i >= 0){ nextPlans[i] = np; updated++; }
+          else nextPlans.push(np);
+        }
+      } else {
+        nextPlans = valid;
+      }
+      // 4. Swap in, render, and only persist after a successful render.
       const prev = { plans: state.plans, selectedPlanId: state.selectedPlanId, view: state.view };
-      state.plans = valid;
+      state.plans = nextPlans;
       state.selectedPlanId = "";
       state.view = "deck";
       try{
@@ -1680,7 +1823,10 @@ const CC = {
         return;
       }
       persist();
-      toast(`Imported ${valid.length} plan(s)` + (skipped ? ` · ${skipped} invalid record(s) skipped` : ""));
+      const skippedMsg = skipped ? ` · ${skipped} invalid record(s) skipped` : "";
+      toast(mode === "merge"
+        ? `Merged ${valid.length} plan(s) — ${updated} updated, ${valid.length - updated} added${skippedMsg}`
+        : `Imported ${valid.length} plan(s)${skippedMsg}`);
     };
     reader.readAsText(file);
     ev.target.value = "";
@@ -1721,6 +1867,8 @@ function handleAction(el){
     case "toggle-phase": CC.togglePhase(d.plan, d.phase); break;
     case "set-status":   CC.setStatus(d.plan, d.task, d.status); break;
     case "toggle-note":  CC.toggleNote(d.plan, d.task); break;
+    case "edit-due":     CC.toggleDueEdit(d.plan, d.task); break;
+    case "clear-due":    CC.clearDueOverride(d.plan, d.task); break;
     case "reset-data":
       if(confirm("Clear all saved Command Center data? This cannot be undone.")){
         localStorage.removeItem(STORE_KEY);
@@ -1752,6 +1900,12 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("input", e => {
     const el = e.target.closest("[data-input]");
     if(el) handleInput(el);
+  });
+  // Due-date overrides commit on "change" (not "input") so the re-render
+  // never yanks focus while a date is still being typed/picked.
+  document.addEventListener("change", e => {
+    const el = e.target.closest("[data-change]");
+    if(el && el.dataset.change === "due-override") CC.setDueOverride(el.dataset.plan, el.dataset.task, el.value);
   });
   try{
     render();
