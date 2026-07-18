@@ -291,6 +291,28 @@ input,select,textarea{ font-family:inherit; font-size:0.9rem; color:var(--ink); 
   padding:6px 9px; font-size:0.78rem; resize:vertical; min-height:30px;
 }
 .t-note textarea:focus{ border-color:var(--accent); outline:none; }
+.ct-badge{
+  font-family:var(--mono); font-size:0.58rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--accent-ink); border:1px solid var(--accent-line); border-radius:5px; padding:1px 6px;
+  vertical-align:2px; margin-left:4px;
+}
+.ct-del{
+  font-family:var(--mono); font-size:0.58rem; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--faint); background:none; border:1px solid transparent; border-radius:5px; padding:1px 6px;
+  vertical-align:2px; margin-left:2px;
+}
+.ct-del:hover{ color:var(--crit); border-color:var(--crit); background:var(--crit-soft); }
+.add-task-row{ padding:8px 14px 10px; }
+.add-task-form{
+  display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:8px 14px 10px;
+}
+.add-task-form input[type=text]{
+  flex:1; min-width:160px; border:1px solid var(--line); background:var(--ground); border-radius:7px; padding:6px 9px; font-size:0.82rem;
+}
+.add-task-form input[type=date]{
+  border:1px solid var(--line); background:var(--ground); border-radius:7px; padding:5px 8px; font-size:0.78rem; font-family:var(--mono);
+}
+.add-task-form input:focus{ border-color:var(--accent); outline:none; }
 .note-toggle{ background:none; border:none; color:var(--faint); font-size:0.7rem; font-weight:700; padding:0; text-align:left; }
 .note-toggle:hover{ color:var(--accent); }
 .note-toggle.has-note{ color:var(--accent-ink); }
@@ -831,9 +853,25 @@ function normalizePlan(raw){
       loans: !!ch.loans, roth: !!ch.roth, nonQual: !!ch.nonQual
     },
     tasks: {},
+    customTasks: [],
     customDates: {},
     dateHistory: []
   };
+  // Custom / ad-hoc tasks (canonical Shell customTasks module): user-defined
+  // per-phase tasks. Label + valid phase required; ids re-minted when unsafe.
+  if(Array.isArray(raw.customTasks)){
+    const seenCt = new Set();
+    for(const rc2 of raw.customTasks.slice(0, 100)){
+      if(!rc2 || typeof rc2 !== "object") continue;
+      const label = strOr(rc2.label, 300).trim();
+      const phaseId = PHASES.some(ph => ph.id === rc2.phaseId) ? rc2.phaseId : "";
+      if(!label || !phaseId) continue;
+      let id = (typeof rc2.id === "string" && SAFE_ID.test(rc2.id) && rc2.id.startsWith("ct-")) ? rc2.id : "ct-" + newId();
+      if(seenCt.has(id)) id = "ct-" + newId();
+      seenCt.add(id);
+      plan.customTasks.push({ id, phaseId, label, description: strOr(rc2.description, 1000), due: dateOr(rc2.due) });
+    }
+  }
   // Manual due-date overrides — canonical normalizeCustomDueDates: only
   // canonical TASK_DUE ids with a valid YYYY-MM-DD survive.
   const rcd = raw.customDates;
@@ -845,7 +883,8 @@ function normalizePlan(raw){
   }
   const rt = raw.tasks;
   if(rt && typeof rt === "object" && !Array.isArray(rt)){
-    for(const t of TASKS){                       // only canonical task IDs survive
+    // only canonical task IDs — plus this plan's own custom tasks — survive
+    for(const t of [...TASKS, ...plan.customTasks]){
       const e = rt[t.id];
       if(!e || typeof e !== "object") continue;
       const status = TASK_STATUSES.includes(e.status) ? e.status : "open";
@@ -879,7 +918,7 @@ function normalizePlans(list){
 
 /* ─── State ─── */
 /* Ephemeral view state — never persisted. */
-const ui = { noteOpen:{}, radarPlan:"", dueEdit:{} };
+const ui = { noteOpen:{}, radarPlan:"", dueEdit:{}, addTask:{} };
 let state = load();
 function load(){
   try{
@@ -935,7 +974,16 @@ function appliesToPlan(t, plan){
   if(r.excludeOneOne && isOneOne(plan)) return false;
   return true;
 }
-function applicableTasks(plan){ return TASKS.filter(t => appliesToPlan(t, plan)); }
+/* Custom tasks rendered as task-def-shaped objects (canonical
+   getAllTasksForPhase merges phase tasks + customTasks[phase]). */
+function customTaskDefs(plan){
+  return (plan.customTasks || []).map(ct => ({
+    id: ct.id, phaseId: ct.phaseId, label: ct.label,
+    description: ct.description || "", due: ct.due || "",
+    allowNA: true, custom: true, applies: null
+  }));
+}
+function applicableTasks(plan){ return [...TASKS.filter(t => appliesToPlan(t, plan)), ...customTaskDefs(plan)]; }
 function taskLabel(plan, t){
   if(t.id === "wire-move-process-wire"){
     const s = plan.intake.strategies || [];
@@ -1008,6 +1056,11 @@ function weekBucketRange(anchorDate, week){
    A pinned date on the task itself wins (manual:true) so reality can be
    corrected when it diverges from the model. */
 function taskDueInfo(plan, t){
+  // Custom tasks carry their own optional date, set via the same pencil UI.
+  if(t.custom){
+    const d = (plan.customTasks || []).find(ct => ct.id === t.id)?.due || "";
+    return d ? { due:d, pending:false, manual:true } : { due:"", pending:false };
+  }
   const rule = TASK_DUE[t.id];
   if(!rule) return { due:"", pending:false };
   const pinned = manualDue(plan, t.id);
@@ -1331,8 +1384,21 @@ function phaseHtml(p, g){
     <div class="phase-mini">${eligible?`<i style="width:${Math.round(done/eligible*100)}%"></i>`:""}</div>
     <div class="phase-body">
       ${g.tasks.map(t => taskRow(p, t)).join("")}
+      ${addTaskHtml(p, g)}
     </div>
   </section>`;
+}
+function addTaskHtml(p, g){
+  const k = p.id + ":" + g.id;
+  if(!ui.addTask[k]){
+    return `<div class="add-task-row"><button class="note-toggle" data-act="show-add-task" data-plan="${esc(p.id)}" data-phase="${esc(g.id)}">+ Add task to ${esc(g.label)}</button></div>`;
+  }
+  return `<div class="add-task-form" data-add-form="${esc(k)}">
+    <input type="text" maxlength="300" placeholder="Task name…" data-role="ct-label" aria-label="New task name">
+    <input type="date" data-role="ct-due" aria-label="Optional due date" title="Optional due date">
+    <button type="button" class="btn primary sm" data-act="add-custom" data-plan="${esc(p.id)}" data-phase="${esc(g.id)}">Add</button>
+    <button type="button" class="btn ghost sm" data-act="hide-add-task" data-plan="${esc(p.id)}" data-phase="${esc(g.id)}">Cancel</button>
+  </div>`;
 }
 function taskRow(p, t){
   const st = taskState(p, t.id);
@@ -1356,8 +1422,8 @@ function taskRow(p, t){
   // Manual due-date override (canonical taskManualDueDate): a pencil on any
   // task that has a TASK_DUE rule; the pinned date also anchors downstream
   // forecasts when set on an anchor task (Obtain All Docs / Final Files).
-  const ovr = manualDue(p, t.id);
-  const canPin = !!TASK_DUE[t.id] && !inactive;
+  const ovr = t.custom ? (info.manual ? info.due : "") : manualDue(p, t.id);
+  const canPin = (!!TASK_DUE[t.id] || t.custom) && !inactive;
   const pencil = canPin ? ` <button class="due-pencil ${ovr?"has-ovr":""}" data-act="edit-due" data-plan="${esc(p.id)}" data-task="${esc(t.id)}" title="${ovr?"Due date pinned — edit or clear":"Pin a manual due date"}" aria-label="Override due date">✎</button>` : "";
   const dueEditor = canPin && ui.dueEdit[p.id + ":" + t.id] ? `<div class="due-edit">
       <label>Pin due</label>
@@ -1367,7 +1433,7 @@ function taskRow(p, t){
   return `<div class="trow ${st.status==="done"?"is-done":""} ${st.status==="na"?"is-na":""}">
     <div class="trow-main">
       <div style="min-width:0">
-        <div class="t-name">${esc(label)}</div>
+        <div class="t-name">${esc(label)}${t.custom?` <span class="ct-badge">Custom</span><button class="ct-del" data-act="del-custom" data-plan="${esc(p.id)}" data-task="${esc(t.id)}" title="Remove this custom task">Remove</button>`:""}</div>
         <div class="t-sub">${esc(t.description || "")}${dueHtml}${pencil}</div>
         ${warn?`<div class="trow-warn">${esc(warn)}</div>`:""}
         ${dueEditor}
@@ -1567,18 +1633,59 @@ const CC = {
     render();
   },
   setDueOverride(pid, tid, val){
-    const p = planById(pid); if(!p || !TASK_DUE[tid]) return;
-    p.customDates = p.customDates || {};
-    if(dateOr(val)) p.customDates[tid] = val;
-    else if(!val) delete p.customDates[tid];
-    else return;                         // partial/invalid input — ignore
+    const p = planById(pid); if(!p) return;
+    const ct = (p.customTasks || []).find(x => x.id === tid);
+    if(ct){                              // custom tasks carry their own date
+      if(dateOr(val)) ct.due = val;
+      else if(!val) ct.due = "";
+      else return;                       // partial/invalid input — ignore
+    } else {
+      if(!TASK_DUE[tid]) return;
+      p.customDates = p.customDates || {};
+      if(dateOr(val)) p.customDates[tid] = val;
+      else if(!val) delete p.customDates[tid];
+      else return;                       // partial/invalid input — ignore
+    }
     p.updatedAt = new Date().toISOString();
     persist(); render();
   },
   clearDueOverride(pid, tid){
     const p = planById(pid); if(!p) return;
-    if(p.customDates) delete p.customDates[tid];
+    const ct = (p.customTasks || []).find(x => x.id === tid);
+    if(ct) ct.due = "";
+    else if(p.customDates) delete p.customDates[tid];
     ui.dueEdit[pid + ":" + tid] = false;
+    p.updatedAt = new Date().toISOString();
+    persist(); render();
+  },
+  showAddTask(pid, phid){ ui.addTask[pid + ":" + phid] = true; render(); focusAddInput(pid, phid); },
+  hideAddTask(pid, phid){ ui.addTask[pid + ":" + phid] = false; render(); },
+  addCustomTask(pid, phid, btn){
+    const p = planById(pid); if(!p) return;
+    if(!PHASES.some(ph => ph.id === phid)) return;
+    const form = btn.closest(".add-task-form"); if(!form) return;
+    const label = form.querySelector("[data-role=ct-label]").value.trim().slice(0, 300);
+    const due = form.querySelector("[data-role=ct-due]").value;
+    if(!label){ toast("Task name can't be blank."); return; }
+    if((p.customTasks || []).length >= 100){ toast("Custom task limit reached (100)."); return; }
+    p.customTasks = p.customTasks || [];
+    const id = "ct-" + newId();
+    p.customTasks.push({ id, phaseId: phid, label, description:"", due: dateOr(due) });
+    p.tasks = p.tasks || {};
+    p.tasks[id] = { taskId:id, status:"open", note:"", updatedAt:new Date().toISOString(), completedAt:"" };
+    ui.addTask[pid + ":" + phid] = false;
+    p.updatedAt = new Date().toISOString();
+    persist(); render();
+    toast("Task added");
+  },
+  deleteCustomTask(pid, tid){
+    const p = planById(pid); if(!p) return;
+    const ct = (p.customTasks || []).find(x => x.id === tid); if(!ct) return;
+    if(!confirm(`Remove custom task "${ct.label}"? Its status and note go with it.`)) return;
+    p.customTasks = p.customTasks.filter(x => x.id !== tid);
+    if(p.tasks) delete p.tasks[tid];
+    delete ui.noteOpen[pid + ":" + tid];
+    delete ui.dueEdit[pid + ":" + tid];
     p.updatedAt = new Date().toISOString();
     persist(); render();
   },
@@ -1841,6 +1948,12 @@ const CC = {
   }
 };
 
+function focusAddInput(pid, phid){
+  setTimeout(() => {
+    document.querySelector(`[data-add-form="${CSS.escape(pid + ":" + phid)}"] [data-role=ct-label]`)?.focus();
+  }, 0);
+}
+
 let toastTimer;
 function toast(msg){
   const t = $("toast");
@@ -1870,6 +1983,10 @@ function handleAction(el){
     case "toggle-note":  CC.toggleNote(d.plan, d.task); break;
     case "edit-due":     CC.toggleDueEdit(d.plan, d.task); break;
     case "clear-due":    CC.clearDueOverride(d.plan, d.task); break;
+    case "show-add-task": CC.showAddTask(d.plan, d.phase); break;
+    case "hide-add-task": CC.hideAddTask(d.plan, d.phase); break;
+    case "add-custom":   CC.addCustomTask(d.plan, d.phase, el); break;
+    case "del-custom":   CC.deleteCustomTask(d.plan, d.task); break;
     case "reset-data":
       if(confirm("Clear all saved Command Center data? This cannot be undone.")){
         localStorage.removeItem(STORE_KEY);
@@ -1892,6 +2009,11 @@ document.addEventListener("DOMContentLoaded", () => {
   $("themeBtn").addEventListener("click", CC.toggleTheme);
   $("planModal").addEventListener("click", e => { if(e.target === $("planModal")) CC.closePlanModal(); });
   document.addEventListener("keydown", e => {
+    if(e.key === "Enter" && e.target.dataset?.role === "ct-label"){
+      e.preventDefault();
+      const btn = e.target.closest(".add-task-form")?.querySelector("[data-act=add-custom]");
+      if(btn) handleAction(btn);
+    }
     if(e.key === "Escape") CC.closePlanModal();
   });
   document.addEventListener("click", e => {
