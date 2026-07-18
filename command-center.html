@@ -1705,6 +1705,7 @@ const CC = {
     const strategies = [...document.querySelectorAll("[name=strategy]:checked")].map(i=>i.value);
     if(planType !== "startup" && !strategies.length){ toast("Pick at least one conversion strategy."); return; }
     if(planType === "merger" && !$("f_merger").value){ toast("Pick a merger type."); return; }
+    if(!$("f_name").value.trim()){ toast("Plan name can't be blank."); $("f_name").focus(); return; }
 
     const oldIntake = existing?.intake || {};
     const next = existing ? structuredClone(existing) : { id, createdAt: now, status:"pre_start", tasks:{}, customDates:{}, dateHistory:[] };
